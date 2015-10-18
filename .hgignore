@@ -1,0 +1,6 @@
+rsm-project.wpu
+rsm-project.wpr
+db.sqlite3
+
+syntax: glob
+*.pyc
