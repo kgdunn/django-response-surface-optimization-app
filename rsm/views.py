@@ -24,13 +24,13 @@ def run_simulation():
     start_time = time.clock()
     code = r"""
     def simulate(A):
-        coded = (A - 135)/15
+        coded = (A - 135)/15.0
         y = round(coded * 15 - 2.4 * coded * coded + 93, 1) 
-        return '{{"output": {0}}}'.format(*(y,))
+        return '{{\"output\": {0}}}'.format(*(y,))
     """
     
-    code = "\nimport numpy as np\n" + code + "\n\nprint(simulate(A=204))"
-    command = 'python -c"{0}"'.format(code)
+    code = "\nimport numpy as np\n" + code + "\n\nprint(simulate(A=227))"
+    command = r'python -c"{0}"'.format(code)
     proc = subprocess.Popen(command, shell=True, bufsize=-1, 
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
@@ -47,6 +47,8 @@ def process_simulation_input():
     """Cleans up the inputs from the web-based (typically human-readable) form,
     into numeric format expected by the simulation.
     """
+    # NOTE: all inputs must be converted to floating point, to avoid any
+    # discrepancy with integer division.
     pass
     
 def process_simulation_output():
