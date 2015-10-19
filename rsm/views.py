@@ -1,6 +1,15 @@
+# Dependancies (other than a basic Python + Django):
+# pip install -U subprocess32
+
 from django.shortcuts import render
 
-
+import sys
+import time
+if sys.version_info < (3, 2, 0):
+    import subprocess32 as subprocess
+else:
+    import subprocess
+    
 
 def run_simulation():
     """Runs simulation of the required ``System``, with timeout. Returns a 
@@ -10,7 +19,29 @@ def run_simulation():
     #https://stackoverflow.com/questions/2983963/run-a-external-program-with-specified-max-running-time
     
     # https://stackoverflow.com/questions/1191374/subprocess-with-timeout
-    pass
+    
+    
+    start_time = time.clock()
+    code = r"""
+    def simulate(A):
+        coded = (A - 135)/15
+        y = round(coded * 15 - 2.4 * coded * coded + 93, 1) 
+        return '{{"output": {0}}}'.format(*(y,))
+    """
+    
+    code = "\nimport numpy as np\n" + code + "\n\nprint(simulate(A=204))"
+    command = 'python -c"{0}"'.format(code)
+    proc = subprocess.Popen(command, shell=True, bufsize=-1, 
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    
+    try:
+        std_out, std_err = proc.communicate(None, timeout=1)
+        
+    except subprocess.TimeoutExpired:
+        std_out = 0.0
+        std_err = 'Timeout'
+    
+    duration = time.clock() - start_time
     
 def process_simulation_input():
     """Cleans up the inputs from the web-based (typically human-readable) form,

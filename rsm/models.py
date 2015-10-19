@@ -59,8 +59,10 @@ class System(models.Model):
                                                            "required by user"),
                                      blank=False, null=False, default=0)
     source = models.TextField(verbose_name=("Python source code that will be "
-                                           "executed. Called function with " 
-                                           "name ``simulate(...)`` must exist"),
+                                           "executed. A function with the " 
+                                           "name ``simulate(...)`` must exist. "
+                                           "The NumPy library is available "
+                                           "as ``np``."),
                               default=u"def simulate(A, B, ):\n    # Code here",
                               unique=True, blank=False)
     simulation_timeout = models.PositiveSmallIntegerField(blank=False, 
