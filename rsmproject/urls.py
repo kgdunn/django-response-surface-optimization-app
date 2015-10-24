@@ -21,5 +21,5 @@ from rsm import urls as rsm_urls
 
 urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^', include(rsm_urls))
+    url(r'^', include(rsm_urls, namespace="rsmapp"))
 ]

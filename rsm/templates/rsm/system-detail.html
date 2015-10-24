@@ -1,1 +1,15 @@
-{{ system }}
+<h2>{{ system.full_name }}</h2>
+<p>{{system.description|safe|linebreaks}}
+
+
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+<form action="{% url 'rsmapp:one_system_submit' system.slug %}" method="post">
+{% csrf_token %}
+{% for input in system.input_set.all %}
+    <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ choice.id }}" />
+    <label for="choice{{ forloop.counter }}">{{ choice.choice_text }}</label><br />
+{% endfor %}
+<input type="submit" value="Vote" />
+</form>
+

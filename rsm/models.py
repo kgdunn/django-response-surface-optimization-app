@@ -1,7 +1,7 @@
 from django.db import models
 import numpy as np
 
-# Person
+
 class Person(models.Model):
     """ Defines a person / course participant """
     name = models.CharField(max_length=200)
@@ -22,7 +22,7 @@ class Token(models.Model):
                                              unpack_ipv4=False)  
     
 class Tag(models.Model):
-    """Tags for ``Systems``."""
+    """ Tags for ``Systems``. """
     short_name = models.CharField(max_length=50)
     description = models.CharField(max_length=150)
     
@@ -31,6 +31,7 @@ class Tag(models.Model):
     
     
 class Result(models.Model):
+    """ A result from simulating the system for a particular user. """
     person = models.ForeignKey('rsm.Person')
     token = models.ForeignKey('rsm.Token')
     system = models.ForeignKey('rsm.System')
@@ -49,6 +50,7 @@ class Result(models.Model):
                                                    blank=True, null=True)
       
 class System(models.Model):
+    """ A simulated system, or process. """
     full_name = models.CharField(max_length=250)
     slug = models.SlugField()
     description = models.TextField(verbose_name=("A description of what this "
@@ -82,7 +84,7 @@ class System(models.Model):
     delay_result = models.IntegerField(verbose_name=("Number of seconds before "
                                                      "the result may be shown "
                                                      "to users."), default=0)
-    tags = models.ManyToManyField('rsm.Tag')
+    tags = models.ManyToManyField('rsm.Tag')    
     known_peak_inputs = models.TextField(verbose_name=("JSON structure giving "
                                                        "the input(s) known to "
                                                        "produce a maximum"),
@@ -101,3 +103,35 @@ class System(models.Model):
     
     def __str__(self):
         return self.full_name
+    
+    
+class Input(models.Model):
+    """An input into one of the systems"""
+    display_name = models.CharField(max_length=200)
+    slug = models.SlugField()
+    system = models.ForeignKey('rsm.System')
+    NUMERIC_TYPE_CHOICES = (
+        ('CON', 'Continuous'),
+        ('CAT', 'Categorical'),        
+    )    
+    ntype = models.CharField(choices=NUMERIC_TYPE_CHOICES, max_length=3, 
+                             default='CON', verbose_name=("The numeric type of "
+                                                        "the input variable."))
+    level_numeric_mapping = models.TextField(verbose_name=("Specify UNIQUE "
+        "names for each numeric level of a categorical variable; JSON format."), 
+        blank=True, help_text=('For example: {"water": "-1", "vinegar": "+1"} '
+                               'would map the "water" level to -1 and "vinegar" '
+                               'level to +1 in the simulation. Leave blank for '
+                               'continuous variables.'))
+    lower_bound = models.FloatField(blank=True, help_text=("If supplied, will "
+        "ensure the user does not enter a value below this."))
+    upper_bound = models.FloatField(blank=True, help_text=("If supplied, will "
+            "ensure the user does not enter a value above this."))    
+    default_value = models.FloatField(help_text=("The default used, e.g. in a "
+                                                 "multidimensional (>3) plot."))
+    
+    units = models.CharField(max_length=100, help_text="The units of the input")
+    
+    def __str__(self):
+        return self.system + "::" + self.display_name    
+    

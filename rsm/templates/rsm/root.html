@@ -1,7 +1,7 @@
 {% if system_list %}
     <ul>
     {% for system in system_list %}
-        <li><a href="/system/{{ system.slug }}/">{{ system.full_name }}</a></li>
+        <li><a href="{% url 'rsmapp:show_one_system' system.slug %}">{{ system.full_name }}</a></li>
     {% endfor %}
     </ul>
 {% else %}
