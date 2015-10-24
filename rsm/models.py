@@ -50,6 +50,7 @@ class Result(models.Model):
       
 class System(models.Model):
     full_name = models.CharField(max_length=250)
+    slug = models.SlugField()
     description = models.TextField(verbose_name=("A description of what this "
         "system does, and hints on the objective of the optimization."), 
         unique=True, blank=False, null=False, default="The aim of this ...")

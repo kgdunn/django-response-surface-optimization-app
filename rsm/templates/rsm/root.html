@@ -1,0 +1,9 @@
+{% if system_list %}
+    <ul>
+    {% for system in system_list %}
+        <li><a href="/system/{{ system.slug }}/">{{ system.full_name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No systems are available.</p>
+{% endif %}
