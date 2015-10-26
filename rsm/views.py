@@ -79,7 +79,6 @@ def process_simulation_input(values, inputs):
                                'numeric value.').format(item.display_name))
 
     # Success! Now check the bounds.
-
     for item in inputs:
         if item.lower_bound is not None:
             if out[item.slug] < item.lower_bound:
@@ -94,11 +93,12 @@ def process_simulation_input(values, inputs):
                             '.').format(item.display_name, item.upper_bound))
 
         if math.isnan(out[item.slug]):
-            raise OutOfBoundsInputError('Input "{0}" may not be "NaN".')
+            raise OutOfBoundsInputError('Input "{0}" may not be "NaN".'.format(
+                item.display_name))
 
         if math.isinf(out[item.slug]):
             raise OutOfBoundsInputError(('Input "{0}" may not be "-Inf" or '
-                                         ''"+Inf'".))
+                                         '"+Inf".').format(item.display_name))
 
     # End of checking all the inputs
     return out
