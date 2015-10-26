@@ -4,7 +4,7 @@ import numpy as np
 
 class Person(models.Model):
     """ Defines a person / course participant """
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, verbose_name="Leaderboard name")
     level = models.SmallIntegerField(verbose_name="Skill level of the user",
                                      blank=False, null=False, default=0)
     email = models.EmailField()
@@ -28,7 +28,6 @@ class Tag(models.Model):
 
     def __str__(self):
         return self.short_name
-
 
 class Result(models.Model):
     """ A result from simulating the system for a particular user. """

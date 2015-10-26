@@ -10,6 +10,6 @@ urlpatterns = [
         name='show_one_system'),
 
     # ex: /system/short_name/run
-    url(r'^system/(?P<short_name_slug>[-\w]+)/run$',
-        views.run_experiment, name='run-experiment'),
+    #url(r'^system/(?P<short_name_slug>[-\w]+)/run$',
+    #    views.run_experiment, name='run-experiment'),
 ]
