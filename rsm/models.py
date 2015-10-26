@@ -35,6 +35,8 @@ class Experiment(models.Model):
     person = models.ForeignKey('rsm.Person')
     token = models.ForeignKey('rsm.Token')
     system = models.ForeignKey('rsm.System')
+    # True if the result is successfully simulated (i.e. if the simulation
+    # did not time out, or crash for some reason.)
     is_valid = models.BooleanField()
     time_to_solve = models.FloatField(verbose_name="Time to solve model",
                                       blank=False, null=False, default=0.0)
@@ -72,7 +74,7 @@ class System(models.Model):
                               unique=True, blank=False)
     simulation_timeout = models.PositiveSmallIntegerField(blank=False,
                                                           null=False,
-                                                          default=0,
+                                                          default=5,
         verbose_name="Seconds that may elapse before simulation is killed.")
     default_error_output = models.FloatField(default=-987654321.0,
         verbose_name="The default value assigned when the simulation fails.")
@@ -91,16 +93,16 @@ class System(models.Model):
                                                        "the input(s) known to "
                                                        "produce a maximum"),
                                          blank=True)
-    noise_standard_deviation = models.FloatField(default=0,
-        verbose_name=("Standard deviation of normally distributed noise to add. "
-            "Both normally and uniformly distributed noise will be added, "
-            "if specified as non-zero values here."))
-    noise_uniform_multiplier = models.FloatField(default=0,
-        verbose_name=("Multiplier for uniformally distributed noise: y = mx + "
-                      "c; this is for multiplier 'm'."))
-    noise_uniform_offset = models.FloatField(default=0,
-        verbose_name=("Offset for uniformally distributed noise: y = mx + c; "
-                      "this is for offset value 'c'."))
+    #noise_standard_deviation = models.FloatField(default=0,
+    #    verbose_name=("Standard deviation of normally distributed noise to add. "
+    #        "Both normally and uniformly distributed noise will be added, "
+    #        "if specified as non-zero values here."))
+    #noise_uniform_multiplier = models.FloatField(default=0,
+    #    verbose_name=("Multiplier for uniformally distributed noise: y = mx + "
+    #                  "c; this is for multiplier 'm'."))
+    #noise_uniform_offset = models.FloatField(default=0,
+    #    verbose_name=("Offset for uniformally distributed noise: y = mx + c; "
+    #                  "this is for offset value 'c'."))
 
 
     def __str__(self):

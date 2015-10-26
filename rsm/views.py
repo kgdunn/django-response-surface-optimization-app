@@ -54,15 +54,17 @@ def run_simulation(system, simvalues):
     start_time = time.clock()
 
     code = "\nimport numpy as np\n" + system.source
-    code_call = """\n\nprint(simulate("""
+    code_call = """\n\nout = simulate("""
     for key, value in simvalues.iteritems():
         code_call = code_call + "{0}={1}, ".format(key, value)
 
-    code_call = code_call + "))"
+    code_call = code_call + ")\n"
     code = code + code_call
 
-    #if
-
+    if r"post_process(" in system.source:
+        code = code + "print(post_process(out))"
+    else:
+        code = code + "print(out)"
 
     command = r'python -c"{0}"'.format(code)
     proc = subprocess.Popen(command,
@@ -72,8 +74,8 @@ def run_simulation(system, simvalues):
                             stderr=subprocess.PIPE)
 
     try:
-        std_out, std_err = proc.communicate(None, timeout=1)
-
+        std_out, std_err = proc.communicate(None,
+                                            timeout=system.simulation_timeout)
     except subprocess.TimeoutExpired:
         std_out = 'should_never_be_used_as_output'
         std_err = 'Timeout'
@@ -86,11 +88,6 @@ def run_simulation(system, simvalues):
         result = json.dumps({'output': system.default_error_output})
     else:
         result = std_out
-
-
-        #the addition of noise to the primary output
-        #    * runs any post-processing function specified in the model (e.g. clamping
-        #      to certain minimum and maximum bounds)
 
     return (result, duration)
 
@@ -136,15 +133,32 @@ def process_simulation_input(values, inputs):
     # End of checking all the inputs
     return out
 
-def process_simulation_output(result, duration, next_run):
-    """Cleans simulation output JSON, parses it, and returns it to be saved in
-    the ``Results`` objects.
-
-    The output processing includes:
-
-    * adding the time-delay before results are displayed to the user.
+def process_simulation_output(result, next_run, system):
+    """Cleans simulation output text, parses it, and returns it to be saved in
+    the ``Experiment`` objects. The output is returned, but not saved here (that
+    is to be done elsewhere).
     """
-    pass
+    result = result.strip('\n')
+    result = result.replace("'", '"')
+    result = json.loads(result)
+
+    # Store the numeric result:
+    next_run.main_result = result.pop('output')
+    if next_run.main_result == system.default_error_output:
+        next_run.is_valid = False
+    else:
+        next_run.is_valid = True
+
+    # Are there any other outputs produced?
+    if result:
+        next_run.other_outputs = json.dumps(result)
+
+    # TODO: adding the time-delay before results are displayed to the user.
+    next_run.earliest_to_show = datetime.datetime.now()
+
+    # TODO: add biasing for the user here
+    return next_run
+
 
 def show_all_systems(request):
     """
@@ -197,12 +211,12 @@ def process_experiment(request, short_name_slug):
             values_simulation[key] = value
 
         result, duration = run_simulation(system, values_simulation)
-
+        next_run.time_to_solve = duration
 
         # Store the simulation results
-        run_complete = process_simulation_output(result,
-                                                 duration,
-                                                 next_run)
+        run_complete = process_simulation_output(result, next_run, system)
+        run_complete.save()
+
 
         # Always return an HttpResponseRedirect after successfully dealing
         # with POST data. This prevents data from being posted twice if a
@@ -260,6 +274,7 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
                time_to_solve=-500,
                earliest_to_show=datetime.datetime(datetime.MAXYEAR, 12, 31,
                                                   23,59,59))
+    next_run.save()
     return next_run
 
 
