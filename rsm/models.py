@@ -29,8 +29,9 @@ class Tag(models.Model):
     def __str__(self):
         return self.short_name
 
-class Result(models.Model):
-    """ A result from simulating the system for a particular user. """
+class Experiment(models.Model):
+    """ The inputs, and the corresponding result(s) from simulating the system
+    for a particular user. """
     person = models.ForeignKey('rsm.Person')
     token = models.ForeignKey('rsm.Token')
     system = models.ForeignKey('rsm.System')
@@ -40,6 +41,8 @@ class Result(models.Model):
     earliest_to_show = models.DateTimeField(
         verbose_name="Don't show the result before this point in time")
 
+    inputs = models.TextField(verbose_name=("The system inputs logged in JSON "
+                                            "format"))
     main_result = models.FloatField(verbose_name="Primary numeric output",
                                    default=-987654321.0)
     other_outputs = models.TextField(verbose_name=("Other outputs produced, "
@@ -89,9 +92,9 @@ class System(models.Model):
                                                        "produce a maximum"),
                                          blank=True)
     noise_standard_deviation = models.FloatField(default=0,
-        verbose_name=("Amount of normally distributed noise to add. Both "
-                      "normally and uniformly distributed noise will be added, "
-                      "if specified as non-zero values here."))
+        verbose_name=("Standard deviation of normally distributed noise to add. "
+            "Both normally and uniformly distributed noise will be added, "
+            "if specified as non-zero values here."))
     noise_uniform_multiplier = models.FloatField(default=0,
         verbose_name=("Multiplier for uniformally distributed noise: y = mx + "
                       "c; this is for multiplier 'm'."))
