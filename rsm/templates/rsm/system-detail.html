@@ -1,15 +1,41 @@
+{% load rsm_extras %}
+
 <h2>{{ system.full_name }}</h2>
 <p>{{system.description|safe|linebreaks}}
 
 
-{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+<hr>
+<h2>The next experiment</h2>
 
-<form action="{% url 'rsmapp:one_system_submit' system.slug %}" method="post">
+<span class="rsm-error input-error">
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+<span>
+
+<form action="{% url 'rsmapp:show_one_system' system.slug %}" method="post">
 {% csrf_token %}
-{% for input in system.input_set.all %}
-    <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ choice.id }}" />
-    <label for="choice{{ forloop.counter }}">{{ choice.choice_text }}</label><br />
+{% for input in input_set.all %}
+    <input type="radio" name="{{input.slug}}test" value="A">A
+    <input type="radio" name="{{input.slug}}test" value="B">B
+    <input type="radio" name="{{input.slug}}test" value="C">C
+    <input type="radio" name="{{input.slug}}test" value="D">D
+    <br>
+
+    <label for="{{input.slug}}">{{input.display_name}}</label>:
+    <input type="text"
+           name="{{input.slug}}"
+           size="7"
+           maxlength="7"
+           placeholder="{{input.default_value}}"
+           {% if values %}
+               value="{{ values|get_item:input.slug }}"
+           {% endif %}
+           id="{{input.slug}}"/>{{input.units}}
+    <span id={{input.slug}}-error>({{input.error_message}})</span>
+
+
 {% endfor %}
-<input type="submit" value="Vote" />
+<p><input type="submit" value="Run my experiment!" />
 </form>
 
+<hr>
+<h2>Previous experiments run</h2>

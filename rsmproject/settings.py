@@ -25,7 +25,7 @@ SECRET_KEY = 'cl^c+j_z%p(kdm07a36+kj!)=5wkr8#o62^gslbctaj(+5il_t'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1',]
 
 
 # Application definition
@@ -55,7 +55,7 @@ ROOT_URLCONF = 'rsmproject.urls'
 
 TEMPLATES = [
     {
-              
+
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [],
         'APP_DIRS': True,
