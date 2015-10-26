@@ -11,7 +11,7 @@
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 <span>
 
-<form action="{% url 'rsmapp:show_one_system' system.slug %}" method="post">
+<form action="{% url 'rsmapp:run-experiment' system.slug %}" method="post">
 {% csrf_token %}
 {% for input in input_set.all %}
     <input type="radio" name="{{input.slug}}test" value="A">A
