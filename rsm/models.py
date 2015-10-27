@@ -128,16 +128,26 @@ class Input(models.Model):
                                'level to +1 in the simulation. Leave blank for '
                                'continuous variables.'))
     lower_bound = models.FloatField(blank=True, help_text=("If supplied, will "
-        "ensure the user does not enter a value below this."))
+        "ensure the user does not enter a value below this."), null=True)
     upper_bound = models.FloatField(blank=True, help_text=("If supplied, will "
-            "ensure the user does not enter a value above this."))
+            "ensure the user does not enter a value above this."),
+                                    null=True)
     default_value = models.FloatField(help_text=("The default used, e.g. in a "
                                                  "multidimensional (>3) plot."))
-    units = models.CharField(max_length=100, help_text="The units of the input")
+    units_prefix = models.CharField(max_length=100, help_text=("The prefix for "
+            "the units of the input (can be blank)"), blank=True, null=True)
+    units_suffix = models.CharField(max_length=100, help_text=("The suffix for "
+            "the units of the input (can be blank)"), blank=True, null=True)
     error_message = models.CharField(max_length=200, blank=True,
                                      help_text=("Any error message text that "
                                                 "should be shown during input "
                                                 "validation."))
+    n_decimals = models.PositiveSmallIntegerField(help_text=("The number of "
+                            "decimals to show in the numeric representation."),
+                                          verbose_name="Number of decimals",
+                                                        default=0)
+
+
 
     def __str__(self):
         return self.system.full_name + "::" + self.display_name
