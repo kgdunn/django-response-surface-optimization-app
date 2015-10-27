@@ -13,21 +13,32 @@
 
 <form action="{% url 'rsmapp:show_one_system' system.slug %}" method="post">
 {% csrf_token %}
-{% for input in input_set.all %}
+{% for item in input_set.all %}
     <p>
-    <label for="{{input.slug}}">{{input.display_name}}</label>: &nbsp;
-    {{input.units_prefix}}
+    <label for="{{item.slug}}">{{item.display_name}}</label>: &nbsp;
+    {{item.units_prefix}}
+
+    {% if item.ntype == "CON" %}
     <input type="text"
-           name="{{input.slug}}"
+           name="{{item.slug}}"
            size="7"
            maxlength="7"
-           placeholder="{{input.default_value|get_floatformat:input.n_decimals}}"
+           placeholder="{{item.default_value|get_floatformat:item.n_decimals}}"
            {% if values %}
-               value="{{ values|get_item:input.slug|floatformat:3 }}"
+               value="{{ values|get_item:item.slug|floatformat:3 }}"
            {% endif %}
-           id="{{input.slug}}"/>
-           {{input.units_suffix}}
-    <span id={{input.slug}}-error>({{input.error_message}})</span>
+           id="{{item.slug}}"/>
+    {% elif item.ntype == "CAT" %}
+        {% for key, value in categoricals|dict_iteration:item.slug %}
+            <input type="radio" name="{{item.slug}}" value="{{key}}">{{key}}
+        {% endfor %}
+    {% endif %}
+           {{item.units_suffix}}
+
+    <span id={{item.slug}}-error>{% if item.error_message%}
+                                        ({{item.error_message}})
+                                  {% endif %}
+    </span>
 
 
 
@@ -38,8 +49,5 @@
 <hr>
 <h2>Previous experiments run</h2>
 
-<input type="radio" name="{{input.slug}}test" value="A">A
-<input type="radio" name="{{input.slug}}test" value="B">B
-<input type="radio" name="{{input.slug}}test" value="C">C
-<input type="radio" name="{{input.slug}}test" value="D">D
+
 <br>

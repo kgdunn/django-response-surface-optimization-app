@@ -9,6 +9,10 @@ class Person(models.Model):
                                      blank=False, null=False, default=0)
     email = models.EmailField()
 
+#class PersonSystem(models.Model):
+#    """ Changes made to a System for a specific Person."""
+#    rotation
+
 class Token(models.Model):
     """ Tokens capture time/date and permissions of a user to access the
     ``System`` models.
@@ -123,7 +127,7 @@ class Input(models.Model):
                                                         "the input variable."))
     level_numeric_mapping = models.TextField(verbose_name=("Specify UNIQUE "
         "names for each numeric level of a categorical variable; JSON format."),
-        blank=True, help_text=('For example: {"water": "-1", "vinegar": "+1"} '
+        blank=True, help_text=('For example: {"water": -1, "vinegar": +1} '
                                'would map the "water" level to -1 and "vinegar" '
                                'level to +1 in the simulation. Leave blank for '
                                'continuous variables.'))
@@ -133,7 +137,8 @@ class Input(models.Model):
             "ensure the user does not enter a value above this."),
                                     null=True)
     default_value = models.FloatField(help_text=("The default used, e.g. in a "
-                                                 "multidimensional (>3) plot."))
+        "multidimensional (>3) plot. For categorical variables this MUST "
+        "correspond to one of the levels in the JSON dictionary."))
     units_prefix = models.CharField(max_length=100, help_text=("The prefix for "
             "the units of the input (can be blank)"), blank=True, null=True)
     units_suffix = models.CharField(max_length=100, help_text=("The suffix for "
@@ -143,9 +148,9 @@ class Input(models.Model):
                                                 "should be shown during input "
                                                 "validation."))
     n_decimals = models.PositiveSmallIntegerField(help_text=("The number of "
-                            "decimals to show in the numeric representation."),
-                                          verbose_name="Number of decimals",
-                                                        default=0)
+        "decimals to show in the numeric representation. Not applicable for "
+        "categorical variables (leave as 0.0)"),
+        verbose_name="Number of decimals", default=0)
 
 
 

@@ -38,6 +38,9 @@ class RSMException(Exception):
     def __str__(self):
         return repr(self.value)
 
+class MissingInputError(RSMException):
+    """ One of the inputs is not supplied (radio/catagorical only)"""
+
 class WrongInputError(RSMException):
     """ Raised when a non-numeric input is provided."""
     pass
@@ -46,7 +49,7 @@ class OutOfBoundsInputError(RSMException):
     """ Raised when an input is outside the bounds."""
     pass
 
-def run_simulation(system, simvalues):
+def run_simulation(system, simvalues, rotation):
     """Runs simulation of the required ``System``, with timeout. Returns a
     result no matter what, even if it is the default result (failure state).
     """
@@ -91,6 +94,22 @@ def run_simulation(system, simvalues):
 
     return (result, duration)
 
+def process_simulation_inputs_templates(inputs):
+    """ Cleans up the inputs so they are rendered appropriately in the Django
+    templates.
+    The categorical variable's numeric levels are split out, and modified
+    into an actual Python dict (not a Django database object)
+    """
+    #return inputs
+    categoricals = {}
+    for item in inputs:
+        # Continuous items need no processing at the moment
+        # Categorical items
+        if item.ntype == 'CAT':
+            categoricals[item.slug] = json.loads(item.level_numeric_mapping)
+
+    return (inputs, categoricals)
+
 def process_simulation_input(values, inputs):
     """Cleans up the inputs from the web-based (typically human-readable) form,
     into numeric format expected by the simulation.
@@ -103,8 +122,13 @@ def process_simulation_input(values, inputs):
     out = {}
     try:
         for item in inputs:
-            out[item.slug] = float(values[item.slug])
-    except ValueError:
+            if item.ntype == 'CON':
+                out[item.slug] = float(values[item.slug])
+            elif item.ntype == 'CAT':
+                types = json.loads(item.level_numeric_mapping)
+                out[item.slug] = types[values[item.slug]]
+
+    except (ValueError, KeyError):  # KeyError: for the categorical variables
         raise WrongInputError(('Input "{0}" could not be converted to a '
                                'numeric value.').format(item.display_name))
 
@@ -179,19 +203,27 @@ def process_experiment(request, short_name_slug):
     try:
         inputs = models.Input.objects.filter(system=system)
         for item in inputs:
-            values[item.slug] = request.POST[item.slug]
+            try:
+                values[item.slug] = request.POST[item.slug]
+            except KeyError:
+                raise MissingInputError(('Input "{0}" was not specified.'.
+                                         format(item.display_name)))
+
 
         values_numeric = process_simulation_input(values, inputs)
 
-    except (WrongInputError, OutOfBoundsInputError) as err:
+    except (WrongInputError, OutOfBoundsInputError, MissingInputError) as err:
         # Redisplay the experiment input form
 
+        input_set = models.Input.objects.filter(system=system)
+        input_set, categoricals = process_simulation_inputs_templates(input_set)
         context = {'system': system,
-                   'input_set': models.Input.objects.filter(system=system),
+                   'input_set': input_set,
                    'error_message': ("You didn't properly enter some of "
                                      "the experimental input(s): "
                                      "{0}").format(err.value),
                    'values': values}
+        context['categoricals'] = categoricals
         return render(request, 'rsm/system-detail.html', context)
     else:
 
@@ -210,13 +242,15 @@ def process_experiment(request, short_name_slug):
             key = key.replace('-', '')
             values_simulation[key] = value
 
-        result, duration = run_simulation(system, values_simulation)
+        # TODO: Get the rotation here
+        rotation = 0
+
+        result, duration = run_simulation(system, values_simulation, rotation)
         next_run.time_to_solve = duration
 
         # Store the simulation results
         run_complete = process_simulation_output(result, next_run, system)
         run_complete.save()
-
 
         # Always return an HttpResponseRedirect after successfully dealing
         # with POST data. This prevents data from being posted twice if a
@@ -245,8 +279,12 @@ def show_one_system(request, short_name_slug):
     # The user has to sign in with an email, and create a display name to
     # enter in experimental results. Come back to this part later.
 
+
+    input_set = models.Input.objects.filter(system=system)
+    input_set, categoricals = process_simulation_inputs_templates(input_set)
     context = {'system': system,
-               'input_set': models.Input.objects.filter(system=system)}
+               'input_set': input_set}
+    context['categoricals'] = categoricals
     return render(request, 'rsm/system-detail.html', context)
 
 
