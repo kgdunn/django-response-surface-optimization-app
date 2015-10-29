@@ -87,7 +87,8 @@ class System(models.Model):
 
     n_outputs = models.PositiveSmallIntegerField(verbose_name=("Number of model "
                                                 "outputs"), default=1)
-    primary_output_display_name = models.TextField(default="Response value")
+    primary_output_display_name_with_units = models.TextField(
+        default="Response value")
     output_json = models.TextField(verbose_name=("Comma-separated list of model "
         'output names; the first one must be "result"'), default="result")
     delay_result = models.IntegerField(verbose_name=("Number of seconds before "
@@ -108,6 +109,7 @@ class System(models.Model):
     #noise_uniform_offset = models.FloatField(default=0,
     #    verbose_name=("Offset for uniformally distributed noise: y = mx + c; "
     #                  "this is for offset value 'c'."))
+
 
 
     def __str__(self):
@@ -161,6 +163,21 @@ class Input(models.Model):
         "decimals to show in the numeric representation. Not applicable for "
         "categorical variables (leave as 0.0)"),
         verbose_name="Number of decimals", default=0)
+
+    def save(self, *args, **kwargs):
+        # Force the bounds to be compatible
+        if self.lower_bound:
+            self.plot_lower_bound = min(self.plot_lower_bound, self.lower_bound)
+        if self.upper_bound:
+            self.plot_upper_bound = max(self.plot_upper_bound, self.upper_bound)
+        if self.lower_bound and self.upper_bound:
+            if self.lower_bound > self.upper_bound:
+                assert(False)
+        if self.plot_lower_bound > self.plot_upper_bound:
+            assert(False)
+
+
+        super(Input, self).save(*args, **kwargs) # Call the "real" save() method
 
 
 

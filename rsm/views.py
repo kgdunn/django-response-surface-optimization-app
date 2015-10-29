@@ -1,5 +1,7 @@
 # Dependancies (other than a basic Python + Django):
 # pip install -U subprocess32
+# pip install -U matplotlib
+# pip install -U plotly
 
 from django.shortcuts import get_object_or_404, render
 from django.http import Http404, HttpResponseRedirect
@@ -17,7 +19,7 @@ import hashlib
 import datetime
 from collections import defaultdict
 import logging.handlers
-#import numpy as np
+import numpy as np
 
 logger = logging.getLogger('RSMLogger')
 logger.setLevel(logging.DEBUG)
@@ -356,18 +358,42 @@ def get_person_experimental_data(person, system, input_set):
     hash_value = hashlib.md5(data_string).hexdigest()
     return data, hash_value
 
+
 def plot_wrapper(data, system, inputs, hash_value):
     """Creates a plot of the data, and returns the HTML code to display the
     plot"""
+
+    def plotting_defaults(vector):
+        """ Finds suitable clamping ranges and a "dy" offset to place marker labels
+        using heuristics.
+        """
+        y_min, y_max = min(vector), max(vector)
+        y_range = y_max - y_min
+        if y_range == 0.0:
+            y_range = 1.0
+        decades = np.log10(np.floor(y_range))
+        y_range_min, y_range_max = y_min - 0.05*y_range, y_max + 0.05*y_range
+        dy = 0.02*y_range
+        return (y_range_min, y_range_max, dy)
+
+    def get_axis_label_name(input_item):
+        """Returns an axis label for a particular input."""
+        if input_item.units_prefix + input_item.units_suffix:
+            return '{0} [{1}{2}]'.format(input_item.display_name,
+                                       input_item.units_prefix,
+                                       input_item.units_suffix)
+        else:
+            return input_item.display_name
+
+
     import matplotlib as matplotlib
     from matplotlib.figure import Figure  # for plotting
-
-    #from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
 
     # 1. Get the limits of the plot from the inputs
     # 2. Create the title automatically
     # 3. Get the axis names from the inputs
-    # 4. PLot the scatterplot of the data
+    # 4a. Plot the scatterplot of the data
     # 4b: use a marker size proportional to objective function
     # 5. Add labels to each point
     # 6. Add gridlines
@@ -383,20 +409,17 @@ def plot_wrapper(data, system, inputs, hash_value):
                  fontsize=16)
 
     # Limits for the y-axis (1D), or limits for the range of the outputs
-    y_min = min(data['_output_'])
-    y_max = max(data['_output_'])
-    y_range = y_max - y_min
-    if y_range == 0.0:
-        y_range = 1.0
-    decades = np.log10(np.floor(y_range))
-    y_range_min, y_range_max = y_min - 0.05*y_range, y_max + 0.05*y_range
-
+    y_range_min, y_range_max, dy = plotting_defaults(data['_output_'])
 
     if len(inputs) == 1:
-        ax.set_xlabel(inputs[0].display_name, fontsize=16)
-        ax.set_ylabel(system.primary_output_display_name, fontsize=16)
+        ax.set_xlabel(get_axis_label_name(inputs[0]),
+                      fontsize=16)
+        ax.set_ylabel(system.primary_output_display_name_with_units,
+                      fontsize=16)
         ax.set_xlim([inputs[0].plot_lower_bound, inputs[0].plot_upper_bound])
         ax.set_ylim([y_range_min, y_range_max])
+
+
     elif len(inputs) == 2:
         pass
 
@@ -405,11 +428,19 @@ def plot_wrapper(data, system, inputs, hash_value):
 
 
     # Now add the actual data points
+    if len(inputs) == 1:
+        x_data = data[inputs[0].slug]
+        _, _, dx = plotting_defaults(x_data)
+
+        ax.plot(x_data, data['_output_'], 'k.', ms=20)
 
 
-
-
-
+        for idx, value in enumerate(x_data):
+            ax.text(value+dx, data['_output_'][idx]+dy, str(idx+1),
+                    horizontalalignment='center',
+                    verticalalignment='center',
+                    fontsize=10,
+                    family='serif')
 
 
     #if show_result:
@@ -495,6 +526,8 @@ def get_plot_HTML(person, system, input_set):
     Django template."""
 
     data, hash_value = get_person_experimental_data(person, system, input_set)
+
+    # TODO: determine whether the hash value already exists
 
     if hash_value == 'exists':
         # Don't generate the plot again
