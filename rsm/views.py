@@ -6,6 +6,8 @@ from django.http import Http404, HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.conf import settings as DJANGO_SETTINGS
 
+
+import plotly
 import sys
 import time
 import math
@@ -321,6 +323,137 @@ def fetch_leaderboard_results(system=None):
     """ Returns the leaderboard for the current system.
     """
     pass
+
+
+def get_person_experimental_data():
+    """Gets the data for a person and returns it, together with a hash value
+    that should/is unique up to that point."""
+    #factor_A = []
+    #factor_B = []
+    #factor_C = []
+    #response = []
+
+    #for entry in expts:
+        #factor_A.append(entry['factor_A'])
+        #factor_B.append(entry['factor_B'])
+        #factor_C.append(entry['factor_C'])
+        #response.append(entry['response'])
+
+    #data_string = str(factor_A) + str(factor_B) + str(factor_C) + \
+                  #str(response) + str(the_student.student_number)
+    #filename = hashlib.md5(data_string).hexdigest() + '.png'
+    #full_filename = DJANGO_SETTINGS.MEDIA_ROOT + filename
+
+def plot_wrapper(data, inputs):
+    """Creates a plot of the data, and returns the HTML code to display the
+    plot"""
+    import matplotlib
+
+    # 1. Get the limits of the plot from the inputs
+    # 2. Create the title automatically
+    # 3. Get the axis names from the inputs
+    # 4. PLot the scatterplot of the data
+    # 5. Add labels
+    # 6. Add gridlines
+
+    # Create the figure
+    matplotlib.rcParams['xtick.direction'] = 'out'
+    matplotlib.rcParams['ytick.direction'] = 'out'
+
+    fig = Figure(figsize=(9,7))
+    rect = [0.15, 0.1, 0.80, 0.85] # Left, bottom, width, height
+    ax = fig.add_axes(rect, frameon=True)
+    ax.set_title('Response surface: experiments performed', fontsize=16)
+    ax.set_xlabel('Temperature [K]', fontsize=16)
+    ax.set_ylabel('Batch duration [min]', fontsize=16)
+
+    if show_result:
+        r = 70         # resolution of surface
+        x1 = np.arange(limits_A[0], limits_A[1], step=(limits_A[1] - limits_A[0])/(r+0.0))
+        x2 = np.arange(limits_B[0], limits_B[1], step=(limits_B[1] - limits_B[0])/(r+0.0))
+        X3_lo = 'H'
+        X3_hi = 'X'
+
+        X1, X2 = np.meshgrid(x1, x2)
+        Y_lo, Y_lo_noisy = generate_result(the_student, (X1, X2, X3_lo),
+                                           pure_response=True)
+        Y_hi, Y_hi_noisy = generate_result(the_student, (X1, X2, X3_hi),
+                                           pure_response=True)
+
+        levels_lo = np.linspace(-30, 3000, 55)*1
+        levels_hi = np.linspace(-30, 3101, 55)*1
+#
+# DO NOT SHOW BLACK CONTOURS
+#
+#        CS_lo = ax.contour(X1, X2, Y_lo, colors='#777777', levels=levels_lo,
+#                           linestyles='solid', linewidths=1)
+        CS_hi = ax.contour(X1, X2, Y_hi, colors='#FF0000', levels=levels_hi,
+                           linestyles='dotted', linewidths=1)
+#        ax.clabel(CS_lo, inline=1, fontsize=10, fmt='%1.0f' )
+        ax.clabel(CS_hi, inline=1, fontsize=10, fmt='%1.0f' )
+
+    # Plot constraint
+    #ax.plot([constraint_a[0], constraint_b[0]], [constraint_a[1], constraint_b[1]], color="#EA8700", linewidth=2)
+
+    baseline_xA, baseline_xB = transform_coords(x1=start_point[0], x2=start_point[1],
+                                                rot=360-the_student.rotation)
+    #my_logger.debug('Baseline [%s] = (%s, %s)' % (the_student.student_number,
+    #                                              baseline_xA, baseline_xB))
+
+    ax.text(391, 20.5, the_student.group_name, horizontalalignment='left', verticalalignment='center', fontsize=10, fontstyle='italic')
+
+    # Baseline marker and label.
+    ax.text(baseline_xA, baseline_xB, "    Baseline",
+            horizontalalignment='left', verticalalignment='center',
+            color="#0000FF")
+    ax.plot(baseline_xA, baseline_xB, 'r.', linewidth=2, ms=20)
+
+    for idx, entry_A in enumerate(factor_A):
+
+        # Do not rotate the location of the labels
+        xA, xB = entry_A, factor_B[idx]
+        if factor_C[idx] == 'H':
+            ax.plot(xA, xB, 'k.', ms=20)
+        else:
+            ax.plot(xA, xB, 'r.', ms=20)
+
+
+        rand_theta = random.uniform(0, 2*np.pi)
+        dx = 1.4 * np.cos(rand_theta) # math.copysign(random.uniform(0.45, 0.55), random.uniform(-1,1))
+        dy = 1.0 * np.sin(rand_theta) # math.copysign(random.uniform(0.45, 0.55), random.uniform(-1,1))
+
+        ax.text(xA+dx, xB+dy, str(idx+1),horizontalalignment='center', verticalalignment='center',)
+
+    #ax.plot(107, 57, 'k.', ms=20)
+    #ax.text(108, 57, 'Impeller Z', va='center', ha='left')
+
+    #ax.plot(107, 59, 'r.', ms=20)
+    #ax.text(108, 59, 'Impeller Q', va='center', ha='left')
+
+    ax.set_xlim(limits_A)
+    ax.set_ylim(limits_B)
+
+    # Grid lines
+    ax.grid(color='k', linestyle=':', linewidth=1)
+    #for grid in ax.yaxis.get_gridlines():
+    #     grid.set_visible(False)
+
+
+    canvas=FigureCanvasAgg(fig)
+    logger.debug('Saving figure: ' + full_filename)
+    fig.savefig(full_filename, dpi=150, facecolor='w', edgecolor='w', orientation='portrait', papertype=None, format=None, transparent=True)
+
+    return filename
+
+def plot_results():
+    """Plots the data into a PNG figure file that may be rendered into a
+    Django template."""
+
+    get_person_experimental_data()
+
+    inputs = models.Input.objects.filter(None)
+    plot_html = plot_wrapper(data, inputs)
+
 
 
 

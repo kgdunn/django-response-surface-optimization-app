@@ -136,6 +136,15 @@ class Input(models.Model):
     upper_bound = models.FloatField(blank=True, help_text=("If supplied, will "
             "ensure the user does not enter a value above this."),
                                     null=True)
+    plot_lower_bound = models.FloatField(blank=False, default=0.0,
+        help_text=("Plots must be generated to show the true solution. What is "
+                   "the lower used in these plots for this variable? (Leave "
+                   "as zero for categorical variables.)"))
+    plot_upper_bound = models.FloatField(blank=False, default=0.0,
+        help_text=("Plots must be generated to show the true solution. What is "
+                   "the upper used in these plots for this variable? (Leave "
+                   "as zero for categorical variables.)"))
+
     default_value = models.FloatField(help_text=("The default used, e.g. in a "
         "multidimensional (>3) plot. For categorical variables this MUST "
         "correspond to one of the levels in the JSON dictionary."))
