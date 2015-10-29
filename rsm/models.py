@@ -87,6 +87,7 @@ class System(models.Model):
 
     n_outputs = models.PositiveSmallIntegerField(verbose_name=("Number of model "
                                                 "outputs"), default=1)
+    primary_output_display_name = models.TextField(default="Response value")
     output_json = models.TextField(verbose_name=("Comma-separated list of model "
         'output names; the first one must be "result"'), default="result")
     delay_result = models.IntegerField(verbose_name=("Number of seconds before "
