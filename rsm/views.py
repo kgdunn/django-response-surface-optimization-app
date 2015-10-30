@@ -96,6 +96,8 @@ def run_simulation(system, simvalues, rotation):
     if std_err:
         # Typically: -987654321.0
         result = json.dumps({'output': system.default_error_output})
+        logger.warning('Simulation FAILED: {0}. Error={1}'.format(
+                            system.full_name, std_err))
     else:
         result = std_out
 
@@ -208,7 +210,7 @@ def process_experiment(request, short_name_slug):
     system = get_object_or_404(models.System, slug=short_name_slug)
     values = {}
     try:
-        inputs = models.Input.objects.filter(system=system)
+        inputs = models.Input.objects.filter(system=system).order_by('slug')
         for item in inputs:
             try:
                 values[item.slug] = request.POST[item.slug]
@@ -222,7 +224,7 @@ def process_experiment(request, short_name_slug):
     except (WrongInputError, OutOfBoundsInputError, MissingInputError) as err:
         # Redisplay the experiment input form
 
-        input_set = models.Input.objects.filter(system=system)
+        input_set = models.Input.objects.filter(system=system).order_by('slug')
         input_set, categoricals = process_simulation_inputs_templates(input_set)
         context = {'system': system,
                    'input_set': input_set,
@@ -282,7 +284,7 @@ def show_one_system(request, short_name_slug):
     fetch_leaderboard_results()
 
     person = models.Person.objects.get(id=1)
-    input_set = models.Input.objects.filter(system=system)
+    input_set = models.Input.objects.filter(system=system).order_by('slug')
 
     plot_HTML = get_plot_HTML(person, system, input_set)
 
@@ -388,18 +390,50 @@ def plot_wrapper(data, system, inputs, hash_value):
         if y_range == 0.0:
             y_range = 1.0
 
-        y_range_min, y_range_max = y_min - 0.05*y_range, y_max + 0.05*y_range
+        y_range_min, y_range_max = y_min - 0.07*y_range, y_max + 0.07*y_range
         dy = 0.015*y_range
         return (y_range_min, y_range_max, dy)
 
     def get_axis_label_name(input_item):
         """Returns an axis label for a particular input."""
-        if input_item.units_prefix + input_item.units_suffix:
-            return '{0} [{1}{2}]'.format(input_item.display_name,
-                                       input_item.units_prefix,
-                                       input_item.units_suffix)
+        if input_item.units_prefix and not(input_item.units_suffix):
+            return '{0} [{1}]'.format(input_item.display_name,
+                                      input_item.units_prefix)
+        elif not(input_item.units_prefix) and input_item.units_suffix:
+            return '{0} [{1}]'.format(input_item.display_name,
+                                      input_item.units_suffix)
+        elif input_item.units_prefix + input_item.units_suffix:
+            return '{0} [{1} {2}]'.format(input_item.display_name,
+                                          input_item.units_prefix,
+                                          input_item.units_suffix)
         else:
             return input_item.display_name
+
+    def add_labels(axis, dims, xvalues, yvalues, zvalues=None, dx=0, dy=0, dz=0,
+                   rotate=False):
+        """Adds labels to an axis ``axis`` in 1, 2 or 3 dimensions.
+        If ``rotate`` is True, then the labels are randomly rotated about the
+        plotted point. The ``dx``, ``dy`` and ``dz`` are the base offsets from
+        the coordinate values given in ``xvalues``, ``yvalues``, and ``zvalues``
+        respectively.
+        """
+        for idx, xvalue in enumerate(xvalues):
+            if rotate:
+                theta = np.random.uniform(0, 2*np.pi)
+            else:
+                theta = 0.0
+
+            rdx = dx*np.cos(theta) - dy*np.sin(theta)
+            rdy = dx*np.sin(theta) + dy*np.cos(theta)
+
+            axis.text(xvalue+rdx,
+                      y_data[idx]+rdy,
+                      str(idx+1),
+                      horizontalalignment='center',
+                      verticalalignment='center',
+                      fontsize=10,
+                      family='serif')
+
 
     # 1. Get the limits of the plot from the inputs
     # 2. Create the title automatically
@@ -428,25 +462,44 @@ def plot_wrapper(data, system, inputs, hash_value):
     ax.set_title('Response surface: summary of all experiments performed',
                  fontsize=16)
 
-    # Limits for the y-axis (1D), or limits for the range of the outputs
-    y_range_min, y_range_max, dy = plotting_defaults(data['_output_'])
+
 
 
     if len(inputs) == 1:
+        x_data = data[inputs[0].slug]
+        y_data = data['_output_']
 
+        ax.set_xlabel(get_axis_label_name(inputs[0]),
+                      fontsize=16)
         ax.set_ylabel(system.primary_output_display_name_with_units,
                       fontsize=16)
-        ax.set_ylim([y_range_min, y_range_max])
 
-        x_data = data[inputs[0].slug]
-        ax.set_xlabel(get_axis_label_name(inputs[0]), fontsize=16)
         x_range_min, x_range_max, dx = plotting_defaults(x_data,
             clamps=[inputs[0].plot_lower_bound, inputs[0].plot_upper_bound])
+
+        y_range_min, y_range_max, dy = plotting_defaults(data['_output_'])
+
         ax.set_xlim([x_range_min, x_range_max])
+        ax.set_ylim([y_range_min, y_range_max])
 
 
     elif len(inputs) == 2:
-        pass
+        # To ensure we always present the data in the same way
+        inputs = inputs.order_by('slug')
+
+        x_data = data[inputs[0].slug]
+        y_data = data[inputs[1].slug]
+
+        ax.set_xlabel(get_axis_label_name(inputs[0]), fontsize=16)
+        ax.set_ylabel(get_axis_label_name(inputs[1]), fontsize=16)
+
+        x_range_min, x_range_max, dx = plotting_defaults(x_data,
+                clamps=[inputs[0].plot_lower_bound, inputs[0].plot_upper_bound])
+        y_range_min, y_range_max, dy = plotting_defaults(y_data,
+                clamps=[inputs[1].plot_lower_bound, inputs[1].plot_upper_bound])
+
+        ax.set_xlim([x_range_min, x_range_max])
+        ax.set_ylim([y_range_min, y_range_max])
 
     elif len(inputs) >= 3:
         pass
@@ -454,16 +507,16 @@ def plot_wrapper(data, system, inputs, hash_value):
 
     # Now add the actual data points
     if len(inputs) == 1:
-        _, _, dx = plotting_defaults(x_data)
-        ax.plot(x_data, data['_output_'], 'k.', ms=marker_size)
+        ax.plot(x_data, y_data, 'k.', ms=marker_size)
+
+    elif len(inputs) == 2:
+
+        # TODO: marker size proportional to response value
+        ax.plot(x_data, y_data, 'k.', ms=marker_size)
 
 
-        for idx, value in enumerate(x_data):
-            ax.text(value+dx, data['_output_'][idx]+dy, str(idx+1),
-                    horizontalalignment='center',
-                    verticalalignment='center',
-                    fontsize=10,
-                    family='serif')
+    # Label the points in the plot
+    add_labels(ax, len(inputs), x_data, y_data, dx=dx, dy=dy, rotate=False)
 
 
     #if show_result:
@@ -529,14 +582,22 @@ def plot_wrapper(data, system, inputs, hash_value):
 
     if USE_PLOTLY:
         logger.debug('Begin: generating Plotly figure: ' + hash_value)
-        plot_url = py.plot_mpl(fig, filename=hash_value, fileopt='overwrite',
-                               auto_open=False, sharing='public')
+        from plotly.exceptions import PlotlyError
+        try:
+            plot_url = py.plot_mpl(fig,
+                                   filename=hash_value,
+                                   fileopt='overwrite',
+                                   auto_open=False,
+                                   sharing='public')
+        except PlotlyError as e:
+            logger.error('Failed to generate Plotly plot:{0}'.format(e.message))
+            return ('A plotting error has occurred and has been logged. However'
+                    ', for faster response, please inform kgdunn@gmail.com. '
+                    'Thank you.')
 
         plot_HTML = """<iframe frameborder="0" seamless="seamless"
             autosize="true" width=60% height=600 modebar="false"
             src="{0}.embed"></iframe>""".format(plot_url)
-
-
 
         logger.debug('Done : generating Plotly figure: ' + plot_url)
 
