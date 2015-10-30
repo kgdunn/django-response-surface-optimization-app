@@ -22,9 +22,11 @@ class Token(models.Model):
     system = models.ForeignKey('rsm.System')
     hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
     was_used = models.BooleanField(default=False)
-    time_used = models.DateTimeField()
+    plot_HTML = models.TextField(default='')
+    time_used = models.DateTimeField(auto_now=True, auto_now_add=False)
     ip_address = models.GenericIPAddressField(verbose_name=None, name=None,
                                              protocol='both',
+                                             default='127.0.0.1',
                                              unpack_ipv4=False)
 
 class Tag(models.Model):

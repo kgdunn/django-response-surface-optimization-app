@@ -21,6 +21,7 @@ from collections import defaultdict
 import logging.handlers
 import matplotlib as matplotlib
 import numpy as np
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger('RSMLogger')
 logger.setLevel(logging.DEBUG)
@@ -357,11 +358,15 @@ def get_person_experimental_data(person, system, input_set):
         data_string += str(data[item.slug])
 
     if not(data['_output_']):
-        hash_value = None
+        hash_value = token = None
     else:
         hash_value = hashlib.md5(data_string).hexdigest()
 
-    return data, hash_value
+        # TODO: put this in a more suitable place
+        token = models.Token.objects.get_or_create(person=person, system=system,
+                                            hash_value=hash_value )
+        token = token[0]
+    return data, hash_value, token
 
 def plot_wrapper(data, system, inputs, hash_value):
     """Creates a plot of the data, and returns the HTML code to display the
@@ -444,7 +449,7 @@ def plot_wrapper(data, system, inputs, hash_value):
         ax = fig.add_axes(rect, frameon=True)
         marker_size = 20
     elif USE_PLOTLY:
-        import matplotlib.pyplot as plt
+
         import plotly.plotly as py
         marker_size = 10
         fig, ax = plt.subplots()
@@ -584,7 +589,7 @@ def plot_wrapper(data, system, inputs, hash_value):
                     'Thank you.')
 
         plot_HTML = """<iframe frameborder="0" seamless="seamless"
-            autosize="true" width=60% height=600 modebar="false"
+            autosize="true" width=100% height=600 modebar="false"
             src="{0}.embed"></iframe>""".format(plot_url)
 
         logger.debug('Done : generating Plotly figure: ' + plot_url)
@@ -610,22 +615,20 @@ def get_plot_HTML(person, system, input_set):
     """Plots the data by generating HTML code that may be rendered into the
     Django template."""
 
-    data, hash_value = get_person_experimental_data(person, system, input_set)
-
-    # TODO: determine whether the hash value already exists, so that the plot
-    #       isn't unnecessary regenerated.
-
-
+    data, hash_value, token = get_person_experimental_data(person,
+                                                           system,
+                                                           input_set)
 
     if hash_value:
-        plot_html = plot_wrapper(data, system, input_set, hash_value)
+        if token and token.plot_HTML:
+            plot_html = token.plot_HTML
+        else:
+            # This speeds up page refreshed. We don't need to recreate existing
+            # plots for a person.
+            plot_html = plot_wrapper(data, system, input_set, hash_value)
+            token.plot_HTML = plot_html
+            token.save()
     else:
         plot_html = 'No plot to display; please run an experiment first.'
 
-
     return plot_html
-
-
-
-
-

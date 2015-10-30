@@ -48,5 +48,33 @@
 <h2>Previous experiments run</h2>
 
 <table width="100%">
-<tr><td>{{plot_html|safe}}</td><td>Experiments here</td></tr>
+<tr><td width="600px">{{plot_html|safe}}</td>
+<td>
+{# Table of experimental results here #}
+<table class="prev-expts-table">
+    <tr>
+    <th>Experiment number</th>
+    <th>Date and time</th>
+    <th>Temperature [K]</th>
+    <th>Batch duration [min]</th>
+    <th>Solvent type</th>
+    <th>Profit [$/kg]</th>
+    </tr>
+
+    {% for expt in PrevExpts %}
+    {%spaceless%}
+    <tr class="{% cycle 'odd' 'even' %} expt-result">
+        <td class="expt-number">{{expt.number}}</td>
+        <td class="datetime">{{expt.date_time|date:"d F Y H:i:s"}}</td>
+        <td class="factor_A">{{expt.factor_A|floatformat:0}}</td>
+        <td class="factor_B">{{expt.factor_B|floatformat:0}}</td>
+            <td class="factor_C">{{expt.factor_C}}</td>
+        <td class="response">{{expt.response|floatformat:0}}</td>
+    </tr>
+    {% endspaceless %}
+    {% endfor %}
+</table>
+
+
+</td></tr>
 </table>
