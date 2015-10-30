@@ -363,6 +363,9 @@ def plot_wrapper(data, system, inputs, hash_value):
     """Creates a plot of the data, and returns the HTML code to display the
     plot"""
 
+    USE_NATIVE = False
+    USE_PLOTLY = not(USE_NATIVE)
+
     def plotting_defaults(vector):
         """ Finds suitable clamping ranges and a "dy" offset to place marker labels
         using heuristics.
@@ -371,7 +374,7 @@ def plot_wrapper(data, system, inputs, hash_value):
         y_range = y_max - y_min
         if y_range == 0.0:
             y_range = 1.0
-        decades = np.log10(np.floor(y_range))
+        #decades = np.log10(np.floor(y_range))
         y_range_min, y_range_max = y_min - 0.05*y_range, y_max + 0.05*y_range
         dy = 0.02*y_range
         return (y_range_min, y_range_max, dy)
@@ -387,7 +390,7 @@ def plot_wrapper(data, system, inputs, hash_value):
 
 
     import matplotlib as matplotlib
-    from matplotlib.figure import Figure  # for plotting
+
     from matplotlib.backends.backend_agg import FigureCanvasAgg
 
     # 1. Get the limits of the plot from the inputs
@@ -399,12 +402,22 @@ def plot_wrapper(data, system, inputs, hash_value):
     # 6. Add gridlines
 
     # Create the figure
-    matplotlib.rcParams['xtick.direction'] = 'out'
-    matplotlib.rcParams['ytick.direction'] = 'out'
+    if USE_NATIVE:
+        from matplotlib.figure import Figure  # for plotting
+        matplotlib.rcParams['xtick.direction'] = 'out'
+        matplotlib.rcParams['ytick.direction'] = 'out'
+        fig = Figure(figsize=(9,7))
+        rect = [0.15, 0.1, 0.80, 0.85] # Left, bottom, width, height
+        ax = fig.add_axes(rect, frameon=True)
+        marker_size = 20
+    elif USE_PLOTLY:
+        import matplotlib.pyplot as plt
+        import plotly.plotly as py
+        marker_size = 10
+        fig, ax = plt.subplots()
+        #py.sign_in('DemoAccount', 'lr1c37zw81')
 
-    fig = Figure(figsize=(9,7))
-    rect = [0.15, 0.1, 0.80, 0.85] # Left, bottom, width, height
-    ax = fig.add_axes(rect, frameon=True)
+
     ax.set_title('Response surface: summary of all experiments performed',
                  fontsize=16)
 
@@ -432,7 +445,7 @@ def plot_wrapper(data, system, inputs, hash_value):
         x_data = data[inputs[0].slug]
         _, _, dx = plotting_defaults(x_data)
 
-        ax.plot(x_data, data['_output_'], 'k.', ms=20)
+        ax.plot(x_data, data['_output_'], 'k.', ms=marker_size)
 
 
         for idx, value in enumerate(x_data):
@@ -501,24 +514,35 @@ def plot_wrapper(data, system, inputs, hash_value):
 
         #ax.text(xA+dx, xB+dy, str(idx+1),horizontalalignment='center', verticalalignment='center',)
 
-
-
-
     # 6. Grid lines
     ax.grid(color='k', linestyle=':', linewidth=1)
 
-    canvas=FigureCanvasAgg(fig)
-    logger.debug('Saving figure: ' + hash_value)
-    fig.savefig(hash_value+'.png',
-                dpi=150,
-                facecolor='w',
-                edgecolor='w',
-                orientation='portrait',
-                papertype=None,
-                format=None,
-                transparent=True)
+    if USE_PLOTLY:
+        logger.debug('Begin: generating Plotly figure: ' + hash_value)
+        plot_url = py.plot_mpl(fig, filename=hash_value, fileopt='overwrite',
+                               auto_open=False, sharing='public')
 
-    return hash_value+'.png'
+        plot_HTML = """<iframe frameborder="0" seamless="seamless"
+            autosize="true" width=60% height=600  modebar=false
+            src="{0}.embed"></iframe>""".format(plot_url)
+
+
+        logger.debug('Done : generating Plotly figure: ' + plot_url)
+
+    elif USE_NATIVE:
+        canvas=FigureCanvasAgg(fig)
+        logger.debug('Saving figure: ' + hash_value)
+        fig.savefig(hash_value+'.png',
+                    dpi=150,
+                    facecolor='w',
+                    edgecolor='w',
+                    orientation='portrait',
+                    papertype=None,
+                    format=None,
+                    transparent=True)
+        plot_HTML = hash_value+'.png'
+
+    return plot_HTML
 
 
 def get_plot_HTML(person, system, input_set):
@@ -534,7 +558,7 @@ def get_plot_HTML(person, system, input_set):
         plot_html = 'No plot to display; please run one experiments first.'
     else:
         plot_html = plot_wrapper(data, system, input_set, hash_value)
-        plot_html = 'Coming soon'
+        #plot_html = 'Coming soon'
 
     return plot_html
 
