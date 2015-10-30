@@ -40,8 +40,6 @@
                                   {% endif %}
     </span>
 
-
-
 {% endfor %}
 <p><input type="submit" value="Run my experiment!" />
 </form>
@@ -49,5 +47,6 @@
 <hr>
 <h2>Previous experiments run</h2>
 
-{{plot_html|safe}}
-<br>
+<table width="100%">
+<tr><td>{{plot_html|safe}}</td><td>Experiments here</td></tr>
+</table>

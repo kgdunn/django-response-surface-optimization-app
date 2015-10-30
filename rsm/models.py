@@ -4,7 +4,8 @@ import numpy as np
 
 class Person(models.Model):
     """ Defines a person / course participant """
-    name = models.CharField(max_length=200, verbose_name="Leaderboard name")
+    display_name = models.CharField(max_length=200,
+                                    verbose_name="Leaderboard name")
     level = models.SmallIntegerField(verbose_name="Skill level of the user",
                                      blank=False, null=False, default=0)
     email = models.EmailField()
@@ -100,6 +101,11 @@ class System(models.Model):
                                                        "the input(s) known to "
                                                        "produce a maximum"),
                                          blank=True)
+    cost_per_experiment = models.FloatField(help_text="Dollar cost per run",
+                                            default=10.00)
+    max_experiments_allowed = models.PositiveIntegerField(default=100)
+
+
     #noise_standard_deviation = models.FloatField(default=0,
     #    verbose_name=("Standard deviation of normally distributed noise to add. "
     #        "Both normally and uniformly distributed noise will be added, "

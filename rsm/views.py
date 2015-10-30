@@ -192,7 +192,6 @@ def process_simulation_output(result, next_run, system):
     # TODO: add biasing for the user here
     return next_run
 
-
 def show_all_systems(request):
     """
     Returns all the systems available to simulate at the user's current level.
@@ -200,7 +199,6 @@ def show_all_systems(request):
     system_list = models.System.objects.all()
     context = {'system_list': system_list}
     return render(request, 'rsm/root.html', context)
-
 
 def process_experiment(request, short_name_slug):
     """ Processes the user's requested experiment; runs it, if it is valid.
@@ -292,15 +290,12 @@ def show_one_system(request, short_name_slug):
     # The user has to sign in with an email, and create a display name to
     # enter in experimental results. Come back to this part later.
 
-
-
     input_set, categoricals = process_simulation_inputs_templates(input_set)
     context = {'system': system,
                'input_set': input_set,
                'plot_html': plot_HTML}
     context['categoricals'] = categoricals
     return render(request, 'rsm/system-detail.html', context)
-
 
 def inputs_to_JSON(inputs):
     """Converts the numeric inputs to JSON, after cleaning. This allows logging
@@ -334,7 +329,6 @@ def fetch_leaderboard_results(system=None):
     """
     pass
 
-
 def get_person_experimental_data(person, system, input_set):
     """Gets the data for a person and returns it, together with a hash value
     that should/is unique up to that point.
@@ -342,7 +336,6 @@ def get_person_experimental_data(person, system, input_set):
     The experiments are returned in the order they were run.
 
     """
-
     data = defaultdict(list)
 
     # Retrieve prior experiments which were valid, for this system, for person
@@ -369,7 +362,6 @@ def get_person_experimental_data(person, system, input_set):
         hash_value = hashlib.md5(data_string).hexdigest()
 
     return data, hash_value
-
 
 def plot_wrapper(data, system, inputs, hash_value):
     """Creates a plot of the data, and returns the HTML code to display the
@@ -434,7 +426,6 @@ def plot_wrapper(data, system, inputs, hash_value):
                       fontsize=10,
                       family='serif')
 
-
     # 1. Get the limits of the plot from the inputs
     # 2. Create the title automatically
     # 3. Get the axis names from the inputs
@@ -461,9 +452,6 @@ def plot_wrapper(data, system, inputs, hash_value):
 
     ax.set_title('Response surface: summary of all experiments performed',
                  fontsize=16)
-
-
-
 
     if len(inputs) == 1:
         x_data = data[inputs[0].slug]
