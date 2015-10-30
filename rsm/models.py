@@ -19,6 +19,7 @@ class Token(models.Model):
     """
     person = models.ForeignKey('rsm.Person')
     system = models.ForeignKey('rsm.System')
+    hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
     was_used = models.BooleanField(default=False)
     time_used = models.DateTimeField()
     ip_address = models.GenericIPAddressField(verbose_name=None, name=None,

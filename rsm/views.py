@@ -19,6 +19,7 @@ import hashlib
 import datetime
 from collections import defaultdict
 import logging.handlers
+import matplotlib as matplotlib
 import numpy as np
 
 logger = logging.getLogger('RSMLogger')
@@ -351,11 +352,20 @@ def get_person_experimental_data(person, system, input_set):
         for item in input_set:
             data[item.slug].append(inputs[item.slug])
             data['_datetime_'].append(entry.earliest_to_show)
-            data['_output_'].append(entry.main_result)
-            data_string += str(data[item.slug]) + str(data['_output_'])
 
+        # After processing all inputs, also process the response value:
+        data['_output_'].append(entry.main_result)
 
-    hash_value = hashlib.md5(data_string).hexdigest()
+    # Update the data_string
+    data_string += str(data['_output_'])
+    for item in input_set:
+        data_string += str(data[item.slug])
+
+    if not(data['_output_']):
+        hash_value = None
+    else:
+        hash_value = hashlib.md5(data_string).hexdigest()
+
     return data, hash_value
 
 
@@ -366,17 +376,20 @@ def plot_wrapper(data, system, inputs, hash_value):
     USE_NATIVE = False
     USE_PLOTLY = not(USE_NATIVE)
 
-    def plotting_defaults(vector):
-        """ Finds suitable clamping ranges and a "dy" offset to place marker labels
-        using heuristics.
+    def plotting_defaults(vector, clamps=None):
+        """ Finds suitable clamping ranges and a "dy" offset to place marker
+        labels using heuristics.
         """
-        y_min, y_max = min(vector), max(vector)
+        if clamps is None:
+            clamps = [float('-inf'), float('+inf')]
+        y_min = max(min(vector), clamps[0])
+        y_max = min(max(vector), clamps[1])
         y_range = y_max - y_min
         if y_range == 0.0:
             y_range = 1.0
-        #decades = np.log10(np.floor(y_range))
+
         y_range_min, y_range_max = y_min - 0.05*y_range, y_max + 0.05*y_range
-        dy = 0.02*y_range
+        dy = 0.015*y_range
         return (y_range_min, y_range_max, dy)
 
     def get_axis_label_name(input_item):
@@ -387,11 +400,6 @@ def plot_wrapper(data, system, inputs, hash_value):
                                        input_item.units_suffix)
         else:
             return input_item.display_name
-
-
-    import matplotlib as matplotlib
-
-    from matplotlib.backends.backend_agg import FigureCanvasAgg
 
     # 1. Get the limits of the plot from the inputs
     # 2. Create the title automatically
@@ -415,7 +423,6 @@ def plot_wrapper(data, system, inputs, hash_value):
         import plotly.plotly as py
         marker_size = 10
         fig, ax = plt.subplots()
-        #py.sign_in('DemoAccount', 'lr1c37zw81')
 
 
     ax.set_title('Response surface: summary of all experiments performed',
@@ -424,13 +431,18 @@ def plot_wrapper(data, system, inputs, hash_value):
     # Limits for the y-axis (1D), or limits for the range of the outputs
     y_range_min, y_range_max, dy = plotting_defaults(data['_output_'])
 
+
     if len(inputs) == 1:
-        ax.set_xlabel(get_axis_label_name(inputs[0]),
-                      fontsize=16)
+
         ax.set_ylabel(system.primary_output_display_name_with_units,
                       fontsize=16)
-        ax.set_xlim([inputs[0].plot_lower_bound, inputs[0].plot_upper_bound])
         ax.set_ylim([y_range_min, y_range_max])
+
+        x_data = data[inputs[0].slug]
+        ax.set_xlabel(get_axis_label_name(inputs[0]), fontsize=16)
+        x_range_min, x_range_max, dx = plotting_defaults(x_data,
+            clamps=[inputs[0].plot_lower_bound, inputs[0].plot_upper_bound])
+        ax.set_xlim([x_range_min, x_range_max])
 
 
     elif len(inputs) == 2:
@@ -442,9 +454,7 @@ def plot_wrapper(data, system, inputs, hash_value):
 
     # Now add the actual data points
     if len(inputs) == 1:
-        x_data = data[inputs[0].slug]
         _, _, dx = plotting_defaults(x_data)
-
         ax.plot(x_data, data['_output_'], 'k.', ms=marker_size)
 
 
@@ -523,13 +533,15 @@ def plot_wrapper(data, system, inputs, hash_value):
                                auto_open=False, sharing='public')
 
         plot_HTML = """<iframe frameborder="0" seamless="seamless"
-            autosize="true" width=60% height=600  modebar=false
+            autosize="true" width=60% height=600 modebar="false"
             src="{0}.embed"></iframe>""".format(plot_url)
+
 
 
         logger.debug('Done : generating Plotly figure: ' + plot_url)
 
     elif USE_NATIVE:
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
         canvas=FigureCanvasAgg(fig)
         logger.debug('Saving figure: ' + hash_value)
         fig.savefig(hash_value+'.png',
@@ -551,14 +563,16 @@ def get_plot_HTML(person, system, input_set):
 
     data, hash_value = get_person_experimental_data(person, system, input_set)
 
-    # TODO: determine whether the hash value already exists
+    # TODO: determine whether the hash value already exists, so that the plot
+    #       isn't unnecessary regenerated.
 
-    if hash_value == 'exists':
-        # Don't generate the plot again
-        plot_html = 'No plot to display; please run one experiments first.'
-    else:
+
+
+    if hash_value:
         plot_html = plot_wrapper(data, system, input_set, hash_value)
-        #plot_html = 'Coming soon'
+    else:
+        plot_html = 'No plot to display; please run an experiment first.'
+
 
     return plot_html
 
