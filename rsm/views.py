@@ -7,7 +7,8 @@ from django.shortcuts import get_object_or_404, render
 from django.http import Http404, HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.conf import settings as DJANGO_SETTINGS
-
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 #import plotly
 import sys
@@ -51,6 +52,10 @@ class MissingInputError(RSMException):
 
 class WrongInputError(RSMException):
     """ Raised when a non-numeric input is provided."""
+    pass
+
+class BadEmailInputError(RSMException):
+    """ Raised when an email address is not valid."""
     pass
 
 class OutOfBoundsInputError(RSMException):
@@ -218,9 +223,29 @@ def process_experiment(request, short_name_slug):
                                          format(item.display_name)))
 
 
+
+
+
+        # We've got all the inputs now; so validate them.
         values_numeric = process_simulation_input(values, inputs)
 
-    except (WrongInputError, OutOfBoundsInputError, MissingInputError) as err:
+        if request.session.get('signed_in', False):
+            # Person is signed in
+            pass
+        else:
+            values_numeric['email_address'] = request.POST['email_address']
+
+        # Check the email address:
+        try:
+            validate_email(values_numeric['email_address'])
+        except ValidationError:
+            raise(BadEmailInputError('You provided an invalid email address.'))
+
+
+    except (WrongInputError, OutOfBoundsInputError, MissingInputError,
+            BadEmailInputError) as err:
+        logger.warn('User error raised: {0}. Context:{1}'.format(err.value,
+                                                                 str(values)))
         # Redisplay the experiment input form
 
         # TODO: redirect back to ``show_one_system()`` so you don't repeat code.
@@ -329,10 +354,14 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
 
     # Once signed in: create 2 session settings: signed_in=True, person_id=``id``
 
-    assert(False)
+    # TODO: ``values_numeric`` contains the email address now. Create the user
+    #       as being unvalidated, and assign the experiment to them. Their
+    #       name will be anonymous[ID] until they've signed in and validated.
+
     if request.session.get('signed_in', False):
         person = models.Person.objects.get(id=request.session['person_id'])
     else:
+        # This is an anonymous user
         person = models.Person.objects.get(display_name='Anonymous')
 
     next_run = models.Experiment(person=person,
