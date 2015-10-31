@@ -53,23 +53,24 @@
 {# Table of experimental results here #}
 <table class="prev-expts-table">
     <tr>
-    <th>Experiment number</th>
+    <th>Experiment<br>number</th>
     <th>Date and time</th>
-    <th>Temperature [K]</th>
-    <th>Batch duration [min]</th>
-    <th>Solvent type</th>
-    <th>Profit [$/kg]</th>
+    {% for item in input_set.all %}
+        <th class="{{item.slug}}">{{item.display_name}}<br>
+        [{{item.units_prefix}}{{item.units_suffix}}]</th>
+    {% endfor %}
+    <th>{{system.primary_output_display_name_with_units}}</th>
     </tr>
 
-    {% for expt in PrevExpts %}
+    {% for expt in data_html %}
     {%spaceless%}
     <tr class="{% cycle 'odd' 'even' %} expt-result">
-        <td class="expt-number">{{expt.number}}</td>
-        <td class="datetime">{{expt.date_time|date:"d F Y H:i:s"}}</td>
-        <td class="factor_A">{{expt.factor_A|floatformat:0}}</td>
-        <td class="factor_B">{{expt.factor_B|floatformat:0}}</td>
-            <td class="factor_C">{{expt.factor_C}}</td>
-        <td class="response">{{expt.response|floatformat:0}}</td>
+        <td class="expt-number">{{forloop.counter}}</td>
+        <td class="datetime">{{expt.datetime|date:"d F Y H:i:s"}}</td>
+        {% for item in input_set.all %}
+            <td class="{{item.slug}}">{{expt.inputs|get_item:item.slug}}</td>
+        {% endfor %}
+        <td class="response">{{expt.output|floatformat:0}}</td>
     </tr>
     {% endspaceless %}
     {% endfor %}

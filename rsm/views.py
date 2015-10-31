@@ -17,7 +17,7 @@ import json
 import decimal
 import hashlib
 import datetime
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import logging.handlers
 import matplotlib as matplotlib
 import numpy as np
@@ -223,6 +223,8 @@ def process_experiment(request, short_name_slug):
     except (WrongInputError, OutOfBoundsInputError, MissingInputError) as err:
         # Redisplay the experiment input form
 
+        # TODO: redirect back to ``show_one_system()`` so you don't repeat code.
+
         input_set = models.Input.objects.filter(system=system).order_by('slug')
         input_set, categoricals = process_simulation_inputs_templates(input_set)
         context = {'system': system,
@@ -284,8 +286,7 @@ def show_one_system(request, short_name_slug):
 
     person = models.Person.objects.get(id=1)
     input_set = models.Input.objects.filter(system=system).order_by('slug')
-
-    plot_HTML = get_plot_HTML(person, system, input_set)
+    plot_data_HTML = get_plot_and_data_HTML(person, system, input_set)
 
     # If the user is not logged in, show the input form, but it is disabled.
     # The user has to sign in with an email, and create a display name to
@@ -294,7 +295,8 @@ def show_one_system(request, short_name_slug):
     input_set, categoricals = process_simulation_inputs_templates(input_set)
     context = {'system': system,
                'input_set': input_set,
-               'plot_html': plot_HTML}
+               'plot_html': plot_data_HTML[0],
+               'data_html': plot_data_HTML[1]}
     context['categoricals'] = categoricals
     return render(request, 'rsm/system-detail.html', context)
 
@@ -611,13 +613,25 @@ def plot_wrapper(data, system, inputs, hash_value):
     return plot_HTML
 
 
-def get_plot_HTML(person, system, input_set):
+def get_plot_and_data_HTML(person, system, input_set):
     """Plots the data by generating HTML code that may be rendered into the
     Django template."""
 
     data, hash_value, token = get_person_experimental_data(person,
                                                            system,
                                                            input_set)
+
+    expt_data = []
+    expt = namedtuple('Expt', ['output', 'datetime', 'inputs'])
+    for idx, output in enumerate(data['_output_']):
+        input_item = {}
+        for inputi in input_set:
+            input_item[inputi.slug] = data[inputi.slug][idx]
+
+        item = expt(output=output,
+                    datetime= data['_datetime_'][idx],
+                    inputs=input_item)
+        expt_data.append(item)
 
     if hash_value:
         if token and token.plot_HTML:
@@ -631,4 +645,4 @@ def get_plot_HTML(person, system, input_set):
     else:
         plot_html = 'No plot to display; please run an experiment first.'
 
-    return plot_html
+    return plot_html, expt_data
