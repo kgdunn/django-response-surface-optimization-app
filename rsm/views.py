@@ -179,9 +179,9 @@ def process_simulation_output(result, next_run, system):
     # Store the numeric result:
     next_run.main_result = result.pop('output')
     if next_run.main_result == system.default_error_output:
-        next_run.is_valid = False
+        next_run.was_successful = False
     else:
-        next_run.is_valid = True
+        next_run.was_successful = True
 
     # Are there any other outputs produced?
     if result:
@@ -316,14 +316,21 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
     #       If so, offer to store the input and run it at the first possible
     #       occasion.
 
-    next_run = models.Experiment(person=models.Person.objects.get(id=1),
-               token=models.Token.objects.get(id=1),
-               system=system,
-               inputs=inputs_to_JSON(values_numeric),
-               is_valid=False,
-               time_to_solve=-500,
-               earliest_to_show=datetime.datetime(datetime.MAXYEAR, 12, 31,
-                                                  23,59,59))
+
+    # Once signed in: create 2 session settings: signed_in=True, person_id=``id``
+
+    if request.session.get('signed_in', False):
+        person = models.Person.objects.get(id=request.session['person_id'])
+    else:
+        person = models.Person.objects.get(display_name='Anonymous')
+
+    next_run = models.Experiment(person=person,
+                                system=system,
+                                inputs=inputs_to_JSON(values_numeric),
+                                is_validated=False,
+                                time_to_solve=-500,
+                                earliest_to_show=
+                        datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59))
     next_run.save()
     return next_run
 
@@ -337,13 +344,14 @@ def get_person_experimental_data(person, system, input_set):
     that should/is unique up to that point.
 
     The experiments are returned in the order they were run.
-
     """
     data = defaultdict(list)
 
     # Retrieve prior experiments which were valid, for this system, for person
-    prior_expts = models.Experiment.objects.filter(system=system, person=person,
-                            is_valid=True).order_by('earliest_to_show')
+    prior_expts = models.Experiment.objects.filter(system=system,
+                                                person=person,
+                                                is_validated=True,
+                                                was_successful=True).order_by('earliest_to_show')
     data_string = str(person) + ';' + str(system)
     for entry in prior_expts:
         inputs = json.loads(entry.inputs)

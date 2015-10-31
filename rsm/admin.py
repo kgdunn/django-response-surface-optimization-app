@@ -11,14 +11,19 @@ class InputAdmin(admin.ModelAdmin):
 
 class ExperimentAdmin(admin.ModelAdmin):
     list_display = ('person', 'system', 'time_to_solve', 'earliest_to_show',
-                    'is_valid', 'main_result')
+                    'is_validated', 'main_result')
     list_display_links = ('person', 'system', 'time_to_solve',
                           'earliest_to_show')
     list_filter = (
-        ('is_valid', admin.BooleanFieldListFilter),
+        ('is_validated', admin.BooleanFieldListFilter),
     )
 
-admin.site.register(Person)
+class PersonAdmin(admin.ModelAdmin):
+    list_display = ('display_name', 'email', 'level', 'is_validated',)
+    list_display_links = list_display
+
+
+admin.site.register(Person, PersonAdmin)
 admin.site.register(Token)
 admin.site.register(Tag)
 admin.site.register(Experiment, ExperimentAdmin)

@@ -1,4 +1,5 @@
 from django.db import models
+from django import utils
 import numpy as np
 
 
@@ -9,6 +10,13 @@ class Person(models.Model):
     level = models.SmallIntegerField(verbose_name="Skill level of the user",
                                      blank=False, null=False, default=0)
     email = models.EmailField()
+    is_validated = models.BooleanField(default=False, help_text=('Will be auto-'
+                        'validated once user has clicked on their email link.'))
+
+    def __str__(self):
+        return '{0} [{1}]; level={2}'.format(self.display_name, self.email,
+                                             self.level)
+
 
 #class PersonSystem(models.Model):
 #    """ Changes made to a System for a specific Person."""
@@ -41,16 +49,19 @@ class Experiment(models.Model):
     """ The inputs, and the corresponding result(s) from simulating the system
     for a particular user. """
     person = models.ForeignKey('rsm.Person')
-    token = models.ForeignKey('rsm.Token')
     system = models.ForeignKey('rsm.System')
     # True if the result is successfully simulated (i.e. if the simulation
     # did not time out, or crash for some reason.)
-    is_valid = models.BooleanField()
+    is_validated = models.BooleanField(help_text=("False: indicates the Person "
+                    "has not validated their choice by signing in (again)."),
+                    default=False)
+    delete_by = models.DateTimeField(default=utils.timezone.now(),
+        verbose_name="Delete the experiment at this time if not validated.")
     time_to_solve = models.FloatField(verbose_name="Time to solve model",
                                       blank=False, null=False, default=0.0)
     earliest_to_show = models.DateTimeField(
         verbose_name="Don't show the result before this point in time")
-
+    was_successful = models.BooleanField(default=False)
     inputs = models.TextField(verbose_name=("The system inputs logged in JSON "
                                             "format"))
     main_result = models.FloatField(verbose_name="Primary numeric output",
@@ -60,6 +71,7 @@ class Experiment(models.Model):
                                                    "in JSON format, as defined "
                                                    "by the ``System``."),
                                                    blank=True, null=True)
+    hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
 
 class System(models.Model):
     """ A simulated system, or process. """
@@ -187,8 +199,6 @@ class Input(models.Model):
 
 
         super(Input, self).save(*args, **kwargs) # Call the "real" save() method
-
-
 
     def __str__(self):
         return self.system.full_name + "::" + self.display_name

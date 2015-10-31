@@ -11,8 +11,10 @@
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 <span>
 
+
 <form action="{% url 'rsmapp:show_one_system' system.slug %}" method="post">
 {% csrf_token %}
+
 {% for item in input_set.all %}
     <p>
     <label for="{{item.slug}}">{{item.display_name}}</label>: &nbsp;
@@ -27,7 +29,7 @@
            {% if values %}
                value="{{ values|get_item:item.slug|floatformat:3 }}"
            {% endif %}
-           id="{{item.slug}}"/>
+           id="{{item.slug}}">
     {% elif item.ntype == "CAT" %}
         {% for key, value in categoricals|dict_iteration:item.slug %}
             <input type="radio" name="{{item.slug}}" value="{{key}}">{{key}}
@@ -42,6 +44,7 @@
 
 {% endfor %}
 <p><input type="submit" value="Run my experiment!" />
+
 </form>
 
 <hr>
@@ -68,7 +71,7 @@
         <td class="expt-number">{{forloop.counter}}</td>
         <td class="datetime">{{expt.datetime|date:"d F Y H:i:s"}}</td>
         {% for item in input_set.all %}
-            <td class="{{item.slug}}">{{expt.inputs|get_item:item.slug}}</td>
+            <td class="expt-input">{{expt.inputs|get_item:item.slug}}</td>
         {% endfor %}
         <td class="response">{{expt.output|floatformat:0}}</td>
     </tr>
