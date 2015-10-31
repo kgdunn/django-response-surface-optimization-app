@@ -11,7 +11,7 @@ class InputAdmin(admin.ModelAdmin):
 
 class ExperimentAdmin(admin.ModelAdmin):
     list_display = ('person', 'system', 'time_to_solve', 'earliest_to_show',
-                    'is_validated', 'main_result')
+                    'is_validated', 'main_result', 'was_successful')
     list_display_links = ('person', 'system', 'time_to_solve',
                           'earliest_to_show')
     list_filter = (

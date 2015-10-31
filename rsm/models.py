@@ -55,7 +55,7 @@ class Experiment(models.Model):
     is_validated = models.BooleanField(help_text=("False: indicates the Person "
                     "has not validated their choice by signing in (again)."),
                     default=False)
-    delete_by = models.DateTimeField(default=utils.timezone.now(),
+    delete_by = models.DateTimeField(auto_now=True,
         verbose_name="Delete the experiment at this time if not validated.")
     time_to_solve = models.FloatField(verbose_name="Time to solve model",
                                       blank=False, null=False, default=0.0)

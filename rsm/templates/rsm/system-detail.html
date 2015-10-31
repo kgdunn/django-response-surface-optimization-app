@@ -37,48 +37,64 @@
     {% endif %}
            {{item.units_suffix}}
 
-    <span id={{item.slug}}-error>{% if item.error_message%}
+    <span id="{{item.slug}}-error">{% if item.error_message%}
                                         ({{item.error_message}})
                                   {% endif %}
     </span>
 
 {% endfor %}
+{% if person.id == 1 %}
+<p><label for="email_address">Your email address</label>: &nbsp;
+
+    <input type="email"
+           name="email_address"
+           size="20"
+           maxlength="20"
+           placeholder="you@domain.com"
+           {% if values %}
+               value="FILL_IN_PRIOR_ADDRESS"
+           {% endif %}
+           id="email_address">
+    <span id="email_address-error">EMAIL_ERROR_MESSAGE_HERE</span>
+{% endif %}
 <p><input type="submit" value="Run my experiment!" />
 
 </form>
 
 <hr>
-<h2>Previous experiments run</h2>
 
-<table width="100%">
-<tr><td width="600px">{{plot_html|safe}}</td>
-<td>
-{# Table of experimental results here #}
-<table class="prev-expts-table">
-    <tr>
-    <th>Experiment<br>number</th>
-    <th>Date and time</th>
-    {% for item in input_set.all %}
-        <th class="{{item.slug}}">{{item.display_name}}<br>
-        [{{item.units_prefix}}{{item.units_suffix}}]</th>
-    {% endfor %}
-    <th>{{system.primary_output_display_name_with_units}}</th>
-    </tr>
-
-    {% for expt in data_html %}
-    {%spaceless%}
-    <tr class="{% cycle 'odd' 'even' %} expt-result">
-        <td class="expt-number">{{forloop.counter}}</td>
-        <td class="datetime">{{expt.datetime|date:"d F Y H:i:s"}}</td>
+{% if data_html %}
+    <h2>Previous experiments run</h2>
+    <table width="100%">
+    <tr><td width="600px">{{plot_html|safe}}</td>
+    <td>
+    {# Table of experimental results here #}
+    <table class="prev-expts-table">
+        <tr>
+        <th>Experiment<br>number</th>
+        <th>Date and time</th>
         {% for item in input_set.all %}
-            <td class="expt-input">{{expt.inputs|get_item:item.slug}}</td>
+            <th class="{{item.slug}}">{{item.display_name}}<br>
+            [{{item.units_prefix}}{{item.units_suffix}}]</th>
         {% endfor %}
-        <td class="response">{{expt.output|floatformat:0}}</td>
-    </tr>
-    {% endspaceless %}
-    {% endfor %}
+        <th>{{system.primary_output_display_name_with_units}}</th>
+        </tr>
+
+        {% for expt in data_html %}
+        {%spaceless%}
+        <tr class="{% cycle 'odd' 'even' %} expt-result">
+            <td class="expt-number">{{forloop.counter}}</td>
+            <td class="datetime">{{expt.datetime|date:"d F Y H:i:s"}}</td>
+            {% for item in input_set.all %}
+                <td class="expt-input">{{expt.inputs|get_item:item.slug}}</td>
+            {% endfor %}
+            <td class="response">{{expt.output|floatformat:0}}</td>
+        </tr>
+        {% endspaceless %}
+        {% endfor %}
+    </table>
+    </td></tr>
 </table>
 
+{% endif %}
 
-</td></tr>
-</table>

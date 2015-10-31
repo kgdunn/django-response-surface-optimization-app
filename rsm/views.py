@@ -229,6 +229,7 @@ def process_experiment(request, short_name_slug):
         input_set, categoricals = process_simulation_inputs_templates(input_set)
         context = {'system': system,
                    'input_set': input_set,
+                   #'person': person,
                    'error_message': ("You didn't properly enter some of "
                                      "the experimental input(s): "
                                      "{0}").format(err.value),
@@ -284,8 +285,16 @@ def show_one_system(request, short_name_slug):
 
     fetch_leaderboard_results()
 
-    person = models.Person.objects.get(id=1)
+    if request.session.get('signed_in', False):
+        person = models.Person.objects.get(id=request.session['person_id'])
+    else:
+        person = models.Person.objects.get(display_name='Anonymous')
+
+
+    #person = models.Person.objects.get(id=1)
     input_set = models.Input.objects.filter(system=system).order_by('slug')
+
+
     plot_data_HTML = get_plot_and_data_HTML(person, system, input_set)
 
     # If the user is not logged in, show the input form, but it is disabled.
@@ -295,6 +304,7 @@ def show_one_system(request, short_name_slug):
     input_set, categoricals = process_simulation_inputs_templates(input_set)
     context = {'system': system,
                'input_set': input_set,
+               'person': person,
                'plot_html': plot_data_HTML[0],
                'data_html': plot_data_HTML[1]}
     context['categoricals'] = categoricals
@@ -319,6 +329,7 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
 
     # Once signed in: create 2 session settings: signed_in=True, person_id=``id``
 
+    assert(False)
     if request.session.get('signed_in', False):
         person = models.Person.objects.get(id=request.session['person_id'])
     else:
