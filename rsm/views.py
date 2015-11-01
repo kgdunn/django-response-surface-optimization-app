@@ -383,7 +383,7 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
         try:
             person = models.Person.objects.get_or_create(is_validated=False,
                                 display_name='Anonymous',
-                                email=values_numeric('email_address'))
+                                email=values_numeric['email_address'])
             person = person[0]
             person.display_name = person.display_name + str(person.id)
             person.save()
@@ -395,7 +395,7 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
             send_returning_user_email = True
 
 
-
+    create_fake_usernames()
 
     # OK, we must have the person object now: whether signed in, brand new
     # user, or a returning user that has cleared cookies, or not been
@@ -796,7 +796,7 @@ def create_fake_usernames(number=10):
                   ]
 
     names = []
-    for item in xrange(number-1):
+    for item in xrange(number+4):  # Generate a few extra
         first = first_names.pop(random.randint(0, len(first_names)-1))
         last = last_names.pop(random.randint(0, len(last_names)-1))
         names.append('{0} {1}'.format(first, last))
@@ -804,6 +804,16 @@ def create_fake_usernames(number=10):
     names.append(lone_names.pop(random.randint(0, len(lone_names)-1)))
 
     pool = tuple(names)
-    list(tuple(random.sample(pool, number)))
-    print(names)
+    names = list(tuple(random.sample(pool, number+4)))
+
+    # Now knock out the names that have been used already.
+    for name in names:
+        try:
+            models.Person.objects.get(display_name=name)
+            names.pop(name)
+        except models.Person.DoesNotExist:
+            pass
+
+    return names[0:number]
+
 

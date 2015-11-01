@@ -16,6 +16,11 @@ class Person(models.Model):
         return '{0} [{1}]; level={2}'.format(self.display_name, self.email,
                                              self.level)
 
+    def save(self, *args, **kwargs):
+        # Force the bounds to be compatible
+        self.display_name  = self.display_name.strip()
+        super(Person, self).save(*args, **kwargs) # Call the "real" save()
+
 
 #class PersonSystem(models.Model):
 #    """ Changes made to a System for a specific Person."""
