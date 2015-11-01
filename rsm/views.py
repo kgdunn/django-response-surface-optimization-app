@@ -17,6 +17,7 @@ import time
 import math
 import json
 import decimal
+import random
 import hashlib
 import datetime
 from collections import defaultdict, namedtuple
@@ -338,6 +339,15 @@ def inputs_to_JSON(inputs):
     and storing them for all users.
     """
     return json.dumps(inputs)
+
+def send_suitable_email(person, send_new_user_email, send_returning_user_email):
+    validation_URI = 'STILL TO COME'
+    ctx_dict = {'validation_URI': validation_URI}
+    message = render_to_string('rsm/email_new_user_to_validate.txt',
+                               ctx_dict)
+    send_email((previous_email,), ("SciPy Central: change of "
+                                   "email address"), message=message)
+
 
 def create_experiment_for_user(request, system, values_numeric, person=None):
     """Create the input for the given user"""
@@ -726,3 +736,70 @@ def get_plot_and_data_HTML(person, system, input_set):
         plot_html = 'No plot to display; please run an experiment first.'
 
     return plot_html, expt_data
+
+
+def create_fake_usernames(number=10):
+    """Chooses a humorous fake name (randomly created), for people to sign
+    up with."""
+
+    first_names = ["Sherpa", "Automatica", "Profit Hunter", "Optimum", "Guide",
+                   "Optimizer", "NimboStratus",
+                   "Everest", "Kilimanjaro", "Amsterdam", "Amazon", "Nile",
+                   "Yangtze", "Mississippi", "Pirana", "Shark", "Orca",
+                   "Killer", "Lena", "Volga", "Danube", "Rio Grande", "Zambezi",
+                   "Elephant", "Mouse", "Atomic", "Whale", "Rhino",
+                   "Hippopotamus", "Girafe", "Mustang", "Kombi", "Crocodile",
+                   "Turtle", "Ostrich", "Cassowary", "Nematode", "Isopod",
+                   "Bug", "Roach", "Honey", "Hedgehog", "Sauropod", "Dystopian",
+                   "Spider", "Lamprey", "Hagfish", "Sturgeon", "Trout", "Hog",
+                   "Bazooka", "AK47", "Canon", "Elvis", "Elton", "Sherlock",
+                   "Inspector", "Detective", "Sergeant", "Hamlet", "Macbeth",
+                   "Dexter", "Lancelot", "King", "Queen", "Prince", "Princess",
+                   "Lord", "Lady", "Hercule", "Superintendent", "Napoleon",
+                   "The", "Competitor", "Ninja", "Captain",
+                   "Pinnacle", "Peak", "Ballpark", "Wild", "K2", "Lhotse",
+                   "Kangchenjunga", "Manaslu", "Himalaya", "Atlas", "Thor",
+                   "Sierra", "Boss", "CEO", "Principal", "Chief", "Kingpin",
+                   "Honcho", "President", "Chair", "Director"
+                   ]
+
+    last_names = ["Bayes", "Laplace", "Nightingale", "Galton", "Thiele",
+                  "Pierce", "Pearson", "Gossett", "Fisher", "Bonferroni",
+                  "Wilcoxon", "Neyman", "Deming", "Blackwell", "Tukey",
+                  "Kendall", "Finetti", "Wold", "Hotelling", "Wishart",
+                  "Anscombe", "Mosteller", "Federer", "Mahalanobis", "Markov",
+                  "Snedecor", "Mexico", "Johannesburg", "Colorado", "Watson",
+                  "Weibull", "Marple", "Wimsey", "Dupin", "Holmes", "Marlowe",
+                  "Poirot", "Magnum", "Millhone", "Dalgliesh", "Kojak", "Morse",
+                  "Columbo", "Frost", "Clouseau", "CSI", "Quincy", "Nelson",
+                  "Rebus", "Ruzzini", "Ducas", "Gaston", "Thundercat", "Mutant",
+                  "Optimaxer", "Neptune", "Drakensberg", "Caucasus", "Alps",
+                  "Ural", "Rockies", "Valhalla", "Denali", "Elbrus", "Rao",
+                  "Spearman", "Taguchi", "Box", "Cox", "Wilcox", "Yates",
+                  "Durbin", "Bose", "Norwood", "Shewhart", "Gauss", "Fuji"
+                  "Bernoulli", "Friedman", "Hollerith", "Dantzig", "Rao",
+                  "Kolmogorov", "Fermat", "Ontake", "Kita"]
+
+    lone_names = ["Statstreet Boys", "I experiment thus I exist",
+                  "Jessica Fletcher", "Tommy and Tuppence Beresford",
+                  "John Thorndyke", "Hajime Kindaichi", "Amelia Peabody",
+                  "Nancy Drew", "Miss Marple", "Veronica Mars",
+                  "Joseph Rouletabille", "Louis XIV of France", "Shear Failure",
+                  "Tower of Babel", "Alt F4", "The Statistically Significants",
+                  "The A-Team", "Knight Rider", "No Pie Charts Ever",
+                  "Nanga Parbat", "Great Barrier Reef", "Take No Prisoners",
+                  "Optimize Prime", "Dream Team", "Optimizer Prime",
+                  ]
+
+    names = []
+    for item in xrange(number-1):
+        first = first_names.pop(random.randint(0, len(first_names)-1))
+        last = last_names.pop(random.randint(0, len(last_names)-1))
+        names.append('{0} {1}'.format(first, last))
+
+    names.append(lone_names.pop(random.randint(0, len(lone_names)-1)))
+
+    pool = tuple(names)
+    list(tuple(random.sample(pool, number)))
+    print(names)
+
