@@ -1,5 +1,4 @@
 from django.db import models
-from django import utils
 import numpy as np
 
 
@@ -8,8 +7,8 @@ class Person(models.Model):
     display_name = models.CharField(max_length=200,
                                     verbose_name="Leaderboard name")
     level = models.SmallIntegerField(verbose_name="Skill level of the user",
-                                     blank=False, null=False, default=0)
-    email = models.EmailField()
+                                     blank=False, null=False, default=1)
+    email = models.EmailField(unique=True)
     is_validated = models.BooleanField(default=False, help_text=('Will be auto-'
                         'validated once user has clicked on their email link.'))
 

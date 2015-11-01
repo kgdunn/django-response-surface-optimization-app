@@ -9,6 +9,7 @@ from django.core.urlresolvers import reverse
 from django.conf import settings as DJANGO_SETTINGS
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.db.utils import IntegrityError
 
 #import plotly
 import sys
@@ -313,13 +314,10 @@ def show_one_system(request, short_name_slug):
     if request.session.get('signed_in', False):
         person = models.Person.objects.get(id=request.session['person_id'])
     else:
-        person = models.Person.objects.get(display_name='Anonymous')
+        person = models.Person.objects.get(id=1)
 
 
-    #person = models.Person.objects.get(id=1)
     input_set = models.Input.objects.filter(system=system).order_by('slug')
-
-
     plot_data_HTML = get_plot_and_data_HTML(person, system, input_set)
 
     # If the user is not logged in, show the input form, but it is disabled.
@@ -361,9 +359,43 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
     if request.session.get('signed_in', False):
         person = models.Person.objects.get(id=request.session['person_id'])
     else:
-        # This is an anonymous user
-        person = models.Person.objects.get(display_name='Anonymous')
+        # This is an anonymous (potentially new) user.
+        # A: if the email exists, ask them to validate their experiment
+        #    (create the experiment, but it is not validated yet)
+        # B: if the email does not exist, again, create the experiment as
+        #    unvalidated (is_validated=False), use ``anonymous[ID]`` as their
+        #    leaderboard name, and send them a link to sign in with. That link
+        #    wil prompt them to create a username for the leaderboard, giving
+        #    some interesting suggested names.
 
+        send_new_user_email = False
+        send_returning_user_email = False
+        try:
+            person = models.Person.objects.get_or_create(is_validated=False,
+                                display_name='Anonymous',
+                                email=values_numeric('email_address'))
+            person = person[0]
+            person.display_name = person.display_name + str(person.id)
+            person.save()
+            send_new_user_email = True
+        except IntegrityError as err:
+            # The email address is not unique.
+            person = models.Person.objects.get(
+                                     email=values_numeric.pop('email_address'))
+            send_returning_user_email = True
+
+
+
+
+    # OK, we must have the person object now: whether signed in, brand new
+    # user, or a returning user that has cleared cookies, or not been
+    # present for a while.
+    values_numeric.pop('email_address', None)
+    send_suitable_email(person, send_new_user_email, send_returning_user_email)
+
+
+    # If the user has not clicked on the email, place the experiment on
+    # hold, until the user signs in.
     next_run = models.Experiment(person=person,
                                 system=system,
                                 inputs=inputs_to_JSON(values_numeric),
@@ -414,7 +446,7 @@ def get_person_experimental_data(person, system, input_set):
 
         # TODO: put this in a more suitable place
         token = models.Token.objects.get_or_create(person=person, system=system,
-                                            hash_value=hash_value )
+                                            hash_value=hash_value)
         token = token[0]
     return data, hash_value, token
 
