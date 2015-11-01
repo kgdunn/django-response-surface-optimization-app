@@ -743,7 +743,7 @@ def create_fake_usernames(number=10):
     up with."""
 
     first_names = ["Sherpa", "Automatica", "Profit Hunter", "Optimum", "Guide",
-                   "Optimizer", "NimboStratus",
+                   "Optimizer", "Nimbostratus", "Stratus", "Cumulonimbus",
                    "Everest", "Kilimanjaro", "Amsterdam", "Amazon", "Nile",
                    "Yangtze", "Mississippi", "Pirana", "Shark", "Orca",
                    "Killer", "Lena", "Volga", "Danube", "Rio Grande", "Zambezi",
@@ -756,11 +756,14 @@ def create_fake_usernames(number=10):
                    "Inspector", "Detective", "Sergeant", "Hamlet", "Macbeth",
                    "Dexter", "Lancelot", "King", "Queen", "Prince", "Princess",
                    "Lord", "Lady", "Hercule", "Superintendent", "Napoleon",
-                   "The", "Competitor", "Ninja", "Captain",
+                   "The", "Competitor", "Ninja", "Captain", "The one and only",
                    "Pinnacle", "Peak", "Ballpark", "Wild", "K2", "Lhotse",
                    "Kangchenjunga", "Manaslu", "Himalaya", "Atlas", "Thor",
                    "Sierra", "Boss", "CEO", "Principal", "Chief", "Kingpin",
-                   "Honcho", "President", "Chair", "Director"
+                   "Honcho", "President", "Chair", "Director", "Chairman",
+                   "Chairperson", "Leader", "Mistress", "Mister", "Monarch",
+                   "Sovereign", "Head", "Trailblazer", "Trendsetter",
+                   "The incredible", "Amazing", "Extraordinary", "Supreme",
                    ]
 
     last_names = ["Bayes", "Laplace", "Nightingale", "Galton", "Thiele",
@@ -768,15 +771,15 @@ def create_fake_usernames(number=10):
                   "Wilcoxon", "Neyman", "Deming", "Blackwell", "Tukey",
                   "Kendall", "Finetti", "Wold", "Hotelling", "Wishart",
                   "Anscombe", "Mosteller", "Federer", "Mahalanobis", "Markov",
-                  "Snedecor", "Mexico", "Johannesburg", "Colorado", "Watson",
+                  "Snedecor", "Watson", "Jupiter", "Saturn"
                   "Weibull", "Marple", "Wimsey", "Dupin", "Holmes", "Marlowe",
                   "Poirot", "Magnum", "Millhone", "Dalgliesh", "Kojak", "Morse",
                   "Columbo", "Frost", "Clouseau", "CSI", "Quincy", "Nelson",
                   "Rebus", "Ruzzini", "Ducas", "Gaston", "Thundercat", "Mutant",
-                  "Optimaxer", "Neptune", "Drakensberg", "Caucasus", "Alps",
+                  "Optimaxer", "Neptune", "Caucasus", "Alps",
                   "Ural", "Rockies", "Valhalla", "Denali", "Elbrus", "Rao",
                   "Spearman", "Taguchi", "Box", "Cox", "Wilcox", "Yates",
-                  "Durbin", "Bose", "Norwood", "Shewhart", "Gauss", "Fuji"
+                  "Durbin", "Bose", "Norwood", "Shewhart", "Gauss", "Fuji",
                   "Bernoulli", "Friedman", "Hollerith", "Dantzig", "Rao",
                   "Kolmogorov", "Fermat", "Ontake", "Kita"]
 
@@ -784,11 +787,12 @@ def create_fake_usernames(number=10):
                   "Jessica Fletcher", "Tommy and Tuppence Beresford",
                   "John Thorndyke", "Hajime Kindaichi", "Amelia Peabody",
                   "Nancy Drew", "Miss Marple", "Veronica Mars",
-                  "Joseph Rouletabille", "Louis XIV of France", "Shear Failure",
+                  "Joseph Rouletabille", "Louis XIV of France", "Shear Success",
                   "Tower of Babel", "Alt F4", "The Statistically Significants",
                   "The A-Team", "Knight Rider", "No Pie Charts Ever",
                   "Nanga Parbat", "Great Barrier Reef", "Take No Prisoners",
                   "Optimize Prime", "Dream Team", "Optimizer Prime",
+                  "Numero Uno"
                   ]
 
     names = []
