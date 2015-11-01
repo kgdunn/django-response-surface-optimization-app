@@ -10,6 +10,7 @@ from django.conf import settings as DJANGO_SETTINGS
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
+from django.template.loader import render_to_string
 
 #import plotly
 import sys
@@ -340,13 +341,24 @@ def inputs_to_JSON(inputs):
     """
     return json.dumps(inputs)
 
+def validate_user(request, hashvalue):
+    """ The new/returning user has been sent an email to sign in.
+    Recall the token, mark them as validated, sign them in, run the experiment
+    they had intended, and redirect them to the next URL associated with their
+    token.
+
+    If it is a new user, make them select a Leaderboard name first.
+    """
+    create_fake_usernames()
+    pass
+
+
 def send_suitable_email(person, send_new_user_email, send_returning_user_email):
     validation_URI = 'STILL TO COME'
     ctx_dict = {'validation_URI': validation_URI}
     message = render_to_string('rsm/email_new_user_to_validate.txt',
                                ctx_dict)
-    send_email((previous_email,), ("SciPy Central: change of "
-                                   "email address"), message=message)
+    # Use regular Python code to send the email.
 
 
 def create_experiment_for_user(request, system, values_numeric, person=None):
@@ -368,7 +380,9 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
 
     if request.session.get('signed_in', False):
         person = models.Person.objects.get(id=request.session['person_id'])
+        validated_person = True
     else:
+        validated_person = False
         # This is an anonymous (potentially new) user.
         # A: if the email exists, ask them to validate their experiment
         #    (create the experiment, but it is not validated yet)
@@ -395,8 +409,6 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
             send_returning_user_email = True
 
 
-    create_fake_usernames()
-
     # OK, we must have the person object now: whether signed in, brand new
     # user, or a returning user that has cleared cookies, or not been
     # present for a while.
@@ -409,7 +421,7 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
     next_run = models.Experiment(person=person,
                                 system=system,
                                 inputs=inputs_to_JSON(values_numeric),
-                                is_validated=False,
+                                is_validated=validated_person,
                                 time_to_solve=-500,
                                 earliest_to_show=
                         datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59))

@@ -2,12 +2,12 @@ Hi there,
 
 Thank you for joining the RSM (Response Surface Method) website.
 
-It looks like your email address has never been used here before. So we will
+It looks like your email address has never been used here before. So you will
 need:
 
 1. To click on this link to activate your account
    <a href="{{validation_URI}}">{{validation_URI}}</a>
-2. Choose a name for the leaderboards (we provide some options)
+2. Afterwards, you will choose a name for the leaderboards (we provide some suggestions)
 3. That's it!
 
 We don't use passwords on our website, but we do send you emails to verify

@@ -9,7 +9,7 @@ urlpatterns = [
     url(r'^system/(?P<short_name_slug>[-\w]+)/$', views.show_one_system,
         name='show_one_system'),
 
-    # ex: /system/short_name/run
-    #url(r'^system/(?P<short_name_slug>[-\w]+)/run$',
-    #    views.run_experiment, name='run-experiment'),
+    # Example: /validate/asd1241a
+    url(r'^validate/(?P<hashvalue>[-\w]+)/$', views.validate_user)
+
 ]
