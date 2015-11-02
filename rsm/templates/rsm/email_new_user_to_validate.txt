@@ -2,17 +2,16 @@ Hi there,
 
 Thank you for joining the RSM (Response Surface Method) website.
 
-It looks like your email address has never been used here before. So you will
-need:
 
-1. To click on this link to activate your account
-   <a href="{{validation_URI}}">{{validation_URI}}</a>
+It looks like your email address has never been used here before. So you will need:
+
+1. To click on this link to activate your account: <a href="{{validation_URI}}">{{validation_URI}}</a>
 2. Afterwards, you will choose a name for the leaderboards (we provide some suggestions)
 3. That's it!
 
-We don't use passwords on our website, but we do send you emails to verify
-it is you running the experiments.
+
+<b>We don't use passwords on our website</b>, but we do send emails to make sure it is you running the experiments.
+
 
 Hope you reach the optimum!
-Kevin Dunn (the guy behind the RSM website and Coursera course,
-<a href="https://www.coursera.org/learn/experimentation/">Experimentation for Improvement</a>)
+Kevin Dunn (the guy behind the RSM website and Coursera course, <a href="https://www.coursera.org/learn/experimentation/">Experimentation for Improvement</a>)

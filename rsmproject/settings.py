@@ -38,6 +38,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rsm',
+    'rsmproject',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -66,20 +67,10 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
-            #'TEMPLATE_DEBUG': DEBUG,
+            'debug': DEBUG,
         },
     },
 ]
-
-
-# A sample logging configuration. The only tangible logging
-# performed by this configuration is to send an email to
-# the site admins on every HTTP 500 error when DEBUG=False.
-# See http://docs.djangoproject.com/en/dev/topics/logging for
-# more details on how to customize your logging configuration.
-
-#LOG_FILENAME = '/var/django/rsm/logfile.log'
-LOG_FILENAME = '/Users/kevindunn/Dropbox/Coursera/RSM-app/rsmproject/logfile.log'
 
 
 WSGI_APPLICATION = 'rsmproject.wsgi.application'
@@ -87,7 +78,6 @@ WSGI_APPLICATION = 'rsmproject.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -116,4 +106,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 
-TEMPLATE_DEBUG = True
+try:
+    from local_settings import *
+except ImportError:
+    pass

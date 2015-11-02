@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %} | Response Surface Method Optimization{% endblock %}</title>
+    <script type="text/javascript" src="{{JQUERY_URL}}"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/2.0-latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+    {{ANALYTICS_SNIPPET|safe}}
+</head>
+
+<body>
+{% block body %}
+<div class="container">
+    <div class="main">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}
+
+</body>
+</html>

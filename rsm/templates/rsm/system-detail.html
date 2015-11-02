@@ -1,5 +1,10 @@
+{% extends "base.html" %}
 {% load rsm_extras %}
 
+
+{% block title %}{{ system.full_name }}{% endblock %}
+
+{% block content %}
 <h2>{{ system.full_name }}</h2>
 <p>{{system.description|safe|linebreaks}}
 
@@ -49,7 +54,6 @@
     <input type="email"
            name="email_address"
            size="20"
-           maxlength="20"
            placeholder="you@domain.com"
            {% if values %}
                value="FILL_IN_PRIOR_ADDRESS"
@@ -101,3 +105,4 @@
 
 {% endif %}
 
+{% endblock %}

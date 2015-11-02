@@ -354,12 +354,30 @@ def validate_user(request, hashvalue):
 
 
 def send_suitable_email(person, send_new_user_email, send_returning_user_email):
-    validation_URI = 'STILL TO COME'
-    ctx_dict = {'validation_URI': validation_URI}
-    message = render_to_string('rsm/email_new_user_to_validate.txt',
-                               ctx_dict)
-    # Use regular Python code to send the email.
+    """ Either sends a validation email, or a log in email message.
+    """
+    if send_new_user_email:
+        validation_URI = 'http://rsm.learnche.org/validate/123'
+        ctx_dict = {'validation_URI': validation_URI}
+        message = render_to_string('rsm/email_new_user_to_validate.txt',
+                                   ctx_dict)
 
+        subject = ("Confirm your email address for the Response Surface "
+                   "Methods website!")
+        to_address_list = [person.email.strip('\n'), ]
+
+    if send_returning_user_email:
+        validation_URI = 'http://rsm.learnche.org/sign-in/123'
+        ctx_dict = {'validation_URI': validation_URI}
+        message = render_to_string('rsm/email_new_user_to_validate.txt',
+                                   ctx_dict)
+        subject = ("Confirm your email address for the Response Surface "
+                   "Methods website!")
+        to_address_list = [person.email.strip('\n'), ]
+
+    # Use regular Python code to send the email in HTML format.
+    message = message.replace('\n','\n<br>')
+    send_logged_email(subject, message, to_address_list)
 
 def create_experiment_for_user(request, system, values_numeric, person=None):
     """Create the input for the given user"""
@@ -405,7 +423,7 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
         except IntegrityError as err:
             # The email address is not unique.
             person = models.Person.objects.get(
-                                     email=values_numeric.pop('email_address'))
+                                     email=values_numeric['email_address'])
             send_returning_user_email = True
 
 
@@ -750,6 +768,8 @@ def get_plot_and_data_HTML(person, system, input_set):
     return plot_html, expt_data
 
 
+
+# UTILITY TYPE FUNCTIONS
 def create_fake_usernames(number=10):
     """Chooses a humorous fake name (randomly created), for people to sign
     up with."""
@@ -828,4 +848,13 @@ def create_fake_usernames(number=10):
 
     return names[0:number]
 
-
+def send_logged_email(subject, message, to_address_list):
+    """ Sends an email to a user and it is assumed it is an HTML message."""
+    from django.core.mail import send_mail
+    logger.debug('EMAIL [{0}]: {1}'.format(str(to_address_list), message))
+    send_mail(subject=subject,
+              message=message,
+              from_email=None,
+              recipient_list=list(to_address_list),
+              fail_silently=False,
+              html_message=message)
