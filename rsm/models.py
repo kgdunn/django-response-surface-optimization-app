@@ -34,12 +34,12 @@ class Token(models.Model):
     system = models.ForeignKey('rsm.System')
     hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
     was_used = models.BooleanField(default=False)
-    plot_HTML = models.TextField(default='')
     time_used = models.DateTimeField(auto_now=True, auto_now_add=False)
-    ip_address = models.GenericIPAddressField(verbose_name=None, name=None,
-                                             protocol='both',
-                                             default='127.0.0.1',
-                                             unpack_ipv4=False)
+    # Sometimes we use tokens to parse around HTML plotting code
+    plot_HTML = models.TextField(default='')
+    # Othertimes it is to redirect a ``Person`` to a next instance.
+    next_URI = models.CharField(max_length=50, editable=True, default='')
+    experiment = models.ForeignKey('rsm.Experiment', blank=True, null=True)
 
 class Tag(models.Model):
     """ Tags for ``Systems``. """

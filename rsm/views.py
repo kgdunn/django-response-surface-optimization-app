@@ -21,6 +21,7 @@ import decimal
 import random
 import hashlib
 import datetime
+from smtplib import SMTPException
 from collections import defaultdict, namedtuple
 import logging.handlers
 import matplotlib as matplotlib
@@ -60,6 +61,9 @@ class WrongInputError(RSMException):
 class BadEmailInputError(RSMException):
     """ Raised when an email address is not valid."""
     pass
+
+class BadEmailCannotSendError(RSMException):
+    """ Raised when SMTPlib cannot send an email. """
 
 class OutOfBoundsInputError(RSMException):
     """ Raised when an input is outside the bounds."""
@@ -217,6 +221,11 @@ def process_experiment(request, short_name_slug):
     system = get_object_or_404(models.System, slug=short_name_slug)
     values = {}
     try:
+
+        # We do all our checks here, and if any fail an Exception is raised.
+        # There are several checks: data entry, email validity,
+
+
         inputs = models.Input.objects.filter(system=system).order_by('slug')
         for item in inputs:
             try:
@@ -224,10 +233,6 @@ def process_experiment(request, short_name_slug):
             except KeyError:
                 raise MissingInputError(('Input "{0}" was not specified.'.
                                          format(item.display_name)))
-
-
-
-
 
         # We've got all the inputs now; so validate them.
         values_numeric = process_simulation_input(values, inputs)
@@ -244,9 +249,19 @@ def process_experiment(request, short_name_slug):
         except ValidationError:
             raise(BadEmailInputError('You provided an invalid email address.'))
 
+        # Success in checking the inputs. Create an input object for the user,
+        # and run the experiment.
+        # NOTE: ``next_run`` will not exist if an error was raised when
+        #       generating that object.
+        next_run = create_experiment_for_user(request, system, values_numeric)
+
+
+
+        # TODO: try-except path goes here to intercept time-limited experiments
+
 
     except (WrongInputError, OutOfBoundsInputError, MissingInputError,
-            BadEmailInputError) as err:
+            BadEmailInputError, BadEmailCannotSendError) as err:
         logger.warn('User error raised: {0}. Context:{1}'.format(err.value,
                                                                  str(values)))
         # Redisplay the experiment input form
@@ -257,21 +272,15 @@ def process_experiment(request, short_name_slug):
         input_set, categoricals = process_simulation_inputs_templates(input_set)
         context = {'system': system,
                    'input_set': input_set,
-                   #'person': person,
                    'error_message': ("You didn't properly enter some of "
-                                     "the experimental input(s): "
+                                     "the required input(s): "
                                      "{0}").format(err.value),
                    'values': values}
         context['categoricals'] = categoricals
         return render(request, 'rsm/system-detail.html', context)
     else:
 
-        # Success in checking the inputs. Create an input object for the user,
-        # and run the experiment
-        next_run = create_experiment_for_user(request, system, values_numeric)
 
-
-        # TODO: try-except path goes here to intercept time-limited experiments
 
         # Clean-up the inputs by dropping any disallowed characters from the
         # function inputs:
@@ -335,12 +344,6 @@ def show_one_system(request, short_name_slug):
     context['categoricals'] = categoricals
     return render(request, 'rsm/system-detail.html', context)
 
-def inputs_to_JSON(inputs):
-    """Converts the numeric inputs to JSON, after cleaning. This allows logging
-    and storing them for all users.
-    """
-    return json.dumps(inputs)
-
 def validate_user(request, hashvalue):
     """ The new/returning user has been sent an email to sign in.
     Recall the token, mark them as validated, sign them in, run the experiment
@@ -377,7 +380,7 @@ def send_suitable_email(person, send_new_user_email, send_returning_user_email):
 
     # Use regular Python code to send the email in HTML format.
     message = message.replace('\n','\n<br>')
-    send_logged_email(subject, message, to_address_list)
+    return send_logged_email(subject, message, to_address_list)
 
 def create_experiment_for_user(request, system, values_numeric, person=None):
     """Create the input for the given user"""
@@ -431,7 +434,11 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
     # user, or a returning user that has cleared cookies, or not been
     # present for a while.
     values_numeric.pop('email_address', None)
-    send_suitable_email(person, send_new_user_email, send_returning_user_email)
+    failed = send_suitable_email(person, send_new_user_email,
+                                  send_returning_user_email)
+    if failed:
+        raise BadEmailCannotSendError("Couldn't send email: {0}".format(failed))
+
 
 
     # If the user has not clicked on the email, place the experiment on
@@ -849,12 +856,30 @@ def create_fake_usernames(number=10):
     return names[0:number]
 
 def send_logged_email(subject, message, to_address_list):
-    """ Sends an email to a user and it is assumed it is an HTML message."""
+    """ Sends an email to a user and it is assumed it is an HTML message.
+
+    Returns a string error message if it failed. Returns None if sending
+    succeeded.
+    """
     from django.core.mail import send_mail
-    logger.debug('EMAIL [{0}]: {1}'.format(str(to_address_list), message))
-    send_mail(subject=subject,
-              message=message,
-              from_email=None,
-              recipient_list=list(to_address_list),
-              fail_silently=False,
-              html_message=message)
+    logger.debug('Email [{0}]: {1}'.format(str(to_address_list), message))
+    try:
+        out = send_mail(subject=subject,
+                  message=message,
+                  from_email=None,
+                  recipient_list=list(to_address_list),
+                  fail_silently=False,
+                  html_message=message)
+        out = None
+    except SMTPException as err:
+        logger.error('EMAIL NOT SENT: {0}'.format(str(err)))
+        out = str(err[0][to_address_list[0]])
+
+    return out
+
+
+def inputs_to_JSON(inputs):
+    """Converts the numeric inputs to JSON, after cleaning. This allows logging
+    and storing them for all users.
+    """
+    return json.dumps(inputs)
