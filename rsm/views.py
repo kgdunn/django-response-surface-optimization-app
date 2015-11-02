@@ -11,6 +11,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
+from django.utils.timezone import utc
 
 #import plotly
 import sys
@@ -27,6 +28,9 @@ import logging.handlers
 import matplotlib as matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+
+# Ideally put this in the Django settings file. Leave here for now.
+WEBSITE_CORE = 'http://rsm.learnche.org'
 
 logger = logging.getLogger('RSMLogger')
 logger.setLevel(logging.DEBUG)
@@ -103,7 +107,6 @@ def run_simulation(system, simvalues, rotation):
         std_out = 'should_never_be_used_as_output'
         std_err = 'Timeout'
         logger.warn('Simulation of "{0}" timed out'.format(system))
-
 
     duration = time.clock() - start_time
     if std_err:
@@ -220,13 +223,22 @@ def process_experiment(request, short_name_slug):
     """
     system = get_object_or_404(models.System, slug=short_name_slug)
     values = {}
+    values_checked = {}
     try:
 
         # We do all our checks here, and if any fail an Exception is raised.
-        # There are several checks: data entry, email validity,
+        # There are several checks: data entry, email validity, etc.
 
 
+        # NB: Read the user values first before doing any checking on them.
         inputs = models.Input.objects.filter(system=system).order_by('slug')
+        if request.session.get('signed_in', False):
+            # Fix up here still; not sure what should happen in this branch.
+            assert(False)
+            values_checked['email_address'] = person.email
+        else:
+            values_checked['email_address'] = request.POST['email_address']
+
         for item in inputs:
             try:
                 values[item.slug] = request.POST[item.slug]
@@ -235,17 +247,11 @@ def process_experiment(request, short_name_slug):
                                          format(item.display_name)))
 
         # We've got all the inputs now; so validate them.
-        values_numeric = process_simulation_input(values, inputs)
-
-        if request.session.get('signed_in', False):
-            # Person is signed in
-            pass
-        else:
-            values_numeric['email_address'] = request.POST['email_address']
+        values_checked.update(process_simulation_input(values, inputs))
 
         # Check the email address:
         try:
-            validate_email(values_numeric['email_address'])
+            validate_email(values_checked['email_address'])
         except ValidationError:
             raise(BadEmailInputError('You provided an invalid email address.'))
 
@@ -253,67 +259,68 @@ def process_experiment(request, short_name_slug):
         # and run the experiment.
         # NOTE: ``next_run`` will not exist if an error was raised when
         #       generating that object.
-        next_run = create_experiment_for_user(request, system, values_numeric)
-
+        next_run = create_experiment_object(request, system, values_checked)
 
 
         # TODO: try-except path goes here to intercept time-limited experiments
 
-
     except (WrongInputError, OutOfBoundsInputError, MissingInputError,
             BadEmailInputError, BadEmailCannotSendError) as err:
+
+        values['email_address'] = values_checked['email_address']
         logger.warn('User error raised: {0}. Context:{1}'.format(err.value,
                                                                  str(values)))
-        # Redisplay the experiment input form
-
-        # TODO: redirect back to ``show_one_system()`` so you don't repeat code.
-
-        input_set = models.Input.objects.filter(system=system).order_by('slug')
-        input_set, categoricals = process_simulation_inputs_templates(input_set)
-        context = {'system': system,
-                   'input_set': input_set,
-                   'error_message': ("You didn't properly enter some of "
-                                     "the required input(s): "
-                                     "{0}").format(err.value),
-                   'values': values}
-        context['categoricals'] = categoricals
-        return render(request, 'rsm/system-detail.html', context)
-    else:
+        # Redisplay the experiment input form if any invalid data enty.
+        # Redirect back to ``show_one_system()`` so you don't repeat code.
+        extend_dict = {'error_message': ("You didn't properly enter some of "
+                                         "the required input(s): "
+                                         "{0}").format(err.value),
+                       'prior_values': values}
+        return show_one_system(request, short_name_slug, force_GET=True,
+                       extend_dict=extend_dict)
 
 
+        #input_set = models.Input.objects.filter(system=system).order_by('slug')
+        #input_set, categoricals = process_simulation_inputs_templates(input_set)
+        #context = {'system': system,
+        #           'input_set': input_set,
+        #           }
+        #context['categoricals'] = categoricals
+        #return render(request, 'rsm/system-detail.html', context)
 
-        # Clean-up the inputs by dropping any disallowed characters from the
-        # function inputs:
-        values_simulation = values_numeric.copy()
-        for key in values_simulation.keys():
-            value = values_simulation.pop(key)
-            key = key.replace('-', '')
-            values_simulation[key] = value
 
-        # TODO: Get the rotation here
-        rotation = 0
+    # Clean-up the inputs by dropping any disallowed characters from the
+    # function inputs:
+    values_simulation = values_checked.copy()
+    for key in values_simulation.keys():
+        value = values_simulation.pop(key)
+        key = key.replace('-', '')
+        values_simulation[key] = value
 
-        result, duration = run_simulation(system, values_simulation, rotation)
-        next_run.time_to_solve = duration
+    # TODO: Get the rotation here
+    rotation = 0
 
-        # Store the simulation results
-        run_complete = process_simulation_output(result, next_run, system)
-        run_complete.save()
+    result, duration = run_simulation(system, values_simulation, rotation)
+    next_run.time_to_solve = duration
 
-        # Always return an HttpResponseRedirect after successfully dealing
-        # with POST data. This prevents data from being posted twice if a
-        # user hits the Back button.a
-        return HttpResponseRedirect(reverse('rsmapp:show_one_system',
-                                            args=(system.slug,)))
+    # Store the simulation results
+    run_complete = process_simulation_output(result, next_run, system)
+    run_complete.save()
 
-def show_one_system(request, short_name_slug):
+    # Always return an HttpResponseRedirect after successfully dealing
+    # with POST data. This prevents data from being posted twice if a
+    # user hits the Back button.a
+    return HttpResponseRedirect(reverse('rsmapp:show_one_system',
+                                        args=(system.slug,)))
+
+def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     """ Returns the details of one system that has been selected, including
     the leaderboard (generated by another function)"""
 
-    if request.POST:
+    if request.POST and not(force_GET):
         return process_experiment(request, short_name_slug)
 
-    # If it was not a POST request, but a GET request...
+    # If it was not a POST request, but a (possibly forced) GET request...
     try:
         system = models.System.objects.get(slug=short_name_slug)
     except models.System.DoesNotExist:
@@ -325,15 +332,12 @@ def show_one_system(request, short_name_slug):
     if request.session.get('signed_in', False):
         person = models.Person.objects.get(id=request.session['person_id'])
     else:
-        person = models.Person.objects.get(id=1)
+        person = models.Person.objects.get(display_name='__Anonymous__',
+                                           email='anonymous@learnche.org')
 
 
     input_set = models.Input.objects.filter(system=system).order_by('slug')
     plot_data_HTML = get_plot_and_data_HTML(person, system, input_set)
-
-    # If the user is not logged in, show the input form, but it is disabled.
-    # The user has to sign in with an email, and create a display name to
-    # enter in experimental results. Come back to this part later.
 
     input_set, categoricals = process_simulation_inputs_templates(input_set)
     context = {'system': system,
@@ -341,6 +345,8 @@ def show_one_system(request, short_name_slug):
                'person': person,
                'plot_html': plot_data_HTML[0],
                'data_html': plot_data_HTML[1]}
+    context.update(extend_dict)   # used for the ``force_GET`` case when the
+                                  # user has POSTed prior invalid data.
     context['categoricals'] = categoricals
     return render(request, 'rsm/system-detail.html', context)
 
@@ -353,15 +359,13 @@ def validate_user(request, hashvalue):
     If it is a new user, make them select a Leaderboard name first.
     """
     create_fake_usernames()
-    pass
 
-
-def send_suitable_email(person, send_new_user_email, send_returning_user_email):
-    """ Either sends a validation email, or a log in email message.
-    """
+def send_suitable_email(person, send_new_user_email, send_returning_user_email,
+                        hash_val):
+    """ Either sends a validation email, or a log in email message. """
     if send_new_user_email:
-        validation_URI = 'http://rsm.learnche.org/validate/123'
-        ctx_dict = {'validation_URI': validation_URI}
+        next_URI = '{0}/validate/{1}'.format(WEBSITE_CORE, hash_val)
+        ctx_dict = {'validation_URI': next_URI}
         message = render_to_string('rsm/email_new_user_to_validate.txt',
                                    ctx_dict)
 
@@ -370,35 +374,27 @@ def send_suitable_email(person, send_new_user_email, send_returning_user_email):
         to_address_list = [person.email.strip('\n'), ]
 
     if send_returning_user_email:
-        validation_URI = 'http://rsm.learnche.org/sign-in/123'
-        ctx_dict = {'validation_URI': validation_URI}
-        message = render_to_string('rsm/email_new_user_to_validate.txt',
-                                   ctx_dict)
-        subject = ("Confirm your email address for the Response Surface "
-                   "Methods website!")
+        next_URI = '{0}/sign-in/{1}'.format(WEBSITE_CORE, hash_val)
+        ctx_dict = {'sign_in_URI': next_URI,
+                    'username': person.display_name}
+        message = render_to_string('rsm/email_sign_in_code.txt',
+                           ctx_dict)
+        subject = ("Unique email to sign-into the Response Surface "
+               "Methods website.")
         to_address_list = [person.email.strip('\n'), ]
 
     # Use regular Python code to send the email in HTML format.
     message = message.replace('\n','\n<br>')
-    return send_logged_email(subject, message, to_address_list)
+    return send_logged_email(subject, message, to_address_list), next_URI
 
-def create_experiment_for_user(request, system, values_numeric, person=None):
-    """Create the input for the given user"""
-    # TODO: Currently the "Person" is None. This will be added in the future,
-    #       typing the input object to a specific user.
-
-    # TODO: check that the user is allowed to create a new input at this point
+def create_experiment_object(request, system, values_checked, person=None):
+    """Create the input for the given user."""
+     # TODO: check that the user is allowed to create a new input at this point
     #       in time. There might be a time limitation in place still.
     #       If so, offer to store the input and run it at the first possible
     #       occasion.
 
-
     # Once signed in: create 2 session settings: signed_in=True, person_id=``id``
-
-    # TODO: ``values_numeric`` contains the email address now. Create the user
-    #       as being unvalidated, and assign the experiment to them. Their
-    #       name will be anonymous[ID] until they've signed in and validated.
-
     if request.session.get('signed_in', False):
         person = models.Person.objects.get(id=request.session['person_id'])
         validated_person = True
@@ -410,7 +406,7 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
         # B: if the email does not exist, again, create the experiment as
         #    unvalidated (is_validated=False), use ``anonymous[ID]`` as their
         #    leaderboard name, and send them a link to sign in with. That link
-        #    wil prompt them to create a username for the leaderboard, giving
+        #    will prompt them to create a username for the leaderboard, giving
         #    some interesting suggested names.
 
         send_new_user_email = False
@@ -418,7 +414,7 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
         try:
             person = models.Person.objects.get_or_create(is_validated=False,
                                 display_name='Anonymous',
-                                email=values_numeric['email_address'])
+                                email=values_checked['email_address'])
             person = person[0]
             person.display_name = person.display_name + str(person.id)
             person.save()
@@ -426,32 +422,42 @@ def create_experiment_for_user(request, system, values_numeric, person=None):
         except IntegrityError as err:
             # The email address is not unique.
             person = models.Person.objects.get(
-                                     email=values_numeric['email_address'])
+                                     email=values_checked['email_address'])
             send_returning_user_email = True
 
 
     # OK, we must have the person object now: whether signed in, brand new
     # user, or a returning user that has cleared cookies, or not been
     # present for a while.
-    values_numeric.pop('email_address', None)
-    failed = send_suitable_email(person, send_new_user_email,
-                                  send_returning_user_email)
-    if failed:
-        raise BadEmailCannotSendError("Couldn't send email: {0}".format(failed))
-
-
 
     # If the user has not clicked on the email, place the experiment on
     # hold, until the user signs in.
     next_run = models.Experiment(person=person,
-                                system=system,
-                                inputs=inputs_to_JSON(values_numeric),
-                                is_validated=validated_person,
-                                time_to_solve=-500,
-                                earliest_to_show=
-                        datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59))
+                                 system=system,
+                                 inputs=inputs_to_JSON(values_checked),
+                                 is_validated=validated_person,
+                                 time_to_solve=-500,
+                                 earliest_to_show=
+    datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).replace(tzinfo=utc))
     next_run.save()
-    return next_run
+
+    hash_value = generate_random_token(10)
+    token = models.Token(person=person,
+                         system=system,
+                         hash_value=hash_value,
+                         experiment=next_run)
+
+
+    failed, next_URI = send_suitable_email(person, send_new_user_email,
+                                  send_returning_user_email, hash_value)
+    if failed:
+        next_run.delete()
+        # token.delete()  :: not required. It hasn't been saved yet.
+        raise BadEmailCannotSendError("Couldn't send email: {0}".format(failed))
+    else:
+        token.next_URI = next_URI.strip(WEBSITE_CORE)
+        token.save()
+        return next_run
 
 def fetch_leaderboard_results(system=None):
     """ Returns the leaderboard for the current system.
@@ -775,7 +781,6 @@ def get_plot_and_data_HTML(person, system, input_set):
     return plot_html, expt_data
 
 
-
 # UTILITY TYPE FUNCTIONS
 def create_fake_usernames(number=10):
     """Chooses a humorous fake name (randomly created), for people to sign
@@ -877,9 +882,15 @@ def send_logged_email(subject, message, to_address_list):
 
     return out
 
-
 def inputs_to_JSON(inputs):
     """Converts the numeric inputs to JSON, after cleaning. This allows logging
     and storing them for all users.
     """
-    return json.dumps(inputs)
+    copied = inputs.copy()
+    copied.pop('email_address', None)
+    return json.dumps(copied)
+
+def generate_random_token(token_length):
+    """Creates random length tokens from unmistakable characters."""
+    return ''.join([random.choice(('ABCEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvw'
+                                   'xyz2345689')) for i in range(token_length)])

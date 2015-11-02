@@ -31,13 +31,14 @@
            size="7"
            maxlength="7"
            placeholder="{{item.default_value|get_floatformat:item.n_decimals}}"
-           {% if values %}
-               value="{{ values|get_item:item.slug|floatformat:3 }}"
+           {% if prior_values %}
+               value="{{ prior_values|get_item:item.slug|floatformat:2 }}"
            {% endif %}
            id="{{item.slug}}">
     {% elif item.ntype == "CAT" %}
         {% for key, value in categoricals|dict_iteration:item.slug %}
-            <input type="radio" name="{{item.slug}}" value="{{key}}">{{key}}
+            <input type="radio" name="{{item.slug}}" value="{{key}}"
+            >{{key}}
         {% endfor %}
     {% endif %}
            {{item.units_suffix}}
@@ -48,16 +49,14 @@
     </span>
 
 {% endfor %}
-{% if person.id == 1 %}
+{% if person.display_name == "__Anonymous__" %}
 <p><label for="email_address">Your email address</label>: &nbsp;
 
     <input type="email"
            name="email_address"
            size="20"
            placeholder="you@domain.com"
-           {% if values %}
-               value="FILL_IN_PRIOR_ADDRESS"
-           {% endif %}
+           value="{{prior_values.email_address}}"
            id="email_address">
     <span id="email_address-error">Why? We want to give you credit for your
         experiments. Our website does not use any passwords, so we send you a

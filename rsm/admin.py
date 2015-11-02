@@ -22,10 +22,14 @@ class PersonAdmin(admin.ModelAdmin):
     list_display = ('display_name', 'email', 'level', 'is_validated',)
     list_display_links = list_display
 
+class TokenAdmin(admin.ModelAdmin):
+    list_display = ('person', 'system', 'was_used', 'time_used', 'plot_HTML',
+                    'next_URI', 'experiment',)
+    list_display_links = list_display
 
-admin.site.register(Person, PersonAdmin)
-admin.site.register(Token)
 admin.site.register(Tag)
+admin.site.register(Person, PersonAdmin)
+admin.site.register(Token, TokenAdmin)
 admin.site.register(Experiment, ExperimentAdmin)
 admin.site.register(System, SystemAdmin)
 admin.site.register(Input, InputAdmin)

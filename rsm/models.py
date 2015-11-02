@@ -36,9 +36,10 @@ class Token(models.Model):
     was_used = models.BooleanField(default=False)
     time_used = models.DateTimeField(auto_now=True, auto_now_add=False)
     # Sometimes we use tokens to parse around HTML plotting code
-    plot_HTML = models.TextField(default='')
+    plot_HTML = models.TextField(default='', blank=True)
     # Othertimes it is to redirect a ``Person`` to a next instance.
-    next_URI = models.CharField(max_length=50, editable=True, default='')
+    next_URI = models.CharField(max_length=50, editable=True, default='',
+                                blank=True)
     experiment = models.ForeignKey('rsm.Experiment', blank=True, null=True)
 
 class Tag(models.Model):
