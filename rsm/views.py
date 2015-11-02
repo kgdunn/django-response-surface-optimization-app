@@ -119,19 +119,20 @@ def run_simulation(system, simvalues, rotation):
 
     return (result, duration)
 
-def process_simulation_inputs_templates(inputs):
+def process_simulation_inputs_templates(inputs, request=None, force_GET=False):
     """ Cleans up the inputs so they are rendered appropriately in the Django
     templates.
     The categorical variable's numeric levels are split out, and modified
     into an actual Python dict (not a Django database object)
     """
-    #return inputs
     categoricals = {}
     for item in inputs:
         # Continuous items need no processing at the moment
         # Categorical items
         if item.ntype == 'CAT':
             categoricals[item.slug] = json.loads(item.level_numeric_mapping)
+            if force_GET:
+                categoricals[item.slug][request.POST[item.slug]] = '__checked__'
 
     return (inputs, categoricals)
 
@@ -280,15 +281,6 @@ def process_experiment(request, short_name_slug):
                        extend_dict=extend_dict)
 
 
-        #input_set = models.Input.objects.filter(system=system).order_by('slug')
-        #input_set, categoricals = process_simulation_inputs_templates(input_set)
-        #context = {'system': system,
-        #           'input_set': input_set,
-        #           }
-        #context['categoricals'] = categoricals
-        #return render(request, 'rsm/system-detail.html', context)
-
-
     # Clean-up the inputs by dropping any disallowed characters from the
     # function inputs:
     values_simulation = values_checked.copy()
@@ -296,6 +288,9 @@ def process_experiment(request, short_name_slug):
         value = values_simulation.pop(key)
         key = key.replace('-', '')
         values_simulation[key] = value
+
+    # Always pop out the email address; since
+    values_simulation.pop('email_address', None)
 
     # TODO: Get the rotation here
     rotation = 0
@@ -339,7 +334,9 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     input_set = models.Input.objects.filter(system=system).order_by('slug')
     plot_data_HTML = get_plot_and_data_HTML(person, system, input_set)
 
-    input_set, categoricals = process_simulation_inputs_templates(input_set)
+    input_set, categoricals = process_simulation_inputs_templates(input_set,
+                                                                  request,
+                                                                  force_GET)
     context = {'system': system,
                'input_set': input_set,
                'person': person,

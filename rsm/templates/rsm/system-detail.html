@@ -19,7 +19,6 @@
 
 <form action="{% url 'rsmapp:show_one_system' system.slug %}" method="post">
 {% csrf_token %}
-
 {% for item in input_set.all %}
     <p>
     <label for="{{item.slug}}">{{item.display_name}}</label>: &nbsp;
@@ -38,7 +37,7 @@
     {% elif item.ntype == "CAT" %}
         {% for key, value in categoricals|dict_iteration:item.slug %}
             <input type="radio" name="{{item.slug}}" value="{{key}}"
-            >{{key}}
+            {% if value == "__checked__" %}checked{% endif %}>{{key}}
         {% endfor %}
     {% endif %}
            {{item.units_suffix}}
@@ -49,6 +48,7 @@
     </span>
 
 {% endfor %}
+
 {% if person.display_name == "__Anonymous__" %}
 <p><label for="email_address">Your email address</label>: &nbsp;
 
