@@ -3,7 +3,6 @@ Hi {{username}},
 Glad to have you back.
 
 To sign back into the Response Surface Method (RSM) website please follow these steps:
-
 1. Click on this link: <a href="{{sign_in_URI}}"><tt>{{sign_in_URI}}</tt></a>
 2. Confirm your experimental values.
 
