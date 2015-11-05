@@ -24,7 +24,7 @@ import hashlib
 import datetime
 from smtplib import SMTPException
 from collections import defaultdict, namedtuple
-import logging.handlers
+import logging
 import matplotlib as matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,15 +32,8 @@ import matplotlib.pyplot as plt
 # Ideally put this in the Django settings file. Leave here for now.
 WEBSITE_CORE = 'http://rsm.learnche.org'
 
-logger = logging.getLogger('RSMLogger')
-logger.setLevel(logging.DEBUG)
-fh = logging.handlers.RotatingFileHandler(DJANGO_SETTINGS.LOG_FILENAME,
-                                          maxBytes=2000000, backupCount=5)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-fh.setFormatter(formatter)
-logger.addHandler(fh)
+logger = logging.getLogger(__name__)
 logger.debug('A new call to the views.py file')
-
 
 if sys.version_info < (3, 2, 0):
     import subprocess32 as subprocess
@@ -393,13 +386,22 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
 def validate_user(request, hashvalue):
     """ The new/returning user has been sent an email to sign in.
-    Recall the token, mark them as validated, sign them in, run the experiment
+    Recall their token, mark them as validated, sign them in, run the experiment
     they had intended, and redirect them to the next URL associated with their
     token.
 
     If it is a new user, make them select a Leaderboard name first.
     """
-    create_fake_usernames()
+    logger.info('Locating validation token {0}'.format(hashvalue))
+    token = get_object_or_404(models.Token, hash_value=hashvalue)
+
+
+    #return HttpResponseRedirect('')
+
+
+    #suggest_names = create_fake_usernames()
+
+
 
 def send_suitable_email(person, send_new_user_email, send_returning_user_email,
                         hash_val):
@@ -844,7 +846,7 @@ def create_fake_usernames(number=10):
                    "Hippopotamus", "Girafe", "Mustang", "Kombi", "Crocodile",
                    "Turtle", "Ostrich", "Cassowary", "Nematode", "Isopod",
                    "Bug", "Roach", "Honey", "Hedgehog", "Sauropod", "Dystopian",
-                   "Spider", "Lamprey", "Hagfish", "Sturgeon", "Trout", "Hog",
+                   "Spider", "Lamprey", "Hagfish", "Sturgeon", "Trout",
                    "Bazooka", "AK47", "Canon", "Elvis", "Elton", "Sherlock",
                    "Inspector", "Detective", "Sergeant", "Hamlet", "Macbeth",
                    "Dexter", "Lancelot", "King", "Queen", "Prince", "Princess",
@@ -857,6 +859,7 @@ def create_fake_usernames(number=10):
                    "Chairperson", "Leader", "Mistress", "Mister", "Monarch",
                    "Sovereign", "Head", "Trailblazer", "Trendsetter",
                    "The incredible", "Amazing", "Extraordinary", "Supreme",
+                   "Bayesian", "Confounding", "Covariate",
                    ]
 
     last_names = ["Bayes", "Laplace", "Nightingale", "Galton", "Thiele",
@@ -885,7 +888,8 @@ def create_fake_usernames(number=10):
                   "The A-Team", "Knight Rider", "No Pie Charts Ever",
                   "Nanga Parbat", "Great Barrier Reef", "Take No Prisoners",
                   "Optimize Prime", "Dream Team", "Optimizer Prime",
-                  "Numero Uno"
+                  "Numero Uno", "The Confouders", "The Standard Order",
+                  "The Orderly Standard", "Standard Table", "The T-test"
                   ]
 
     names = []
