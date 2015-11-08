@@ -1,6 +1,7 @@
 # Dependancies (other than a basic Python + Django):
 # pip install -U subprocess32
 # pip install -U matplotlib
+# pip install -U pillow
 # pip install -U plotly
 
 from django.shortcuts import get_object_or_404, render
@@ -231,8 +232,7 @@ def process_experiment(request, short_name_slug):
         # NB: Read the user values first before doing any checking on them.
         inputs = models.Input.objects.filter(system=system).order_by('slug')
         if request.session.get('signed_in', False):
-            # Fix up here still; not sure what should happen in this branch.
-            assert(False)
+            person = models.Person.objects.get(id=request.session['person_id'])
             values_checked['email_address'] = person.email
         else:
             values_checked['email_address'] = request.POST['email_address']
@@ -333,6 +333,10 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     if request.session.get('signed_in', False):
         # Case 1.
         person = models.Person.objects.get(id=request.session['person_id'])
+        # Ensure that any prior session keys are removed
+        request.session.pop('send_new_user_email', False)
+        request.session.pop('send_returning_user_email', False)
+
         logger.debug('REG-USER expt: {0} :: {1}'.format(person.id,
                                                         system.full_name))
     elif request.session.get('send_new_user_email', False) or \
@@ -479,12 +483,14 @@ def send_suitable_email(person, send_new_user_email, send_returning_user_email,
 
 def create_experiment_object(request, system, values_checked, person=None):
     """Create the input for the given user."""
-     # TODO: check that the user is allowed to create a new input at this point
+    # TODO: check that the user is allowed to create a new input at this point
     #       in time. There might be a time limitation in place still.
     #       If so, offer to store the input and run it at the first possible
     #       occasion.
 
-    # Once signed in: create 2 session settings: signed_in=True, person_id=``id``
+    # Once signed in create 2 session settings: signed_in=True, person_id=``id``
+    send_new_user_email = False
+    send_returning_user_email = False
     if request.session.get('signed_in', False):
         person = models.Person.objects.get(id=request.session['person_id'])
         validated_person = True
@@ -498,9 +504,6 @@ def create_experiment_object(request, system, values_checked, person=None):
         #    leaderboard name, and send them a link to sign in with. That link
         #    will prompt them to create a username for the leaderboard, giving
         #    some interesting suggested names.
-
-        send_new_user_email = False
-        send_returning_user_email = False
         try:
             person = models.Person.objects.get_or_create(is_validated=False,
                                 display_name='Anonymous',
@@ -613,13 +616,20 @@ def plot_wrapper(data, system, inputs, hash_value):
         """ Finds suitable clamping ranges and a "dy" offset to place marker
         labels using heuristics.
         """
+        finite_clamps = True
         if clamps is None:
             clamps = [float('-inf'), float('+inf')]
+            finite_clamps = False
+
         y_min = max(min(vector), clamps[0])
         y_max = min(max(vector), clamps[1])
         y_range = y_max - y_min
-        if y_range == 0.0:
+        if y_range == 0.0 and finite_clamps:
+            y_min, y_max = clamps
+            y_range = y_max - y_min
+        elif y_range == 0.0 and not(finite_clamps):
             y_range = 1.0
+
 
         y_range_min, y_range_max = y_min - 0.07*y_range, y_max + 0.07*y_range
         dy = 0.015*y_range
