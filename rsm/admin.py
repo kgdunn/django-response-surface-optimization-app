@@ -23,7 +23,7 @@ class PersonAdmin(admin.ModelAdmin):
     list_display_links = list_display
 
 class TokenAdmin(admin.ModelAdmin):
-    list_display = ('person', 'system', 'was_used', 'time_used', 'plot_HTML',
+    list_display = ('person', 'system', 'was_used', 'time_used',
                     'next_URI', 'experiment',)
     list_display_links = list_display
 

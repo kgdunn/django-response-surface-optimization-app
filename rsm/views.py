@@ -454,7 +454,43 @@ def sign_in_user(request, hashvalue):
     """ User is sign-in with the unique hashcode sent to them, or if a POST
     request, then user has requested a sign-in token to be emailed to them.
     """
-    pass
+    token = get_object_or_404(models.Token, hash_value=hashvalue)
+    if request.POST:
+        username = request.POST['rsm_username']
+        logger.info('RETURN USER: {0}'.format(username))
+
+        request.session['signed_in'] = True
+        request.session['person_id'] = token.person.id
+
+        request.session.pop('send_new_user_email', False)
+        request.session.pop('send_returning_user_email', False)
+
+        # See if you can capture the originating page and refer, else
+        # just go to default front page
+
+        # All done; the person has been validated, and signed in
+        #return HttpResponseRedirect(reverse('rsmapp:show_one_system',
+        #                                        args=(token.system.slug,)))
+
+    else:
+        return HttpResponseRedirect(reverse('rsmapp:sign_in_user',
+                                                args=(token.hash_value,)))
+
+    logger.info('Using sign-in token {0}'.format(hashvalue))
+
+    token.experiment.is_validated = True
+    token.experiment.save()
+
+    token.was_used = True
+    token.save()
+
+    ## or, maybe redirect to the "sign-in" function instead.
+    ##request.session['signed_in'] = True
+    #context = {'hashvalue': hashvalue,
+    #           'message': 'Thank you for validating your email address.',
+    #           'suggestions': create_fake_usernames(10),
+    #           'person': token.person}
+    #return render(request, 'rsm/choose-new-leaderboard-name.html', context)
 
 
 def send_suitable_email(person, send_new_user_email, send_returning_user_email,
@@ -603,16 +639,16 @@ def get_person_experimental_data(person, system, input_set):
         data_string += str(data[item.slug])
 
     if not(data['_output_']):
-        hash_value = token = None
+        hash_value = plothash = None
     else:
         hash_value = hashlib.md5(data_string).hexdigest()
 
-        # TODO: put this in a more suitable place: in the Experiment.hash_value
-        #       field????
-        token = models.Token.objects.get_or_create(person=person, system=system,
-                                            hash_value=hash_value)
-        token = token[0]
-    return data, hash_value, token
+        # TODO.v2: consider putting this in the ``Experiment`` object
+        plothash = models.PlotHash.objects.get_or_create(person=person,
+                                                         system=system,
+                                                         hash_value=hash_value)
+        plothash = plothash[0]
+    return data, hash_value, plothash
 
 def plot_wrapper(data, system, inputs, hash_value):
     """Creates a plot of the data, and returns the HTML code to display the
@@ -868,7 +904,7 @@ def get_plot_and_data_HTML(person, system, input_set):
     """Plots the data by generating HTML code that may be rendered into the
     Django template."""
 
-    data, hash_value, token = get_person_experimental_data(person,
+    data, hash_value, plothash = get_person_experimental_data(person,
                                                            system,
                                                            input_set)
 
@@ -885,14 +921,14 @@ def get_plot_and_data_HTML(person, system, input_set):
         expt_data.append(item)
 
     if hash_value:
-        if token and token.plot_HTML:
-            plot_html = token.plot_HTML
+        if plothash and plothash.plot_HTML:
+            plot_html = plothash.plot_HTML
         else:
             # This speeds up page refreshed. We don't need to recreate existing
             # plots for a person.
             plot_html = plot_wrapper(data, system, input_set, hash_value)
-            token.plot_HTML = plot_html
-            token.save()
+            plothash.plot_HTML = plot_html
+            plothash.save()
     else:
         plot_html = 'No plot to display; please run an experiment first.'
 
