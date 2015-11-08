@@ -198,7 +198,7 @@ def process_simulation_output(result, next_run, system):
         next_run.other_outputs = json.dumps(result)
 
     # TODO: adding the time-delay before results are displayed to the user.
-    next_run.earliest_to_show = datetime.datetime.now()
+    next_run.earliest_to_show = datetime.datetime.now().replace(tzinfo=utc)
 
     # TODO: add biasing for the user here
     return next_run
@@ -433,8 +433,6 @@ def validate_user(request, hashvalue):
             return HttpResponseRedirect(reverse('rsmapp:validate_user',
                                                     args=(token.hash_value,)))
 
-
-
     logger.info('Locating validation token {0}'.format(hashvalue))
 
     token.experiment.is_validated = True
@@ -449,9 +447,14 @@ def validate_user(request, hashvalue):
                'message': 'Thank you for validating your email address.',
                'suggestions': create_fake_usernames(10),
                'person': token.person}
-
-
     return render(request, 'rsm/choose-new-leaderboard-name.html', context)
+
+
+def sign_in_user(request, hashvalue):
+    """ User is sign-in with the unique hashcode sent to them, or if a POST
+    request, then user has requested a sign-in token to be emailed to them.
+    """
+    pass
 
 
 def send_suitable_email(person, send_new_user_email, send_returning_user_email,
@@ -545,18 +548,24 @@ def create_experiment_object(request, system, values_checked, person=None):
                          experiment=next_run)
     request.session['token'] = token.hash_value
 
-    failed, next_URI = send_suitable_email(person, send_new_user_email,
+    if send_new_user_email or send_returning_user_email:
+        failed, next_URI = send_suitable_email(person, send_new_user_email,
                                   send_returning_user_email, hash_value)
-    if failed:
-        next_run.delete()
-        # token.delete()  :: not required. It hasn't been saved yet.
-        # We do not want to use these 3 keys if the email address is wrong
-        request.session.pop('send_new_user_email')
-        request.session.pop('send_returning_user_email')
-        request.session.pop('token')
-        raise BadEmailCannotSendError("Couldn't send email: {0}".format(failed))
+
+        if failed:
+            next_run.delete()
+            # token.delete()  :: not required. It hasn't been saved yet.
+            # We do not want to use these 3 keys if the email address is wrong
+            request.session.pop('send_new_user_email')
+            request.session.pop('send_returning_user_email')
+            request.session.pop('token')
+            raise BadEmailCannotSendError("Couldn't send email: {0}"\
+                                                               .format(failed))
+        else:
+            token.next_URI = next_URI.strip(WEBSITE_CORE)
+            token.save()
+            return next_run
     else:
-        token.next_URI = next_URI.strip(WEBSITE_CORE)
         token.save()
         return next_run
 

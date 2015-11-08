@@ -11,6 +11,11 @@ urlpatterns = [
 
     # Example: /validate/asd1241a
     url(r'^validate/(?P<hashvalue>[-\w]+)/$', views.validate_user,
-        name='validate_user')
+        name='validate_user'),
+
+
+    # Example: /sign-in/asd1241a
+    url(r'^sign-in/(?P<hashvalue>[-\w]+)/$', views.sign_in_user,
+            name='sign_in_user'),
 
 ]
