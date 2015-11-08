@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 
-from .models import Person, Token, Tag, Experiment, System, Input
+from .models import Person, Token, Tag, Experiment, System, Input, PlotHash
 
 class SystemAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("full_name",)}
@@ -27,9 +27,15 @@ class TokenAdmin(admin.ModelAdmin):
                     'next_URI', 'experiment',)
     list_display_links = list_display
 
+class PlotHashAdmin(admin.ModelAdmin):
+    list_display = ('person', 'system', 'time_last_used', 'plot_HTML',
+                    )
+    list_display_links = list_display
+
 admin.site.register(Tag)
 admin.site.register(Person, PersonAdmin)
 admin.site.register(Token, TokenAdmin)
+admin.site.register(PlotHash, PlotHashAdmin)
 admin.site.register(Experiment, ExperimentAdmin)
 admin.site.register(System, SystemAdmin)
 admin.site.register(Input, InputAdmin)

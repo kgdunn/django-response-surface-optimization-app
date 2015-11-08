@@ -46,7 +46,6 @@ class PlotHash(models.Model):
     person = models.ForeignKey('rsm.Person')
     system = models.ForeignKey('rsm.System')
     hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
-    was_used = models.BooleanField(default=False)
     time_last_used = models.DateTimeField(auto_now=True, auto_now_add=False)
     plot_HTML = models.TextField(default='', blank=True)
 
