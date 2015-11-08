@@ -25,9 +25,10 @@ compare where you stand with others. We have a created a random name, and made s
 {% csrf_token %}
 
 Your current name: <input class="btn btn-default" name="rsm_username"
-id="_rsm_username_"  maxlength="50" type="text"
+id="_rsm_username_" minlength="4" maxlength="50" type="text"
 placeholder="{{person.display_name}}" value="{{person.display_name}}">
 <input type="submit" value="Choose this name!" />
+<br>Must be 4 or more characters
 <p>
 <br>(click on a different name below to select that, or the existing one)
 <ul>

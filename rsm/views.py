@@ -333,6 +333,8 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     if request.session.get('signed_in', False):
         # Case 1.
         person = models.Person.objects.get(id=request.session['person_id'])
+        logger.debug('REG-USER expt: {0} :: {1}'.format(person.id,
+                                                        system.full_name))
     elif request.session.get('send_new_user_email', False) or \
          request.session.get('send_returning_user_email', False):
         token_hash = request.session.get('token', None)
@@ -384,6 +386,14 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     context['message'] = message
     return render(request, 'rsm/system-detail.html', context)
 
+def adequate_username(request, username):
+    """Checks if the username is adequate: not taken, not offensive, and 4 or
+    more characters."""
+    unique = models.Person.objects.filter(display_name=username).count() == 0
+    length = len(username) >= 4
+    # TODO.v2: check for offensive names
+    return length*unique
+
 def validate_user(request, hashvalue):
     """ The new/returning user has been sent an email to sign in.
     Recall their token, mark them as validated, sign them in, run the experiment
@@ -392,31 +402,42 @@ def validate_user(request, hashvalue):
 
     If it is a new user, make them select a Leaderboard name first.
     """
+    token = get_object_or_404(models.Token, hash_value=hashvalue)
     if request.POST:
-        # Check the ``rsm_username`` is 4 or more characters, not taken already
-        # not offensive
-        # email me about the username being registered
-        # complete the user with the new name,
-        # make them a valid person .is_validated=True
-        # save them,
-        # return them to the system they came from
-        # return HttpResponseRedirect(reverse('rsmapp:show_one_system',
-    #                                    args=(token.system.slug,)))
+        if adequate_username(request, request.POST['rsm_username']):
+            username = request.POST['rsm_username']
+            logger.info('NEW USER: {0}'.format(username))
 
-        pass
+            send_logged_email(subject="RSM: New user: {0}".format(username),
+                              message="New RSM user: {0}".format(username),
+                              to_address_list=[DJANGO_SETTINGS.ADMINS[0][1],])
+            token.person.display_name = username
+            token.person.is_validated = True
+            token.person.save()
+
+            request.session['signed_in'] = True
+            request.session['person_id'] = token.person.id
+
+            request.session.pop('send_new_user_email', False)
+            request.session.pop('send_returning_user_email', False)
+
+            # All done; the person has been validated, and signed in
+            return HttpResponseRedirect(reverse('rsmapp:show_one_system',
+                                                    args=(token.system.slug,)))
+
+        else:
+            return HttpResponseRedirect(reverse('rsmapp:validate_user',
+                                                    args=(token.hash_value,)))
+
 
 
     logger.info('Locating validation token {0}'.format(hashvalue))
-    token = get_object_or_404(models.Token, hash_value=hashvalue)
 
     token.experiment.is_validated = True
-    #token.experiment.save()
+    token.experiment.save()
 
     token.was_used = True
-    #token.save()
-
-    #request.session['send_returning_user_email'] = True
-
+    token.save()
 
     # or, maybe redirect to the "sign-in" function instead.
     #request.session['signed_in'] = True
@@ -427,14 +448,6 @@ def validate_user(request, hashvalue):
 
 
     return render(request, 'rsm/choose-new-leaderboard-name.html', context)
-
-    #
-
-
-
-
-    #suggest_names =
-
 
 
 def send_suitable_email(person, send_new_user_email, send_returning_user_email,
