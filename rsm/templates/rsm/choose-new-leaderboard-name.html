@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Choose a name for the leaderboard{% endblock %}
+
+{% block content %}
+<script>
+function pushtext(elmnt, text) {
+document.getElementById("_rsm_username_").value = text;
+}
+</script>
+{{message|safe}}
+
+<h2>Please choose a name for our website</h2>
+<p>We require you to pick a short name for our leaderboards. This is so you can
+compare where you stand with others. We have a created a random name, and made suggestions for others. <em>Please note, the suggestions are totally random generated.</em>
+
+
+
+<span class="rsm-error input-error">
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+<span>
+
+<form action="{% url 'rsmapp:validate_user' hashvalue %}" method="post">
+
+{% csrf_token %}
+
+Your current name: <input class="btn btn-default" name="rsm_username"
+id="_rsm_username_"  maxlength="50" type="text"
+placeholder="{{person.display_name}}" value="{{person.display_name}}">
+<input type="submit" value="Choose this name!" />
+<p>
+<br>(click on a different name below to select that, or the existing one)
+<ul>
+{% for item in suggestions %}
+    <li><input class="btn btn-default"
+               type="button"
+               value="{{item}}"
+               onclick="pushtext(this, '{{item}}')">
+    </span>
+{% endfor %}
+
+</ul>
+
+
+    <span id="{{item.slug}}-error">{% if item.error_message %}
+                                        ({{item.error_message}})
+                                  {% endif %}
+
+</form>
+
+
+{% endblock %}

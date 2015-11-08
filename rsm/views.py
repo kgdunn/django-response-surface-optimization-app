@@ -392,14 +392,48 @@ def validate_user(request, hashvalue):
 
     If it is a new user, make them select a Leaderboard name first.
     """
+    if request.POST:
+        # Check the ``rsm_username`` is 4 or more characters, not taken already
+        # not offensive
+        # email me about the username being registered
+        # complete the user with the new name,
+        # make them a valid person .is_validated=True
+        # save them,
+        # return them to the system they came from
+        # return HttpResponseRedirect(reverse('rsmapp:show_one_system',
+    #                                    args=(token.system.slug,)))
+
+        pass
+
+
     logger.info('Locating validation token {0}'.format(hashvalue))
     token = get_object_or_404(models.Token, hash_value=hashvalue)
 
+    token.experiment.is_validated = True
+    #token.experiment.save()
 
-    #return HttpResponseRedirect('')
+    token.was_used = True
+    #token.save()
+
+    #request.session['send_returning_user_email'] = True
 
 
-    #suggest_names = create_fake_usernames()
+    # or, maybe redirect to the "sign-in" function instead.
+    #request.session['signed_in'] = True
+    context = {'hashvalue': hashvalue,
+               'message': 'Thank you for validating your email address.',
+               'suggestions': create_fake_usernames(10),
+               'person': token.person}
+
+
+    return render(request, 'rsm/choose-new-leaderboard-name.html', context)
+
+    #
+
+
+
+
+    #suggest_names =
 
 
 
@@ -548,7 +582,8 @@ def get_person_experimental_data(person, system, input_set):
     else:
         hash_value = hashlib.md5(data_string).hexdigest()
 
-        # TODO: put this in a more suitable place
+        # TODO: put this in a more suitable place: in the Experiment.hash_value
+        #       field????
         token = models.Token.objects.get_or_create(person=person, system=system,
                                             hash_value=hash_value)
         token = token[0]
@@ -889,7 +924,8 @@ def create_fake_usernames(number=10):
                   "Nanga Parbat", "Great Barrier Reef", "Take No Prisoners",
                   "Optimize Prime", "Dream Team", "Optimizer Prime",
                   "Numero Uno", "The Confouders", "The Standard Order",
-                  "The Orderly Standard", "Standard Table", "The T-test"
+                  "The Orderly Standard", "Standard Table", "The T-test",
+                  "I am the Design", "I am Significant",
                   ]
 
     names = []

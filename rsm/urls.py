@@ -10,6 +10,7 @@ urlpatterns = [
         name='show_one_system'),
 
     # Example: /validate/asd1241a
-    url(r'^validate/(?P<hashvalue>[-\w]+)/$', views.validate_user)
+    url(r'^validate/(?P<hashvalue>[-\w]+)/$', views.validate_user,
+        name='validate_user')
 
 ]
