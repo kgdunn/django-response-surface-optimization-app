@@ -31,6 +31,11 @@ import logging
 import matplotlib as matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+import plotly.plotly as py
+from plotly.exceptions import PlotlyError
+
 
 # Ideally put this in the Django settings file. Leave here for now.
 WEBSITE_CORE = 'http://rsm.learnche.org'
@@ -732,7 +737,7 @@ def plot_wrapper(data, system, inputs, hash_value):
 
     # Create the figure
     if USE_NATIVE:
-        from matplotlib.figure import Figure  # for plotting
+
         matplotlib.rcParams['xtick.direction'] = 'out'
         matplotlib.rcParams['ytick.direction'] = 'out'
         fig = Figure(figsize=(9,7))
@@ -740,8 +745,6 @@ def plot_wrapper(data, system, inputs, hash_value):
         ax = fig.add_axes(rect, frameon=True)
         marker_size = 20
     elif USE_PLOTLY:
-
-        import plotly.plotly as py
         marker_size = 10
         fig, ax = plt.subplots()
 
@@ -866,7 +869,6 @@ def plot_wrapper(data, system, inputs, hash_value):
 
     if USE_PLOTLY:
         logger.debug('Begin: generating Plotly figure: ' + hash_value)
-        from plotly.exceptions import PlotlyError
         try:
             plot_url = py.plot_mpl(fig,
                                    filename=hash_value,
@@ -886,7 +888,7 @@ def plot_wrapper(data, system, inputs, hash_value):
         logger.debug('Done : generating Plotly figure: ' + plot_url)
 
     elif USE_NATIVE:
-        from matplotlib.backends.backend_agg import FigureCanvasAgg
+
         canvas=FigureCanvasAgg(fig)
         logger.debug('Saving figure: ' + hash_value)
         fig.savefig(hash_value+'.png',
