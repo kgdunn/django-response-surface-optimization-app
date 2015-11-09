@@ -214,7 +214,7 @@ def show_all_systems(request):
     """
     Returns all the systems available to simulate at the user's current level.
     """
-    system_list = models.System.objects.all()
+    system_list = models.System.objects.filter(is_active=True)
     context = {'system_list': system_list}
     return render(request, 'rsm/root.html', context)
 
@@ -229,7 +229,8 @@ def process_experiment(request, short_name_slug):
     #else:
         #return HttpResponse("Please enable cookies and try again.")
 
-    system = get_object_or_404(models.System, slug=short_name_slug)
+    system = get_object_or_404(models.System, slug=short_name_slug,
+                               is_active=True)
     values = {}
     values_checked = {}
     try:
@@ -325,7 +326,8 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
     # If it was not a POST request, but a (possibly forced) GET request...
     try:
-        system = models.System.objects.get(slug=short_name_slug)
+        system = models.System.objects.get(slug=short_name_slug,
+                                           is_active=True)
     except models.System.DoesNotExist:
         raise Http404(("Tried to find a system to optimize! But that system "
                        "does not exist."))

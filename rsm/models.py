@@ -92,6 +92,8 @@ class System(models.Model):
     description = models.TextField(verbose_name=("A description of what this "
         "system does, and hints on the objective of the optimization."),
         unique=True, blank=False, null=False, default="The aim of this ...")
+    is_active = models.BooleanField(default=False, help_text=("If False, then "
+            "this system will not be usable."))
 
     #image_description = models.ImageField()
     level = models.PositiveSmallIntegerField(verbose_name=("Skill level "
