@@ -1,4 +1,6 @@
-# Dependancies (other than a basic Python + Django):
+# Dependancies:
+# pip install -U django
+# pip install -U numpy
 # pip install -U subprocess32
 # pip install -U matplotlib
 # pip install -U pillow
