@@ -747,6 +747,9 @@ def plot_wrapper(data, system, inputs, hash_value):
         ax = fig.add_axes(rect, frameon=True)
         marker_size = 20
     elif USE_PLOTLY:
+
+        logger.debug('Trigger P-1')
+
         marker_size = 10
         fig, ax = plt.subplots()
 
@@ -754,6 +757,7 @@ def plot_wrapper(data, system, inputs, hash_value):
     ax.set_title('Response surface: summary of all experiments performed',
                  fontsize=16)
 
+    logger.debug('Trigger P-2')
     if len(inputs) == 1:
         x_data = data[inputs[0].slug]
         y_data = data['_output_']
@@ -793,6 +797,7 @@ def plot_wrapper(data, system, inputs, hash_value):
     elif len(inputs) >= 3:
         pass
 
+    logger.debug('Trigger P-3')
 
     # Now add the actual data points
     if len(inputs) == 1:
@@ -803,7 +808,7 @@ def plot_wrapper(data, system, inputs, hash_value):
         # TODO: marker size proportional to response value
         ax.plot(x_data, y_data, 'k.', ms=marker_size)
 
-
+    logger.debug('Trigger P-4')
     # Label the points in the plot
     add_labels(ax, len(inputs), x_data, y_data, dx=dx, dy=dy, rotate=False)
 
@@ -913,7 +918,7 @@ def get_plot_and_data_HTML(person, system, input_set):
     data, hash_value, plothash = get_person_experimental_data(person,
                                                            system,
                                                            input_set)
-
+    logger.debug('Trigger 1A')
     expt_data = []
     expt = namedtuple('Expt', ['output', 'datetime', 'inputs'])
     for idx, output in enumerate(data['_output_']):
@@ -925,6 +930,8 @@ def get_plot_and_data_HTML(person, system, input_set):
                     datetime= data['_datetime_'][idx],
                     inputs=input_item)
         expt_data.append(item)
+
+    logger.debug('Trigger 1B')
 
     if hash_value:
         if plothash and plothash.plot_HTML:
