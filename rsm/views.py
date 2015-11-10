@@ -360,11 +360,14 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
 
     input_set = models.Input.objects.filter(system=system).order_by('slug')
+    logger.debug('Trigger 1')
     plot_data_HTML = get_plot_and_data_HTML(person, system, input_set)
+    logger.debug('Trigger 2')
 
     input_set, categoricals = process_simulation_inputs_templates(input_set,
                                                                   request,
                                                                   force_GET)
+    logger.debug('Trigger 3')
     context = {'system': system,
                'input_set': input_set,
                'person': person,
@@ -392,6 +395,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
         context['input_set'] = []
 
     context['message'] = message
+    logger.debug('Trigger 4')
     return render(request, 'rsm/system-detail.html', context)
 
 def adequate_username(request, username):
