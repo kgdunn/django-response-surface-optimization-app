@@ -27,17 +27,17 @@ import datetime
 from smtplib import SMTPException
 from collections import defaultdict, namedtuple
 import logging
-import matplotlib as matplotlib
 import numpy as np
+
+# Ensure we can use Matplotlib in the background, on a headless machine
+# This helps with Plotly
+import matplotlib as matplotlib
+if matplotlib.get_backend() != 'agg':
+    matplotlib.use('agg')
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 import plotly.plotly as py
 from plotly.exceptions import PlotlyError
 
-# Ensure we can use Matplotlib in the background, on a headless machine
-if matplotlib.get_backend() != 'Agg':
-    matplotlib.use('Agg')
 
 logger = logging.getLogger(__name__)
 logger.debug('A new call to the views.py file')
@@ -743,6 +743,8 @@ def plot_wrapper(data, system, inputs, hash_value):
 
     # Create the figure
     if USE_NATIVE:
+        from matplotlib.figure import Figure
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
 
         matplotlib.rcParams['xtick.direction'] = 'out'
         matplotlib.rcParams['ytick.direction'] = 'out'
@@ -750,13 +752,14 @@ def plot_wrapper(data, system, inputs, hash_value):
         rect = [0.15, 0.1, 0.80, 0.85] # Left, bottom, width, height
         ax = fig.add_axes(rect, frameon=True)
         marker_size = 20
+
     elif USE_PLOTLY:
 
         logger.debug('Trigger P-1')
         matplotlib.use('Agg')
         marker_size = 10
         fig, ax = plt.subplots()
-
+        logger.debug('Trigger P-111')
 
     ax.set_title('Response surface: summary of all experiments performed',
                  fontsize=16)
