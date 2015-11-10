@@ -16,7 +16,6 @@ from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
 from django.utils.timezone import utc
 
-#import plotly
 import sys
 import time
 import math
@@ -35,10 +34,6 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import plotly.plotly as py
 from plotly.exceptions import PlotlyError
-
-
-# Ideally put this in the Django settings file. Leave here for now.
-WEBSITE_CORE = 'http://rsm.learnche.org'
 
 logger = logging.getLogger(__name__)
 logger.debug('A new call to the views.py file')
@@ -506,7 +501,8 @@ def send_suitable_email(person, send_new_user_email, send_returning_user_email,
                         hash_val):
     """ Either sends a validation email, or a log in email message. """
     if send_new_user_email:
-        next_URI = '{0}/validate/{1}'.format(WEBSITE_CORE, hash_val)
+        next_URI = '{0}/validate/{1}'.format(settings.WEBSITE_BASE_URI,
+                                             hash_val)
         ctx_dict = {'validation_URI': next_URI}
         message = render_to_string('rsm/email_new_user_to_validate.txt',
                                    ctx_dict)
@@ -516,7 +512,7 @@ def send_suitable_email(person, send_new_user_email, send_returning_user_email,
         to_address_list = [person.email.strip('\n'), ]
 
     if send_returning_user_email:
-        next_URI = '{0}/sign-in/{1}'.format(WEBSITE_CORE, hash_val)
+        next_URI = '{0}/sign-in/{1}'.format(settings.WEBSITE_BASE_URI, hash_val)
         ctx_dict = {'sign_in_URI': next_URI,
                     'username': person.display_name}
         message = render_to_string('rsm/email_sign_in_code.txt',
@@ -607,7 +603,7 @@ def create_experiment_object(request, system, values_checked, person=None):
             raise BadEmailCannotSendError("Couldn't send email: {0}"\
                                                                .format(failed))
         else:
-            token.next_URI = next_URI.strip(WEBSITE_CORE)
+            token.next_URI = next_URI.strip(settings.WEBSITE_BASE_URI)
             token.save()
             return next_run
     else:
