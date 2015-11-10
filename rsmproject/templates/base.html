@@ -2,16 +2,75 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.css">
     <title>{% block title %} | Response Surface Method Optimization{% endblock %}</title>
-    <script type="text/javascript" src="{{JQUERY_URL}}"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.js"></script>
     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/2.0-latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
     {{ANALYTICS_SNIPPET|safe}}
-</head>
 
+    <script type="text/javascript">
+    $(function() {
+      $( "#pop-invalid-email" ).hide();
+      $('#sign-in-popup-form').submit(function(event) {
+        var form = $(this);
+        $.ajax({
+          type: form.attr('method'),
+          url:  form.attr('action'),
+          data: form.serialize()
+        }).done(function(data) {
+            //if ( console && console.log ) { console.log( "Success" ); }
+            $("#sign-in-popup-link").removeClass("ui-icon-gear").addClass("ui-icon-check");
+            $("#sign-in-popup").popup( "close" );
+            $("#sign-in-popup-link").css('color','blue');
+
+
+            $( "#pop-invalid-email" ).hide();
+
+        }).fail(function(data) {
+           //if ( console && console.log ) { console.log( "Failed" ); }
+           $("#sign-in-popup").addClass( "done" );
+           $("#pop-invalid-email").show();
+           $("#pop-invalid-email").css('color','red');
+        });
+        event.preventDefault(); // Prevent the form from submitting via the browser.
+      });
+    });
+
+</script>
+
+</head>
 <body>
+
 {% block body %}
 <div class="container">
+    <div data-role="main" class="ui-content">
+    <a href="#sign-in-popup" id="sign-in-popup-link"
+    data-rel="popup"
+    class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left">Sign-in</a>
+
+
+    <div data-role="popup" id="sign-in-popup" class="ui-content"
+    data-transition="pop" style="min-width:250px;">
+      <form method="POST" id="sign-in-popup-form" action="{% url 'rsmapp:web_sign_in' %}">
+      {% csrf_token %}
+        <div>
+          <h3>Sign in with your email address</h3>
+
+          <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
+          <input type="email" name="emailaddress" id="usrnm" placeholder="Email address">
+          <span id="pop-invalid-email">That email address does not exist. Try again.<br></span>
+          <input type="submit" data-inline="true" value="Email me a code to sign in with!">
+          <br>(we do not use passwords on this website)
+
+        </div>
+      </form>
+    </div>
+</div>
+
     <div class="main">
         {% block content %}{% endblock %}
     </div>
@@ -20,3 +79,4 @@
 
 </body>
 </html>
+

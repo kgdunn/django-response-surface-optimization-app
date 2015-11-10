@@ -7,7 +7,7 @@
 # pip install -U plotly
 
 from django.shortcuts import get_object_or_404, render
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect, HttpResponse
 from django.core.urlresolvers import reverse
 from django.conf import settings as DJANGO_SETTINGS
 from django.core.validators import validate_email
@@ -208,6 +208,19 @@ def process_simulation_output(result, next_run, system):
 
     # TODO: add biasing for the user here
     return next_run
+
+def web_sign_in(request):
+    """POST-only sign-in via the website. """
+    if request.POST.get('emailaddress', False):
+        try:
+            person = models.Person.objects.get(email=\
+                                            request.POST.get('emailaddress'))
+            return HttpResponse("Success: user exists", status=200)
+        except models.Person.DoesNotExist:
+            return HttpResponse("User does not exist", status=400)
+    else:
+        return HttpResponse("Unauthorized access", status=401)
+
 
 def show_all_systems(request):
     """
@@ -764,7 +777,8 @@ def plot_wrapper(data, system, inputs, hash_value):
 
         ax.set_xlabel(get_axis_label_name(inputs[0]),
                       fontsize=16)
-        ax.set_ylabel(system.primary_output_display_name_with_units,
+        ax.set_ylabel('Response: {0}'.format(\
+                            system.primary_output_display_name_with_units),
                       fontsize=16)
 
         x_range_min, x_range_max, dx = plotting_defaults(x_data,
