@@ -364,14 +364,11 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
 
     input_set = models.Input.objects.filter(system=system).order_by('slug')
-    logger.debug('Trigger 1')
     plot_data_HTML = get_plot_and_data_HTML(person, system, input_set)
-    logger.debug('Trigger 2')
 
     input_set, categoricals = process_simulation_inputs_templates(input_set,
                                                                   request,
                                                                   force_GET)
-    logger.debug('Trigger 3')
     context = {'system': system,
                'input_set': input_set,
                'person': person,
@@ -399,7 +396,6 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
         context['input_set'] = []
 
     context['message'] = message
-    logger.debug('Trigger 4')
     return render(request, 'rsm/system-detail.html', context)
 
 def adequate_username(request, username):
@@ -755,16 +751,12 @@ def plot_wrapper(data, system, inputs, hash_value):
 
     elif USE_PLOTLY:
 
-        logger.debug('Trigger P-1')
-        matplotlib.use('Agg')
         marker_size = 10
         fig, ax = plt.subplots()
-        logger.debug('Trigger P-111')
 
     ax.set_title('Response surface: summary of all experiments performed',
                  fontsize=16)
 
-    logger.debug('Trigger P-2')
     if len(inputs) == 1:
         x_data = data[inputs[0].slug]
         y_data = data['_output_']
@@ -804,8 +796,6 @@ def plot_wrapper(data, system, inputs, hash_value):
     elif len(inputs) >= 3:
         pass
 
-    logger.debug('Trigger P-3')
-
     # Now add the actual data points
     if len(inputs) == 1:
         ax.plot(x_data, y_data, 'k.', ms=marker_size)
@@ -815,7 +805,6 @@ def plot_wrapper(data, system, inputs, hash_value):
         # TODO: marker size proportional to response value
         ax.plot(x_data, y_data, 'k.', ms=marker_size)
 
-    logger.debug('Trigger P-4')
     # Label the points in the plot
     add_labels(ax, len(inputs), x_data, y_data, dx=dx, dy=dy, rotate=False)
 
@@ -925,7 +914,6 @@ def get_plot_and_data_HTML(person, system, input_set):
     data, hash_value, plothash = get_person_experimental_data(person,
                                                            system,
                                                            input_set)
-    logger.debug('Trigger 1A')
     expt_data = []
     expt = namedtuple('Expt', ['output', 'datetime', 'inputs'])
     for idx, output in enumerate(data['_output_']):
@@ -938,7 +926,6 @@ def get_plot_and_data_HTML(person, system, input_set):
                     inputs=input_item)
         expt_data.append(item)
 
-    logger.debug('Trigger 1B')
 
     if hash_value:
         if plothash and plothash.plot_HTML:
