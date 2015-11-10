@@ -213,8 +213,8 @@ def web_sign_in(request):
     """POST-only sign-in via the website. """
     if request.POST.get('emailaddress', False):
         try:
-            person = models.Person.objects.get(email=\
-                                            request.POST.get('emailaddress'))
+            email = request.POST.get('emailaddress').strip()
+            person = models.Person.objects.get(email=email)
             return HttpResponse("Success: user exists", status=200)
         except models.Person.DoesNotExist:
             return HttpResponse("User does not exist", status=400)
