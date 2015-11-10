@@ -35,6 +35,10 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 import plotly.plotly as py
 from plotly.exceptions import PlotlyError
 
+# Ensure we can use Matplotlib in the background, on a headless machine
+if matplotlib.get_backend() != 'Agg':
+    matplotlib.use('Agg')
+
 logger = logging.getLogger(__name__)
 logger.debug('A new call to the views.py file')
 
@@ -749,7 +753,7 @@ def plot_wrapper(data, system, inputs, hash_value):
     elif USE_PLOTLY:
 
         logger.debug('Trigger P-1')
-
+        matplotlib.use('Agg')
         marker_size = 10
         fig, ax = plt.subplots()
 
