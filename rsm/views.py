@@ -505,7 +505,7 @@ def send_suitable_email(person, send_new_user_email, send_returning_user_email,
                         hash_val):
     """ Either sends a validation email, or a log in email message. """
     if send_new_user_email:
-        next_URI = '{0}/validate/{1}'.format(settings.WEBSITE_BASE_URI,
+        next_URI = '{0}/validate/{1}'.format(DJANGO_SETTINGS.WEBSITE_BASE_URI,
                                              hash_val)
         ctx_dict = {'validation_URI': next_URI}
         message = render_to_string('rsm/email_new_user_to_validate.txt',
@@ -516,7 +516,8 @@ def send_suitable_email(person, send_new_user_email, send_returning_user_email,
         to_address_list = [person.email.strip('\n'), ]
 
     if send_returning_user_email:
-        next_URI = '{0}/sign-in/{1}'.format(settings.WEBSITE_BASE_URI, hash_val)
+        next_URI = '{0}/sign-in/{1}'.format(DJANGO_SETTINGS.WEBSITE_BASE_URI,
+                                            hash_val)
         ctx_dict = {'sign_in_URI': next_URI,
                     'username': person.display_name}
         message = render_to_string('rsm/email_sign_in_code.txt',
@@ -607,7 +608,7 @@ def create_experiment_object(request, system, values_checked, person=None):
             raise BadEmailCannotSendError("Couldn't send email: {0}"\
                                                                .format(failed))
         else:
-            token.next_URI = next_URI.strip(settings.WEBSITE_BASE_URI)
+            token.next_URI = next_URI.strip(DJANGO_SETTINGS.WEBSITE_BASE_URI)
             token.save()
             return next_run
     else:
