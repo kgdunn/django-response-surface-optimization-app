@@ -364,6 +364,9 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
          request.session.get('send_returning_user_email', False):
         token_hash = request.session.get('token', None)
         if token_hash:
+            # TODO if the token does not exist, continue on as if anonymous.
+
+
             token = models.Token.objects.get(hash_value=token_hash)
             person = token.person
         else:
