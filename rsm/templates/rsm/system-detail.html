@@ -10,6 +10,11 @@
 <h2>{{ system.full_name }}</h2>
 <p>{{system.description|safe|linebreaks}}
 
+<style type="text/css">
+.ui-input-text {
+    width: 50% !important;
+}
+</style>
 
 
 {% if input_set %}
@@ -22,14 +27,19 @@
 
 <form action="{% url 'rsmapp:show_one_system' system.slug %}" method="post">
 {% csrf_token %}
+
 {% for item in input_set.all %}
     <p>
-    <label for="{{item.slug}}">{{item.display_name}}</label>: &nbsp;
-    {{item.units_prefix}}
+    <div data-role="fieldcontain">
+
+    <label for="{{item.slug}}">{{item.display_name}}:  {{item.units_prefix}}</label>
 
     {% if item.ntype == "CON" %}
+
     <input type="text"
            name="{{item.slug}}"
+           data-clear-btn="true"
+           data-inline="true"
            size="7"
            maxlength="7"
            placeholder="{{item.default_value|get_floatformat:item.n_decimals}}"
@@ -38,26 +48,42 @@
            {% endif %}
            id="{{item.slug}}">
     {% elif item.ntype == "CAT" %}
+    <fieldset data-role="controlgroup">
         {% for key, value in categoricals|dict_iteration:item.slug %}
-            <input type="radio" name="{{item.slug}}" value="{{key}}"
-            {% if value == "__checked__" %}checked{% endif %}>{{key}}
+            <input type="radio"
+                   name="{{item.slug}}"
+                   value="{{key}}"
+                   id="{{item.slug}}-{{forloop.counter}}"
+            {% if value == "__checked__" %}checked{% endif %}>
+            <label for="{{item.slug}}-{{forloop.counter}}">{{key}}</label>
         {% endfor %}
     {% endif %}
-           {{item.units_suffix}}
+    </fieldset>
 
-    <span id="{{item.slug}}-error">{% if item.error_message%}
+    <label for="{{item.slug}}">{{item.units_suffix}}</label>
+
+    </div>  <!--/fieldcontain-->
+
+    <div data-role="fieldcontain">
+    <label></label>
+    <span class="rsm-extra-info" id="{{item.slug}}-error">{% if item.error_message%}
                                         ({{item.error_message}})
                                   {% endif %}
     </span>
+
+
+    </div><!--/fieldcontain-->
+
 {% endfor %}
 
 {% if person.display_name == "__Anonymous__" %}
-<p><label for="email_address">Your email address</label>: &nbsp;
-
+<p>
+<!--<label for="email_address"></label>-->
     <input type="email"
            name="email_address"
            size="20"
-           placeholder="you@domain.com"
+           data-clear-btn="true"
+           placeholder="Your email address"
            value="{{prior_values.email_address}}"
            id="email_address">
     <span id="email_address-error">Why? We want to give you credit for your

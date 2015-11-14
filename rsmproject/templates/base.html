@@ -42,32 +42,31 @@
 
 </script>
 
+<style type="text/css">
+.rsm-sign-in-button{
+    float:right;
+}
+</style>
+
 </head>
 <body>
 
 {% block body %}
-<div class="container">
+
+<div class="rsm-sign-in-button">
     <div data-role="main" class="ui-content">
-    <a href="#sign-in-popup" id="sign-in-popup-link"
-    data-rel="popup"
-    class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left">Sign-in</a>
-
-
-    <div data-role="popup" id="sign-in-popup" class="ui-content"
-    data-transition="pop" style="min-width:250px;">
-      <form method="POST" id="sign-in-popup-form" action="{% url 'rsmapp:web_sign_in' %}">
-      {% csrf_token %}
-        <div>
-          <h3>Sign in with your email address</h3>
-
-          <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
-          <input type="email" name="emailaddress" id="usrnm" placeholder="Email address">
-          <span id="pop-invalid-email">That email address does not exist. Please try again.<br></span>
-          <input type="submit" data-inline="true" value="Email me a code to sign in with!">
-          <br>(we do not use passwords on this website)
-
+        <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup" class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left" name="sign-in-popup-link">Sign-in</a>
+        <div data-role="popup" id="sign-in-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
+            <form method="post" id="sign-in-popup-form" action="{% url 'rsmapp:web_sign_in' %}" name="sign-in-popup-form">
+                {% csrf_token %}
+                <div>
+                    <h3>
+                        Sign in with your email address
+                    </h3><label for="usrnm" class="ui-hidden-accessible">Email address:</label> <input type="email" name="emailaddress" id="usrnm" placeholder="Email address"> <span id="pop-invalid-email">That email address does not exist. Please try again.<br></span> <input type="submit" data-inline="true" value="Email me a code to sign in with!"><br>
+                    (we do not use passwords on this website)
+                </div>
+            </form>
         </div>
-      </form>
     </div>
 </div>
 
