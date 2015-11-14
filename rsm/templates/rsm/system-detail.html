@@ -28,6 +28,14 @@
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
 <span>
 
+{% if disabled %}
+<p> You have to <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup"
+class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left"
+name="sign-in-popup-link">Sign-in</a>in order to run experiments on the website.
+
+(We do not not use any passwords; we sign you in with a simple email.)
+{% endif %}
+
 <form action="{% url 'rsmapp:show_one_system' system.slug %}" method="post">
 {% csrf_token %}
 
@@ -43,8 +51,7 @@
            name="{{item.slug}}"
            data-clear-btn="true"
            data-inline="true"
-
-
+           {% if disabled %}disabled="disabled"{% endif %}
            size="7"
            maxlength="7"
            placeholder="{{item.default_value|get_floatformat:item.n_decimals}}"
@@ -57,6 +64,7 @@
         {% for key, value in categoricals|dict_iteration:item.slug %}
             <input type="radio"
                    name="{{item.slug}}"
+                   {% if disabled %}disabled="disabled"{% endif %}
                    value="{{key}}"
                    id="{{item.slug}}-{{forloop.counter}}"
             {% if value == "__checked__" %}checked{% endif %}>
@@ -72,33 +80,15 @@
 
     <div data-role="fieldcontain">
     <label></label>
-    <div class="rsm-extra-info" id="{{item.slug}}-error">{% if item.error_message%}
-                                        ({{item.error_message}})
-                                  {% endif %}
+    <div class="rsm-extra-info" id="{{item.slug}}-error">
+        {% if item.error_message%}({{item.error_message}}){% endif %}
     </div>
-
-
     </div><!--/fieldcontain-->
-
 {% endfor %}
 
-{% if person.display_name == "__Anonymous__" %}
-<p>
-<!--<label for="email_address"></label>-->
-    <input type="email"
-           name="email_address"
-           size="20"
-           data-clear-btn="true"
-           placeholder="Your email address"
-           value="{{prior_values.email_address}}"
-           id="email_address">
-    <span id="email_address-error">Why? We want to give you credit for your
-        experiments. Our website does not use any passwords, so we send you a
-        special email that signs you in for 3 days.
-        <br>Already signed up here before? <a href="....">Sign in here</a>.
-    </span>
-{% endif %}
-<p><input type="submit" value="Run my next experiment!" />
+<p><input type="submit"
+          {% if disabled %}disabled="disabled"{% endif %}
+          value="Run my next experiment!" />
 </form>
 {% endif %} {# if input_set #}
 

@@ -235,12 +235,6 @@ def process_experiment(request, short_name_slug):
 
     This is the POST handling of the System's webpage.
     """
-    #if request.session.test_cookie_worked():
-        #request.session.delete_test_cookie()
-        #return HttpResponse("You're logged in.")
-    #else:
-        #return HttpResponse("Please enable cookies and try again.")
-
     system = get_object_or_404(models.System, slug=short_name_slug,
                                is_active=True)
     values = {}
@@ -346,7 +340,6 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
     fetch_leaderboard_results()
 
-
     # 1. User is signed in already.
     # 2. User is totally new; has filled in an expt, and is being returned
     #    here after filling their email address.
@@ -388,6 +381,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     context = {'system': system,
                'input_set': input_set,
                'person': person,
+               'disabled': person.display_name == '__Anonymous__',
                'plot_html': plot_data_HTML[0],
                'data_html': plot_data_HTML[1]}
     context.update(extend_dict)   # used for the ``force_GET`` case when the
@@ -478,6 +472,12 @@ def sign_in_user(request, hashvalue):
     """ User is sign-in with the unique hashcode sent to them, or if a POST
     request, then user has requested a sign-in token to be emailed to them.
     """
+    #if request.session.test_cookie_worked():
+        #request.session.delete_test_cookie()
+        #return HttpResponse("You're logged in.")
+    #else:
+        #return HttpResponse("Please enable cookies and try again.")
+
     token = get_object_or_404(models.Token, hash_value=hashvalue)
     if request.POST:
         username = request.POST['rsm_username']
