@@ -12,7 +12,10 @@
 
 <style type="text/css">
 .ui-input-text {
-    width: 20% !important;
+    width: 60% !important;
+}
+.rsm-input-suffix{
+    padding-top: 10px;
 }
 </style>
 
@@ -40,6 +43,8 @@
            name="{{item.slug}}"
            data-clear-btn="true"
            data-inline="true"
+
+
            size="7"
            maxlength="7"
            placeholder="{{item.default_value|get_floatformat:item.n_decimals}}"
@@ -48,7 +53,7 @@
            {% endif %}
            id="{{item.slug}}">
     {% elif item.ntype == "CAT" %}
-    <fieldset data-role="controlgroup">
+        <fieldset data-role="controlgroup">
         {% for key, value in categoricals|dict_iteration:item.slug %}
             <input type="radio"
                    name="{{item.slug}}"
@@ -57,19 +62,20 @@
             {% if value == "__checked__" %}checked{% endif %}>
             <label for="{{item.slug}}-{{forloop.counter}}">{{key}}</label>
         {% endfor %}
+        </fieldset>
     {% endif %}
-    </fieldset>
-
-    <label for="{{item.slug}}">{{item.units_suffix}}</label>
+    <!--<label for="{{item.slug}}">-->
+    <div class="rsm-input-suffix">{{item.units_suffix}}</div>
+    <!--</label>-->
 
     </div>  <!--/fieldcontain-->
 
     <div data-role="fieldcontain">
     <label></label>
-    <span class="rsm-extra-info" id="{{item.slug}}-error">{% if item.error_message%}
+    <div class="rsm-extra-info" id="{{item.slug}}-error">{% if item.error_message%}
                                         ({{item.error_message}})
                                   {% endif %}
-    </span>
+    </div>
 
 
     </div><!--/fieldcontain-->
