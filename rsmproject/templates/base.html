@@ -60,9 +60,12 @@
             <form method="post" id="sign-in-popup-form" action="{% url 'rsmapp:web_sign_in' %}" name="sign-in-popup-form">
                 {% csrf_token %}
                 <div>
-                    <h3>
-                        Sign in with your email address
-                    </h3><label for="usrnm" class="ui-hidden-accessible">Email address:</label> <input type="email" name="emailaddress" id="usrnm" placeholder="Email address"> <span id="pop-invalid-email">That email address does not exist. Please try again.<br></span> <input type="submit" data-inline="true" value="Email me a code to sign in with!"><br>
+                    <h3>Sign in with your email address</h3>
+                    New user? We will send you a confirmation email.
+                    <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
+                    <input type="email" name="emailaddress" id="usrnm" placeholder="Your email address">
+                    <span id="pop-invalid-email">That email address does not exist. Please try again.<br></span>
+                    <input type="submit" data-inline="true" value="Email me a code to get started!"><br>
                     (we do not use passwords on this website)
                 </div>
             </form>

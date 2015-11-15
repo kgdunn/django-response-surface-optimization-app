@@ -31,7 +31,7 @@ class Token(models.Model):
     ``System`` models.
     """
     person = models.ForeignKey('rsm.Person')
-    system = models.ForeignKey('rsm.System')
+    system = models.ForeignKey('rsm.System', null=True, blank=True)
     hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
     was_used = models.BooleanField(default=False)
     time_used = models.DateTimeField(auto_now=True, auto_now_add=False)

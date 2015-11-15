@@ -212,12 +212,36 @@ def process_simulation_output(result, next_run, system):
 def web_sign_in(request):
     """POST-only sign-in via the website. """
     if request.POST.get('emailaddress', False):
+        referrer = request.META.get('HTTP_REFERER', '/').split('/')
+
+        # NOTE: this uses the fact that the URLs are /system/abc
+        # We aim to find the system so we can redirect the person clicking on
+        # an email.
+        try:
+            system_slug = referrer[referrer.index('system')+1]
+            system = models.System.objects.get(is_active=True,
+                                                  slug=system_slug)
+        except (ValueError, IndexError, models.System.DoesNotExist):
+            system = None
+
         try:
             email = request.POST.get('emailaddress').strip()
             person = models.Person.objects.get(email=email)
             return HttpResponse("Success: user exists", status=200)
         except models.Person.DoesNotExist:
             return HttpResponse("User does not exist", status=400)
+
+
+            # Token settings
+            #system = models.ForeignKey('rsm.System')
+            #hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
+            #was_used = models.BooleanField(default=False)
+            #time_used = models.DateTimeField(auto_now=True, auto_now_add=False)
+            ## Use tokens to redirect a ``Person`` to a next web page.
+            #next_URI = models.CharField(max_length=50, editable=True, default='',
+                                        #blank=True)
+            #experiment = models.ForeignKey('rsm.Experiment', blank=True, null=True)
+
     else:
         return HttpResponse("Unauthorized access", status=401)
 
