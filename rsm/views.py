@@ -65,10 +65,6 @@ class WrongInputError(RSMException):
     """ Raised when a non-numeric input is provided."""
     pass
 
-class BadEmailInputError(RSMException):
-    """ Raised when an email address is not valid."""
-    pass
-
 class OutOfBoundsInputError(RSMException):
     """ Raised when an input is outside the bounds."""
     pass
@@ -253,7 +249,6 @@ def web_sign_in(request):
         system_slug=''
         system = None
 
-
     if 'emailaddress' not in request.POST:
         return HttpResponse("Unauthorized access", status=401)
 
@@ -266,11 +261,11 @@ def web_sign_in(request):
         return HttpResponse("Invalid email address. Try again please.",
                             status=406)
 
-
     # 2. Is the user signed in already? Return back (essentially do nothing).
-    if request.session.get('signed_in', False):
+    if request.session.get('person_id', False):
+        # TODO: handle this case still
+        assert(False)
         return HttpResponse("You are already signed in", status=200)
-
 
     # 3A: a brand new user, or
     # 3B: a returning user that has cleared cookies/not been present for a while
@@ -290,7 +285,6 @@ def web_sign_in(request):
             return HttpResponse(("An email could not be sent to you. Please "
                                  "ensure your email address is correct."),
                                 status=404)
-
 
     except models.Person.DoesNotExist:
         # Case 3A: Create totally new user. At this point we are sure the user
@@ -341,11 +335,11 @@ def process_experiment(request, short_name_slug):
 
         # NB: Read the user values first before doing any checking on them.
         inputs = models.Input.objects.filter(system=system).order_by('slug')
-        if request.session.get('signed_in', False):
+        if request.session.get('person_id', False):
             person = models.Person.objects.get(id=request.session['person_id'])
-            values_checked['email_address'] = person.email
-        else:
-            values_checked['email_address'] = request.POST['email_address']
+            #values_checked['email_address'] = person.email
+        #else:
+            #values_checked['email_address'] = request.POST['email_address']
 
         for item in inputs:
             try:
@@ -368,10 +362,9 @@ def process_experiment(request, short_name_slug):
 
         # TODO: try-except path goes here to intercept time-limited experiments
 
-    except (WrongInputError, OutOfBoundsInputError, MissingInputError,
-            BadEmailInputError) as err:
+    except (WrongInputError, OutOfBoundsInputError, MissingInputError) as err:
 
-        values['email_address'] = values_checked['email_address']
+        #values['email_address'] = values_checked['email_address']
         logger.warn('User error raised: {0}. Context:{1}'.format(err.value,
                                                                  str(values)))
         # Redisplay the experiment input form if any invalid data enty.
@@ -391,9 +384,6 @@ def process_experiment(request, short_name_slug):
         value = values_simulation.pop(key)
         key = key.replace('-', '')
         values_simulation[key] = value
-
-    # Always pop out the email address; since
-    values_simulation.pop('email_address', None)
 
     # TODO: Get the rotation here
     rotation = 0
@@ -436,28 +426,28 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     # 2. User is totally new; has filled in an expt, and is being returned
     #    here after filling their email address.
     # 3. As for #2, but it is an existing user.
-    if request.session.get('signed_in', False):
+    if request.session.get('person_id', False):
         # Case 1.
         person = models.Person.objects.get(id=request.session['person_id'])
         # Ensure that any prior session keys are removed
-        request.session.pop('send_new_user_email', False)
-        request.session.pop('send_returning_user_email', False)
+        #request.session.pop('send_new_user_email', False)
+        #request.session.pop('send_returning_user_email', False)
 
         logger.debug('REG-USER expt: {0} :: {1}'.format(person.id,
                                                         system.full_name))
-    elif request.session.get('send_new_user_email', False) or \
-         request.session.get('send_returning_user_email', False):
-        token_hash = request.session.get('token', None)
-        if token_hash:
+    #elif request.session.get('send_new_user_email', False) or \
+    #     request.session.get('send_returning_user_email', False):
+    #    token_hash = request.session.get('token', None)
+    #    if token_hash:
             # TODO if the token does not exist, continue on as if anonymous.
 
 
-            token = models.Token.objects.get(hash_value=token_hash)
-            person = token.person
-        else:
+    #        token = models.Token.objects.get(hash_value=token_hash)
+    #        person = token.person
+    #    else:
             # Somehow we couldn't retrieve the token hash
-            person = models.Person.objects.get(display_name='__Anonymous__',
-                                                email='anonymous@learnche.org')
+    #        person = models.Person.objects.get(display_name='__Anonymous__',
+    #                                            email='anonymous@learnche.org')
     else:
         # If all else fails (i.e. totally new visitor just visiting)
         person = models.Person.objects.get(display_name='__Anonymous__',
@@ -481,21 +471,21 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     context['categoricals'] = categoricals
 
     message = ''
-    if request.session.get('send_new_user_email', False):
-        message = ("Thanks for running your first experiment!<br>We have sent "
-                   "you an email at {0} to get started. Please click on the "
-                   "link in that email.<br><br>Only when you do that will the "
-                   "results from your experiment be displayed.").format(\
-                   person.email)
-        # Do not allow the user to input any further new experiments
-        context['input_set'] = []
-    if request.session.get('send_returning_user_email', False):
-        message =  ("Welcome back {0}. To sign yourself in, please click on "
-                    "the link we sent to your email address: {1}. You can see "
-                    "the result from your experiment once you do that.").format\
-                    (person.display_name, person.email)
-        # Do not allow the user to input any further new experiments
-        context['input_set'] = []
+    #if request.session.get('send_new_user_email', False):
+        #message = ("Thanks for running your first experiment!<br>We have sent "
+                   #"you an email at {0} to get started. Please click on the "
+                   #"link in that email.<br><br>Only when you do that will the "
+                   #"results from your experiment be displayed.").format(\
+                   #person.email)
+        ## Do not allow the user to input any further new experiments
+        #context['input_set'] = []
+    #if request.session.get('send_returning_user_email', False):
+        #message =  ("Welcome back {0}. To sign yourself in, please click on "
+                    #"the link we sent to your email address: {1}. You can see "
+                    #"the result from your experiment once you do that.").format\
+                    #(person.display_name, person.email)
+        ## Do not allow the user to input any further new experiments
+        #context['input_set'] = []
 
     context['message'] = message
     return render(request, 'rsm/system-detail.html', context)
@@ -508,7 +498,7 @@ def adequate_username(request, username):
     # TODO.v2: check for offensive names
     return length*unique
 
-def validate_user(request, hashvalue):
+def validate_user(request, hashvalue, message=''):
     """ The new/returning user has been sent an email to sign in.
     Recall their token, mark them as validated, sign them in, run the experiment
     they had intended, and redirect them to the next URL associated with their
@@ -516,6 +506,7 @@ def validate_user(request, hashvalue):
 
     If it is a new user, make them select a Leaderboard name first.
     """
+    logger.info('Locating validation token {0}'.format(hashvalue))
     token = get_object_or_404(models.Token, hash_value=hashvalue)
     if request.POST:
         if adequate_username(request, request.POST['rsm_username']):
@@ -528,86 +519,42 @@ def validate_user(request, hashvalue):
             token.person.display_name = username
             token.person.is_validated = True
             token.person.save()
-
-            request.session['signed_in'] = True
-            request.session['person_id'] = token.person.id
-
-            request.session.pop('send_new_user_email', False)
-            request.session.pop('send_returning_user_email', False)
-
-            # All done; the person has been validated, and signed in
-            return HttpResponseRedirect(reverse('rsmapp:show_one_system',
-                                                    args=(token.system.slug,)))
+            token.was_used = True
+            token.save()
+            return sign_in_user(request, hashvalue)
 
         else:
-            return HttpResponseRedirect(reverse('rsmapp:validate_user',
-                                                    args=(token.hash_value,)))
-
-    logger.info('Locating validation token {0}'.format(hashvalue))
-
-    token.experiment.is_validated = True
-    token.experiment.save()
-
-    token.was_used = True
-    token.save()
-
-    # or, maybe redirect to the "sign-in" function instead.
-    #request.session['signed_in'] = True
-    context = {'hashvalue': hashvalue,
-               'message': 'Thank you for validating your email address.',
-               'suggestions': create_fake_usernames(10),
-               'person': token.person}
-    return render(request, 'rsm/choose-new-leaderboard-name.html', context)
-
+            # Try again ...
+            token.was_used = False
+            token.save()
+            return validate_user(request, hashvalue, message=("That username "
+                        "is too short, or already exists."))
+    else:
+        message = message or 'Thank you for validating your email address.'
+        context = {'hashvalue': hashvalue,
+                   'message': message,
+                   'suggestions': create_fake_usernames(10),
+                   'person': token.person}
+        return render(request, 'rsm/choose-new-leaderboard-name.html', context)
 
 def sign_in_user(request, hashvalue):
-    """ User is sign-in with the unique hashcode sent to them, or if a POST
-    request, then user has requested a sign-in token to be emailed to them.
-    """
-    #if request.session.test_cookie_worked():
-        #request.session.delete_test_cookie()
-        #return HttpResponse("You're logged in.")
-    #else:
-        #return HttpResponse("Please enable cookies and try again.")
+    """ User is sign-in with the unique hashcode sent to them,
+        These steps are used once the user has successfully been validated,
+        or if sign-in is successful."""
+
+    logger.debug('Attempting sign-in with token {0}'.format(hashvalue))
 
     token = get_object_or_404(models.Token, hash_value=hashvalue)
-    if request.POST:
-        username = request.POST['rsm_username']
-        logger.info('RETURN USER: {0}'.format(username))
-
-        request.session['signed_in'] = True
-        request.session['person_id'] = token.person.id
-
-        request.session.pop('send_new_user_email', False)
-        request.session.pop('send_returning_user_email', False)
-
-        # See if you can capture the originating page and refer, else
-        # just go to default front page
-
-        # All done; the person has been validated, and signed in
-        #return HttpResponseRedirect(reverse('rsmapp:show_one_system',
-        #                                        args=(token.system.slug,)))
-
-    else:
-        return HttpResponseRedirect(reverse('rsmapp:sign_in_user',
-                                                args=(token.hash_value,)))
-
-    logger.info('Using sign-in token {0}'.format(hashvalue))
-
-    token.experiment.is_validated = True
-    token.experiment.save()
-
     token.was_used = True
     token.save()
+    request.session['person_id'] = token.person.id
+    logger.info('RETURNING USER: {0}'.format(token.person.display_name))
 
-    ## or, maybe redirect to the "sign-in" function instead.
-    ##request.session['signed_in'] = True
-    #context = {'hashvalue': hashvalue,
-    #           'message': 'Thank you for validating your email address.',
-    #           'suggestions': create_fake_usernames(10),
-    #           'person': token.person}
-    #return render(request, 'rsm/choose-new-leaderboard-name.html', context)
-
+    if token.system:
+        return HttpResponse(reverse('rsmapp:show_one_system',
+                                        args=(token.system.slug,)), status=200)
+    else:
+        return HttpResponse(reverse('rsmapp:show_all_systems'), status=200)
 
 def send_suitable_email(person, hash_val):
     """ Sends a validation email, and logs the email message. """
@@ -648,9 +595,9 @@ def create_experiment_object(request, system, values_checked, person=None):
     #       occasion.
 
     # Once signed in create 2 session settings: signed_in=True, person_id=``id``
-    send_new_user_email = False
-    send_returning_user_email = False
-    if request.session.get('signed_in', False):
+    #send_new_user_email = False
+    #send_returning_user_email = False
+    if request.session.get('person_id', False):
         person = models.Person.objects.get(id=request.session['person_id'])
         validated_person = True
     else:
@@ -670,7 +617,7 @@ def create_experiment_object(request, system, values_checked, person=None):
             person = person[0]
             person.display_name = person.display_name + str(person.id)
             person.save()
-            send_new_user_email = True
+            #send_new_user_email = True
         except IntegrityError as err:
             # The email address is not unique.
             person = models.Person.objects.get(
@@ -678,8 +625,8 @@ def create_experiment_object(request, system, values_checked, person=None):
             send_returning_user_email = True
 
         # Store these two for use later on in the ``show_one_system()`` function
-        request.session['send_new_user_email'] = send_new_user_email
-        request.session['send_returning_user_email'] = send_returning_user_email
+        #request.session['send_new_user_email'] = send_new_user_email
+        #request.session['send_returning_user_email'] = send_returning_user_email
 
 
     # OK, we must have the person object now: whether signed in, brand new
@@ -704,26 +651,26 @@ def create_experiment_object(request, system, values_checked, person=None):
                          experiment=next_run)
     request.session['token'] = token.hash_value
 
-    if send_new_user_email or send_returning_user_email:
-        failed, next_URI = send_suitable_email(person, send_new_user_email,
-                                  send_returning_user_email, hash_value)
+    #if send_new_user_email or send_returning_user_email:
+    #    failed, next_URI = send_suitable_email(person, send_new_user_email,
+    #                              send_returning_user_email, hash_value)
 
-        if failed:
-            next_run.delete()
-            # token.delete()  :: not required. It hasn't been saved yet.
-            # We do not want to use these 3 keys if the email address is wrong
-            request.session.pop('send_new_user_email')
-            request.session.pop('send_returning_user_email')
-            request.session.pop('token')
-            #raise BadEmailCannotSendError("Couldn't send email: {0}"\
-            #                                                   .format(failed))
-        else:
-            token.next_URI = next_URI.strip(DJANGO_SETTINGS.WEBSITE_BASE_URI)
-            token.save()
-            return next_run
-    else:
-        token.save()
-        return next_run
+    #    if failed:
+    #        next_run.delete()
+    #        # token.delete()  :: not required. It hasn't been saved yet.
+    #        # We do not want to use these 3 keys if the email address is wrong
+    #        request.session.pop('send_new_user_email')
+    #        request.session.pop('send_returning_user_email')
+    #        request.session.pop('token')
+    #        #raise BadEmailCannotSendError("Couldn't send email: {0}"\
+    #        #                                                   .format(failed))
+    #    else:
+    #        token.next_URI = next_URI.strip(DJANGO_SETTINGS.WEBSITE_BASE_URI)
+    #        token.save()
+    #        return next_run
+    #else:
+    #    token.save()
+    #    return next_run
 
 def fetch_leaderboard_results(system=None):
     """ Returns the leaderboard for the current system.
