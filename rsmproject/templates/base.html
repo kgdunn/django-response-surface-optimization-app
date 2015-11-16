@@ -13,28 +13,36 @@
     {{ANALYTICS_SNIPPET|safe}}
 
     <script type="text/javascript">
+    var closePopup = function(event){
+        $('#sign-in-popup').popup("close");
+        event.preventDefault();
+        };
     $(function() {
-      $( "#pop-invalid-email" ).hide();
-      $('#sign-in-popup-form').submit(function(event) {
+    $('#popup-OK-span').hide();
+    $('#sign-in-popup-form').submit(function(event) {
         var form = $(this);
+
         $.ajax({
           type: form.attr('method'),
           url:  form.attr('action'),
           data: form.serialize()
         }).done(function(data) {
             //if ( console && console.log ) { console.log( "Success" ); }
-            $("#sign-in-popup-link").removeClass("ui-icon-gear").addClass("ui-icon-check");
-            $("#sign-in-popup").popup( "close" );
-            $("#sign-in-popup-link").css('color','blue');
-
-
-            $( "#pop-invalid-email" ).hide();
+            //$("#sign-in-popup-link").removeClass("ui-icon-gear").addClass("ui-icon-check");
+            //$("#sign-in-popup").popup( "close" );
+            //$("#sign-in-popup-link").css('color','blue');
+            $("#popup-message-back").show();
+            $("#popup-message-back").css('color','blue');
+            $("#popup-message-back").text(data);
+            $('#popup-OK-span').show();
+            $('#popup-submit-button').parents('.ui-btn').hide();
+            $('#popup-OK-span').click(closePopup);
 
         }).fail(function(data) {
-           //if ( console && console.log ) { console.log( "Failed" ); }
-           $("#sign-in-popup").addClass( "done" );
-           $("#pop-invalid-email").show();
-           $("#pop-invalid-email").css('color','red');
+            //if ( console && console.log ) { console.log( "Failed" ); }
+            $("#popup-message-back").show();
+            $("#popup-message-back").css('color','red');
+            $("#popup-message-back").text(data.responseText)
         });
         event.preventDefault(); // Prevent the form from submitting via the browser.
       });
@@ -61,12 +69,16 @@
                 {% csrf_token %}
                 <div>
                     <h3>Sign in with your email address</h3>
-                    New user? We will send you a confirmation email.
+                    New user? We will send you a confirmation email.<br>
+                    Returning user? We will send you a log in email.
                     <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
                     <input type="email" name="emailaddress" id="usrnm" placeholder="Your email address">
-                    <span id="pop-invalid-email">That email address does not exist. Please try again.<br></span>
-                    <input type="submit" data-inline="true" value="Email me a code to get started!"><br>
-                    (we do not use passwords on this website)
+                    <span id="popup-message-back"></span>
+                    <br>
+                    <input id="popup-submit-button" type="submit" data-rel="back" data-inline="true" value="Email me a code to get started!">
+                    <span id="popup-OK-span"><input id="popup-OK-button" type="button" data-inline="true" value="OK"></span>
+                    <br>
+                    <em>Note</em>: we do not use passwords on this website.
                 </div>
             </form>
         </div>

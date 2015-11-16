@@ -8,7 +8,7 @@
 
 from django.shortcuts import get_object_or_404, render
 from django.http import Http404, HttpResponseRedirect, HttpResponse
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, NoReverseMatch
 from django.conf import settings as DJANGO_SETTINGS
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
@@ -38,6 +38,9 @@ import matplotlib.pyplot as plt
 import plotly.plotly as py
 from plotly.exceptions import PlotlyError
 
+# Some settings for this app:
+TOKEN_LENGTH = 5
+
 
 logger = logging.getLogger(__name__)
 logger.debug('A new call to the views.py file')
@@ -65,9 +68,6 @@ class WrongInputError(RSMException):
 class BadEmailInputError(RSMException):
     """ Raised when an email address is not valid."""
     pass
-
-class BadEmailCannotSendError(RSMException):
-    """ Raised when SMTPlib cannot send an email. """
 
 class OutOfBoundsInputError(RSMException):
     """ Raised when an input is outside the bounds."""
@@ -209,41 +209,113 @@ def process_simulation_output(result, next_run, system):
     # TODO: add biasing for the user here
     return next_run
 
+def create_token_send_email_check_success(person, system_slug, system):
+    """ Used during signing in a new user, or an existing user. A token to
+    is created, and an email is sent.
+    If the email succeeds, then we return with success, else, we indicate
+    failure to the calling function.
+    """
+    # Create a token for the new user
+    hash_value = generate_random_token(TOKEN_LENGTH)
+    try:
+        next_URI = reverse('rsmapp:show_one_system', args=(system_slug,))
+        system = models.System.objects.get(is_active=True, slug=system_slug)
+    except NoReverseMatch:
+        next_URI = ''
+
+    # Send them an email
+    failed = send_suitable_email(person, hash_value)
+
+    if failed:
+        # SMTPlib cannot send an email
+        return False
+    else:
+        token = models.Token(person=person,
+                             system=system,
+                             hash_value=hash_value,
+                             experiment=None,
+                             next_URI=DJANGO_SETTINGS.WEBSITE_BASE_URI+next_URI)
+
+        token.next_URI = next_URI.strip(DJANGO_SETTINGS.WEBSITE_BASE_URI)
+        return token
+
 def web_sign_in(request):
     """POST-only sign-in via the website. """
-    if request.POST.get('emailaddress', False):
-        referrer = request.META.get('HTTP_REFERER', '/').split('/')
 
-        # NOTE: this uses the fact that the URLs are /system/abc
-        # We aim to find the system so we can redirect the person clicking on
-        # an email.
-        try:
-            system_slug = referrer[referrer.index('system')+1]
-            system = models.System.objects.get(is_active=True,
-                                                  slug=system_slug)
-        except (ValueError, IndexError, models.System.DoesNotExist):
-            system = None
-
-        try:
-            email = request.POST.get('emailaddress').strip()
-            person = models.Person.objects.get(email=email)
-            return HttpResponse("Success: user exists", status=200)
-        except models.Person.DoesNotExist:
-            return HttpResponse("User does not exist", status=400)
+    # NOTE: this uses the fact that the URLs are /system/abc
+    # We aim to find the system so we can redirect the person clicking on
+    # an email.
+    referrer = request.META.get('HTTP_REFERER', '/').split('/')
+    try:
+        system_slug = referrer[referrer.index('system')+1]
+        system = models.System.objects.get(is_active=True, slug=system_slug)
+    except (ValueError, IndexError, models.System.DoesNotExist):
+        system_slug=''
+        system = None
 
 
-            # Token settings
-            #system = models.ForeignKey('rsm.System')
-            #hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
-            #was_used = models.BooleanField(default=False)
-            #time_used = models.DateTimeField(auto_now=True, auto_now_add=False)
-            ## Use tokens to redirect a ``Person`` to a next web page.
-            #next_URI = models.CharField(max_length=50, editable=True, default='',
-                                        #blank=True)
-            #experiment = models.ForeignKey('rsm.Experiment', blank=True, null=True)
-
-    else:
+    if 'emailaddress' not in request.POST:
         return HttpResponse("Unauthorized access", status=401)
+
+    # Process the sign-in
+    # 1. Check if email address is valid based on a regular expression check.
+    try:
+        email = request.POST.get('emailaddress', '').strip()
+        validate_email(email)
+    except ValidationError:
+        return HttpResponse("Invalid email address. Try again please.",
+                            status=406)
+
+
+    # 2. Is the user signed in already? Return back (essentially do nothing).
+    if request.session.get('signed_in', False):
+        return HttpResponse("You are already signed in", status=200)
+
+
+    # 3A: a brand new user, or
+    # 3B: a returning user that has cleared cookies/not been present for a while
+    try:
+        # Testing for 3A or 3B
+        person = models.Person.objects.get(email=email)
+
+        # If failure, then it is case 3A (see below). Continue with case 3B.
+        # TODO: create token, send email. NOTE: the user may be unvalidated.
+        token = create_token_send_email_check_success(person, system_slug,
+                                                      system)
+        if token:
+            token.save()
+            return HttpResponse(("Please check your email, and click on the "
+                             "link that we emailed you."), status=200)
+        else:
+            return HttpResponse(("An email could not be sent to you. Please "
+                                 "ensure your email address is correct."),
+                                status=404)
+
+
+    except models.Person.DoesNotExist:
+        # Case 3A: Create totally new user. At this point we are sure the user
+        #          has never been validated on our site before.
+        #          But the email address they provided might still be faulty.
+        person = models.Person(is_validated=False,
+                               display_name='Anonymous',
+                               email=email)
+        person.save()
+        person.display_name = person.display_name + str(person.id)
+
+        token = create_token_send_email_check_success(person, system_slug,
+                                                      system)
+        if token:
+            person.save()
+            token.person = person  # must overwrite the prior "unsaved" person
+            token.save()
+            return HttpResponse(("Please check your email, and click on the "
+                                 "link that we emailed you."), status=200)
+        else:
+            # ``token`` will automatically be forgotten when this function
+            # returns here. Perfect!
+            person.delete()
+            return HttpResponse(("An email could NOT be sent to you. Please "
+                "ensure your email address is valid."), status=404)
 
 
 def show_all_systems(request):
@@ -286,10 +358,6 @@ def process_experiment(request, short_name_slug):
         values_checked.update(process_simulation_input(values, inputs))
 
         # Check the email address:
-        try:
-            validate_email(values_checked['email_address'])
-        except ValidationError:
-            raise(BadEmailInputError('You provided an invalid email address.'))
 
         # Success in checking the inputs. Create an input object for the user,
         # and run the experiment.
@@ -301,7 +369,7 @@ def process_experiment(request, short_name_slug):
         # TODO: try-except path goes here to intercept time-limited experiments
 
     except (WrongInputError, OutOfBoundsInputError, MissingInputError,
-            BadEmailInputError, BadEmailCannotSendError) as err:
+            BadEmailInputError) as err:
 
         values['email_address'] = values_checked['email_address']
         logger.warn('User error raised: {0}. Context:{1}'.format(err.value,
@@ -541,13 +609,25 @@ def sign_in_user(request, hashvalue):
     #return render(request, 'rsm/choose-new-leaderboard-name.html', context)
 
 
-def send_suitable_email(person, send_new_user_email, send_returning_user_email,
-                        hash_val):
-    """ Either sends a validation email, or a log in email message. """
-    if send_new_user_email:
-        next_URI = '{0}/validate/{1}'.format(DJANGO_SETTINGS.WEBSITE_BASE_URI,
+def send_suitable_email(person, hash_val):
+    """ Sends a validation email, and logs the email message. """
+
+    if person.is_validated:
+        sign_in_URI = '{0}/sign-in/{1}'.format(DJANGO_SETTINGS.WEBSITE_BASE_URI,
+                                        hash_val)
+        ctx_dict = {'sign_in_URI': sign_in_URI,
+                    'username': person.display_name}
+        message = render_to_string('rsm/email_sign_in_code.txt',
+                                   ctx_dict)
+        subject = ("Unique code to sign-into the Response Surface "
+                   "Methods website.")
+        to_address_list = [person.email.strip('\n'), ]
+
+    else:
+        # New users / unvalidated user
+        check_URI = '{0}/validate/{1}'.format(DJANGO_SETTINGS.WEBSITE_BASE_URI,
                                              hash_val)
-        ctx_dict = {'validation_URI': next_URI}
+        ctx_dict = {'validation_URI': check_URI}
         message = render_to_string('rsm/email_new_user_to_validate.txt',
                                    ctx_dict)
 
@@ -555,20 +635,10 @@ def send_suitable_email(person, send_new_user_email, send_returning_user_email,
                    "Methods website!")
         to_address_list = [person.email.strip('\n'), ]
 
-    if send_returning_user_email:
-        next_URI = '{0}/sign-in/{1}'.format(DJANGO_SETTINGS.WEBSITE_BASE_URI,
-                                            hash_val)
-        ctx_dict = {'sign_in_URI': next_URI,
-                    'username': person.display_name}
-        message = render_to_string('rsm/email_sign_in_code.txt',
-                           ctx_dict)
-        subject = ("Unique email to sign-into the Response Surface "
-               "Methods website.")
-        to_address_list = [person.email.strip('\n'), ]
 
     # Use regular Python code to send the email in HTML format.
     message = message.replace('\n','\n<br>')
-    return send_logged_email(subject, message, to_address_list), next_URI
+    return send_logged_email(subject, message, to_address_list)
 
 def create_experiment_object(request, system, values_checked, person=None):
     """Create the input for the given user."""
@@ -645,8 +715,8 @@ def create_experiment_object(request, system, values_checked, person=None):
             request.session.pop('send_new_user_email')
             request.session.pop('send_returning_user_email')
             request.session.pop('token')
-            raise BadEmailCannotSendError("Couldn't send email: {0}"\
-                                                               .format(failed))
+            #raise BadEmailCannotSendError("Couldn't send email: {0}"\
+            #                                                   .format(failed))
         else:
             token.next_URI = next_URI.strip(DJANGO_SETTINGS.WEBSITE_BASE_URI)
             token.save()
@@ -1096,7 +1166,21 @@ def inputs_to_JSON(inputs):
     copied.pop('email_address', None)
     return json.dumps(copied)
 
-def generate_random_token(token_length):
+def generate_random_token(token_length, no_lowercase=True, check_unused=True):
     """Creates random length tokens from unmistakable characters."""
-    return ''.join([random.choice(('ABCEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvw'
-                                   'xyz2345689')) for i in range(token_length)])
+    choices = 'ABCEFGHJKLMNPQRSTUVWXYZ2345689'
+    if not(no_lowercase):
+        choices += 'abcdefghjkmnpqrstuvwxyz'
+
+
+    while True:
+        hashval = ''.join([random.choice(choices) for i in range(token_length)])
+        if check_unused:
+            try:
+                models.Token.objects.get(hash_value=hashval)
+            except models.Token.DoesNotExist:
+                return hashval
+            # It will repeat at this point
+
+        else:
+            return hashval
