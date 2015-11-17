@@ -222,8 +222,7 @@ def create_token_send_email_check_success(person, system_slug, system):
     # Send them an email
     failed = send_suitable_email(person, hash_value)
 
-    if failed:
-        # SMTPlib cannot send an email
+    if failed: # SMTPlib cannot send an email
         return False
     else:
         token = models.Token(person=person,
@@ -264,7 +263,6 @@ def popup_sign_in(request):
     # 2. Is the user signed in already? Return back (essentially do nothing).
     if request.session.get('person_id', False):
         # TODO: handle this case still
-        assert(False)
         return HttpResponse("You are already signed in", status=200)
 
     # 3A: a brand new user, or
@@ -273,8 +271,7 @@ def popup_sign_in(request):
         # Testing for 3A or 3B
         person = models.Person.objects.get(email=email)
 
-        # If failure, then it is case 3A (see below). Continue with case 3B.
-        # TODO: create token, send email. NOTE: the user may be unvalidated.
+        # Must be case 3B. If prior failure, then it is case 3A (see below).
         token = create_token_send_email_check_success(person, system_slug,
                                                       system)
         if token:
@@ -337,9 +334,6 @@ def process_experiment(request, short_name_slug):
         inputs = models.Input.objects.filter(system=system).order_by('slug')
         if request.session.get('person_id', False):
             person = models.Person.objects.get(id=request.session['person_id'])
-            #values_checked['email_address'] = person.email
-        #else:
-            #values_checked['email_address'] = request.POST['email_address']
 
         for item in inputs:
             try:
@@ -364,7 +358,6 @@ def process_experiment(request, short_name_slug):
 
     except (WrongInputError, OutOfBoundsInputError, MissingInputError) as err:
 
-        #values['email_address'] = values_checked['email_address']
         logger.warn('User error raised: {0}. Context:{1}'.format(err.value,
                                                                  str(values)))
         # Redisplay the experiment input form if any invalid data enty.
@@ -395,9 +388,8 @@ def process_experiment(request, short_name_slug):
     run_complete = process_simulation_output(result, next_run, system)
     run_complete.save()
 
-    # Always return an HttpResponseRedirect after successfully dealing
-    # with POST data. This prevents data from being posted twice if a
-    # user hits the Back button.a
+    # Return an HttpResponseRedirect after dealing with POST. Prevents data
+    #from being posted twice if a user hits the Back button.
     return HttpResponseRedirect(reverse('rsmapp:show_one_system',
                                         args=(system.slug,)))
 
@@ -422,38 +414,18 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
     fetch_leaderboard_results()
 
-    # 1. User is signed in already.
-    # 2. User is totally new; has filled in an expt, and is being returned
-    #    here after filling their email address.
-    # 3. As for #2, but it is an existing user.
+    # Get the user. Assume, to start, that it is an anonymous/unknown user.
+    person = models.Person.objects.get(display_name='__Anonymous__',
+                                       email='anonymous@learnche.org')
     if request.session.get('person_id', False):
-        # Case 1.
-        person = models.Person.objects.get(id=request.session['person_id'])
-        # Ensure that any prior session keys are removed
-        #request.session.pop('send_new_user_email', False)
-        #request.session.pop('send_returning_user_email', False)
+        try:
+            person = models.Person.objects.get(id=request.session['person_id'])
+            logger.debug('REG-USER expt: {0} :: {1}'.format(person.id,
+                                                            system.full_name))
+        except models.Person.DoesNotExist:
+            pass
 
-        logger.debug('REG-USER expt: {0} :: {1}'.format(person.id,
-                                                        system.full_name))
-    #elif request.session.get('send_new_user_email', False) or \
-    #     request.session.get('send_returning_user_email', False):
-    #    token_hash = request.session.get('token', None)
-    #    if token_hash:
-            # TODO if the token does not exist, continue on as if anonymous.
-
-
-    #        token = models.Token.objects.get(hash_value=token_hash)
-    #        person = token.person
-    #    else:
-            # Somehow we couldn't retrieve the token hash
-    #        person = models.Person.objects.get(display_name='__Anonymous__',
-    #                                            email='anonymous@learnche.org')
-    else:
-        # If all else fails (i.e. totally new visitor just visiting)
-        person = models.Person.objects.get(display_name='__Anonymous__',
-                                               email='anonymous@learnche.org')
-
-
+    # Get the relevant input objects
     input_set = models.Input.objects.filter(system=system).order_by('slug')
     plot_data_HTML = get_plot_and_data_HTML(person, system, input_set)
 
@@ -496,9 +468,9 @@ def validate_user(request, hashvalue, message='', force_GET=False):
             username = request.POST['rsm_username']
             logger.info('NEW USER: {0}'.format(username))
 
-            #send_logged_email(subject="RSM: New user: {0}".format(username),
-                              #message="New RSM user: {0}".format(username),
-                              #to_address_list=[DJANGO_SETTINGS.ADMINS[0][1],])
+            send_logged_email(subject="RSM: New user: {0}".format(username),
+                              message="New RSM user: {0}".format(username),
+                              to_address_list=[DJANGO_SETTINGS.ADMINS[0][1],])
             token.person.display_name = username
             token.person.is_validated = True
             token.person.save()
@@ -507,10 +479,9 @@ def validate_user(request, hashvalue, message='', force_GET=False):
             return sign_in_user(request, hashvalue)
 
         else:
-            # Try again ...
+            # Too short, or already used. Try again ...
             token.was_used = False
             token.save()
-            #return HttpResponseRedirect('/')
             return validate_user(request, hashvalue, force_GET=True,
                     message=("That username is too short, or already exists."))
     else:
@@ -639,27 +610,6 @@ def create_experiment_object(request, system, values_checked, person=None):
                          hash_value=hash_value,
                          experiment=next_run)
     request.session['token'] = token.hash_value
-
-    #if send_new_user_email or send_returning_user_email:
-    #    failed, next_URI = send_suitable_email(person, send_new_user_email,
-    #                              send_returning_user_email, hash_value)
-
-    #    if failed:
-    #        next_run.delete()
-    #        # token.delete()  :: not required. It hasn't been saved yet.
-    #        # We do not want to use these 3 keys if the email address is wrong
-    #        request.session.pop('send_new_user_email')
-    #        request.session.pop('send_returning_user_email')
-    #        request.session.pop('token')
-    #        #raise BadEmailCannotSendError("Couldn't send email: {0}"\
-    #        #                                                   .format(failed))
-    #    else:
-    #        token.next_URI = next_URI.strip(DJANGO_SETTINGS.WEBSITE_BASE_URI)
-    #        token.save()
-    #        return next_run
-    #else:
-    #    token.save()
-    #    return next_run
 
 def fetch_leaderboard_results(system=None):
     """ Returns the leaderboard for the current system.
@@ -960,8 +910,8 @@ def get_plot_and_data_HTML(person, system, input_set):
     Django template."""
 
     data, hash_value, plothash = get_person_experimental_data(person,
-                                                           system,
-                                                           input_set)
+                                                              system,
+                                                              input_set)
     expt_data = []
     expt = namedtuple('Expt', ['output', 'datetime', 'inputs'])
     for idx, output in enumerate(data['_output_']):
