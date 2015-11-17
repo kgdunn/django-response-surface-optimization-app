@@ -62,17 +62,14 @@ class Experiment(models.Model):
     for a particular user. """
     person = models.ForeignKey('rsm.Person')
     system = models.ForeignKey('rsm.System')
-    # True if the result is successfully simulated (i.e. if the simulation
-    # did not time out, or crash for some reason.)
-    is_validated = models.BooleanField(help_text=("False: indicates the Person "
-                    "has not validated their choice by signing in (again)."),
-                    default=False)
     delete_by = models.DateTimeField(auto_now=True,
         verbose_name="Delete the experiment at this time if not validated.")
     time_to_solve = models.FloatField(verbose_name="Time to solve model",
                                       blank=False, null=False, default=0.0)
     earliest_to_show = models.DateTimeField(
         verbose_name="Don't show the result before this point in time")
+    # True if the result is successfully simulated (i.e. if the simulation
+    # did not time out, or crash for some reason.)
     was_successful = models.BooleanField(default=False)
     inputs = models.TextField(verbose_name=("The system inputs logged in JSON "
                                             "format"))

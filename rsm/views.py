@@ -346,8 +346,6 @@ def process_experiment(request, short_name_slug):
         # We've got all the inputs now; so validate them.
         values_checked.update(process_simulation_input(values, inputs))
 
-        # Check the email address:
-
         # Success in checking the inputs. Create an input object for the user,
         # and run the experiment.
         # NOTE: ``next_run`` will not exist if an error was raised when
@@ -355,7 +353,7 @@ def process_experiment(request, short_name_slug):
         next_run = create_experiment_object(request, system, values_checked)
 
 
-        # TODO: try-except path goes here to intercept time-limited experiments
+        # TODO.v2: try-except path here to intercept time-limited experiments
 
     except (WrongInputError, OutOfBoundsInputError, MissingInputError) as err:
 
@@ -379,15 +377,15 @@ def process_experiment(request, short_name_slug):
         key = key.replace('-', '')
         values_simulation[key] = value
 
-    # TODO: Get the rotation here
+    # TODO.v2: Get the rotation here
     rotation = 0
 
     result, duration = run_simulation(system, values_simulation, rotation)
     next_run.time_to_solve = duration
 
-    # Store the simulation results
-    run_complete = process_simulation_output(result, next_run, system)
-    run_complete.save()
+    # Finally, store the simulation results
+    next_run = process_simulation_output(result, next_run, system)
+    next_run.save()
 
     # Return an HttpResponseRedirect after dealing with POST. Prevents data
     #from being posted twice if a user hits the Back button.
@@ -403,6 +401,10 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     """
 
     if request.POST and not(force_GET):
+
+        # Ensure a person is signed in.
+        assert(False)
+
         return process_experiment(request, short_name_slug)
 
     # If it was not a POST request, but a (possibly forced) GET request...
@@ -555,47 +557,12 @@ def create_experiment_object(request, system, values_checked, person=None):
     #       If so, offer to store the input and run it at the first possible
     #       occasion.
 
-    # Once signed in create 2 session settings: signed_in=True, person_id=``id``
-    #send_new_user_email = False
-    #send_returning_user_email = False
     if request.session.get('person_id', False):
         person = models.Person.objects.get(id=request.session['person_id'])
-        validated_person = True
     else:
-        validated_person = False
-        # This is an anonymous (potentially new) user.
-        # A: if the email exists, ask them to validate their experiment
-        #    (create the experiment, but it is not validated yet)
-        # B: if the email does not exist, again, create the experiment as
-        #    unvalidated (is_validated=False), use ``anonymous[ID]`` as their
-        #    leaderboard name, and send them a link to sign in with. That link
-        #    will prompt them to create a username for the leaderboard, giving
-        #    some interesting suggested names.
-        try:
-            person = models.Person.objects.get_or_create(is_validated=False,
-                                display_name='Anonymous',
-                                email=values_checked['email_address'])
-            person = person[0]
-            person.display_name = person.display_name + str(person.id)
-            person.save()
-            #send_new_user_email = True
-        except IntegrityError as err:
-            # The email address is not unique.
-            person = models.Person.objects.get(
-                                     email=values_checked['email_address'])
-            send_returning_user_email = True
+        logger.error('Unlogged user attempted to create an experiment.')
+        assert(False)
 
-        # Store these two for use later on in the ``show_one_system()`` function
-        #request.session['send_new_user_email'] = send_new_user_email
-        #request.session['send_returning_user_email'] = send_returning_user_email
-
-
-    # OK, we must have the person object now: whether signed in, brand new
-    # user, or a returning user that has cleared cookies, or not been
-    # present for a while.
-
-    # If the user has not clicked on the email, place the experiment on
-    # hold, until the user signs in.
     next_run = models.Experiment(person=person,
                                  system=system,
                                  inputs=inputs_to_JSON(values_checked),
@@ -605,12 +572,11 @@ def create_experiment_object(request, system, values_checked, person=None):
     datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).replace(tzinfo=utc))
     next_run.save()
 
-    hash_value = generate_random_token(10)
-    token = models.Token(person=person,
-                         system=system,
-                         hash_value=hash_value,
-                         experiment=next_run)
-    request.session['token'] = token.hash_value
+    #hash_value = generate_random_token(10)
+    #token = models.Token(person=person,
+                         #system=system,
+                         #hash_value=hash_value,
+                         #experiment=next_run)
 
 def fetch_leaderboard_results(system=None):
     """ Returns the leaderboard for the current system.
