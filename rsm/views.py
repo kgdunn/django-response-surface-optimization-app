@@ -235,7 +235,7 @@ def create_token_send_email_check_success(person, system_slug, system):
         token.next_URI = next_URI.strip(DJANGO_SETTINGS.WEBSITE_BASE_URI)
         return token
 
-def web_sign_in(request):
+def popup_sign_in(request):
     """POST-only sign-in via the website. """
 
     # NOTE: this uses the fact that the URLs are /system/abc

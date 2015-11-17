@@ -65,7 +65,7 @@
     <div data-role="main" class="ui-content">
         <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup" class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left" name="sign-in-popup-link">Sign-in</a>
         <div data-role="popup" id="sign-in-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
-            <form method="post" id="sign-in-popup-form" action="{% url 'rsmapp:web_sign_in' %}" name="sign-in-popup-form">
+            <form method="post" id="sign-in-popup-form" action="{% url 'rsmapp:popup_sign_in' %}" name="sign-in-popup-form">
                 {% csrf_token %}
                 <div>
                     <h3>Sign in with your email address</h3>
