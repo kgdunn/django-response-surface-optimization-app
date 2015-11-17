@@ -279,8 +279,8 @@ def popup_sign_in(request):
                                                       system)
         if token:
             token.save()
-            return HttpResponse(("Please check your email, and click on the "
-                             "link that we emailed you."), status=200)
+            return HttpResponse(("Welcome back! Please check your email, and "
+                     "click on the link that we emailed you."), status=200)
         else:
             return HttpResponse(("An email could not be sent to you. Please "
                                  "ensure your email address is correct."),
@@ -469,25 +469,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     context.update(extend_dict)   # used for the ``force_GET`` case when the
                                   # user has POSTed prior invalid data.
     context['categoricals'] = categoricals
-
-    message = ''
-    #if request.session.get('send_new_user_email', False):
-        #message = ("Thanks for running your first experiment!<br>We have sent "
-                   #"you an email at {0} to get started. Please click on the "
-                   #"link in that email.<br><br>Only when you do that will the "
-                   #"results from your experiment be displayed.").format(\
-                   #person.email)
-        ## Do not allow the user to input any further new experiments
-        #context['input_set'] = []
-    #if request.session.get('send_returning_user_email', False):
-        #message =  ("Welcome back {0}. To sign yourself in, please click on "
-                    #"the link we sent to your email address: {1}. You can see "
-                    #"the result from your experiment once you do that.").format\
-                    #(person.display_name, person.email)
-        ## Do not allow the user to input any further new experiments
-        #context['input_set'] = []
-
-    context['message'] = message
+    context['message'] = ''
     return render(request, 'rsm/system-detail.html', context)
 
 def adequate_username(request, username):
@@ -498,7 +480,7 @@ def adequate_username(request, username):
     # TODO.v2: check for offensive names
     return length*unique
 
-def validate_user(request, hashvalue, message=''):
+def validate_user(request, hashvalue, message='', force_GET=False):
     """ The new/returning user has been sent an email to sign in.
     Recall their token, mark them as validated, sign them in, run the experiment
     they had intended, and redirect them to the next URL associated with their
@@ -508,14 +490,15 @@ def validate_user(request, hashvalue, message=''):
     """
     logger.info('Locating validation token {0}'.format(hashvalue))
     token = get_object_or_404(models.Token, hash_value=hashvalue)
-    if request.POST:
+    if request.POST and not(force_GET):
+
         if adequate_username(request, request.POST['rsm_username']):
             username = request.POST['rsm_username']
             logger.info('NEW USER: {0}'.format(username))
 
-            send_logged_email(subject="RSM: New user: {0}".format(username),
-                              message="New RSM user: {0}".format(username),
-                              to_address_list=[DJANGO_SETTINGS.ADMINS[0][1],])
+            #send_logged_email(subject="RSM: New user: {0}".format(username),
+                              #message="New RSM user: {0}".format(username),
+                              #to_address_list=[DJANGO_SETTINGS.ADMINS[0][1],])
             token.person.display_name = username
             token.person.is_validated = True
             token.person.save()
@@ -527,8 +510,9 @@ def validate_user(request, hashvalue, message=''):
             # Try again ...
             token.was_used = False
             token.save()
-            return validate_user(request, hashvalue, message=("That username "
-                        "is too short, or already exists."))
+            #return HttpResponseRedirect('/')
+            return validate_user(request, hashvalue, force_GET=True,
+                    message=("That username is too short, or already exists."))
     else:
         message = message or 'Thank you for validating your email address.'
         context = {'hashvalue': hashvalue,
@@ -551,10 +535,15 @@ def sign_in_user(request, hashvalue):
     logger.info('RETURNING USER: {0}'.format(token.person.display_name))
 
     if token.system:
-        return HttpResponse(reverse('rsmapp:show_one_system',
-                                        args=(token.system.slug,)), status=200)
+        content = show_one_system(request, token.system.slug,
+                                  force_GET=True)
+        return HttpResponseRedirect(reverse('rsmapp:show_one_system',
+                                                args=(token.system.slug,)),
+                                        content=content)
     else:
-        return HttpResponse(reverse('rsmapp:show_all_systems'), status=200)
+        content = show_all_systems(request)
+        return HttpResponseRedirect(reverse('rsmapp:show_all_systems'),
+                                    content=content)
 
 def send_suitable_email(person, hash_val):
     """ Sends a validation email, and logs the email message. """
@@ -1077,7 +1066,7 @@ def create_fake_usernames(number=10):
     for name in names:
         try:
             models.Person.objects.get(display_name=name)
-            names.pop(name)
+            names.pop(names.index(name))
         except models.Person.DoesNotExist:
             pass
 
