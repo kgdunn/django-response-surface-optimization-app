@@ -566,7 +566,6 @@ def create_experiment_object(request, system, values_checked, person=None):
     next_run = models.Experiment(person=person,
                                  system=system,
                                  inputs=inputs_to_JSON(values_checked),
-                                 is_validated=validated_person,
                                  time_to_solve=-500,
                                  earliest_to_show=
     datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).replace(tzinfo=utc))
@@ -594,7 +593,6 @@ def get_person_experimental_data(person, system, input_set):
     # Retrieve prior experiments which were valid, for this system, for person
     prior_expts = models.Experiment.objects.filter(system=system,
                                                 person=person,
-                                                is_validated=True,
                                                 was_successful=True).order_by('earliest_to_show')
     data_string = str(person) + ';' + str(system)
     for entry in prior_expts:
