@@ -101,6 +101,8 @@ except ImportError:
     pass
 
 
+CSRF_FAILURE_VIEW = 'rsm.views.csrf_failure'
+
 # Backup/restore notes:
 # ---------------------
 

@@ -7,7 +7,8 @@
 # pip install -U plotly
 
 from django.shortcuts import get_object_or_404, render
-from django.http import Http404, HttpResponseRedirect, HttpResponse
+from django.http import (Http404, HttpResponseRedirect, HttpResponse,
+                         HttpResponseForbidden)
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.conf import settings as DJANGO_SETTINGS
 from django.core.validators import validate_email
@@ -464,8 +465,8 @@ def validate_user(request, hashvalue, message='', force_GET=False):
     token = get_object_or_404(models.Token, hash_value=hashvalue)
     if request.POST and not(force_GET):
 
-        if adequate_username(request, request.POST['rsm_username']):
-            username = request.POST['rsm_username']
+        if adequate_username(request, request.POST['rsm_username'].strip()):
+            username = request.POST['rsm_username'].strip()
             logger.info('NEW USER: {0}'.format(username))
 
             send_logged_email(subject="RSM: New user: {0}".format(username),
@@ -1070,3 +1071,10 @@ def generate_random_token(token_length, no_lowercase=True, check_unused=True):
 
         else:
             return hashval
+
+def csrf_failure(request, reason=""):
+    """ Provide cleaner output when no cookies are present. """
+
+    return HttpResponseForbidden(("Cookies are required for this website to "
+        "function as expected. Please enable them, at least for this website."),
+        content_type='text/html')

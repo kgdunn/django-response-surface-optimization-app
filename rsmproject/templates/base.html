@@ -14,6 +14,7 @@
 
     <script type="text/javascript">
     var closePopup = function(event){
+        $("#popup-message-back").text('');
         $('#sign-in-popup').popup("close");
         event.preventDefault();
         };
@@ -25,13 +26,14 @@
         $.ajax({
           type: form.attr('method'),
           url:  form.attr('action'),
-          data: form.serialize()
+          cache: false,
+          data: form.serialize(),
+          beforeSend: function( xhr ) {
+                $("#popup-message-back").text('Please wait ... (can take a few seconds)');
+                $("#popup-message-back").css('color','green');
+                $("#popup-submit-button").prop('disabled', true);
+            }
         }).done(function(data) {
-            //if ( console && console.log ) { console.log( "Success" ); }
-            //$("#sign-in-popup-link").removeClass("ui-icon-gear").addClass("ui-icon-check");
-            //$("#sign-in-popup").popup( "close" );
-            //$("#sign-in-popup-link").css('color','blue');
-            $("#popup-message-back").show();
             $("#popup-message-back").css('color','blue');
             $("#popup-message-back").text(data);
             $('#popup-OK-span').show();
@@ -39,10 +41,11 @@
             $('#popup-OK-span').click(closePopup);
 
         }).fail(function(data) {
-            //if ( console && console.log ) { console.log( "Failed" ); }
-            $("#popup-message-back").show();
             $("#popup-message-back").css('color','red');
             $("#popup-message-back").text(data.responseText)
+        }).always(function(data){
+            $("#popup-submit-button").prop('disabled', false);
+            $("#popup-message-back").show();
         });
         event.preventDefault(); // Prevent the form from submitting via the browser.
       });
@@ -73,8 +76,8 @@
                 {% csrf_token %}
                 <div>
                     <h3>Sign in with your email address</h3>
-                    New user? We will send you a confirmation email.<br>
-                    Returning user? We will send you a log in email.
+                    <em>New user</em>? We send a confirmation email.<br>
+                    <em>Returning user</em>? We send a unique link, by email.
                     <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
                     <input type="email" name="emailaddress" id="usrnm" placeholder="Your email address">
                     <span id="popup-message-back"></span>
