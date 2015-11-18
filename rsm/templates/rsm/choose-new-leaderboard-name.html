@@ -4,43 +4,62 @@
 {% block title %}Choose a name for the leaderboard{% endblock %}
 
 {% block content %}
-<script>
-    function pushtext(elmnt, text) {
-        document.getElementById("_rsm_username_").value = text;
-    }
-</script>
 
+<script type="text/javascript">
+function pushtext(elmnt, text) {
+    document.getElementById("_rsm_username_").value = text;
+}
+
+$(function() {
+    $("#rsm-error-message").css('color','red');
+    $('#rsm-choose-username').submit(function(event) {
+        var form = $(this);
+        $.ajax({
+          type: form.attr('method'),
+          url:  form.attr('action'),
+          cache: false,
+          data: form.serialize()
+        }).done(function(data) {
+            // Redirect the user to the new location.
+            window.location.href = data;
+        }).fail(function(data) {
+
+            $("#rsm-error-message").text(data.responseText)
+        }).always(function(data){
+        });
+        event.preventDefault(); // Prevent the form from submitting via the browser.
+    });
+});
+
+</script>
+{% if not disabled %}
 <h2>Please choose a name for our website</h2>
 <p>We require you to pick a short name for our leaderboards. This is so you can
 compare where you stand with others. We have a created a random name, and made suggestions for others. <em>Please note, the suggestions are totally random generated.</em>
+{% endif %}
 
+<p>
+<strong><span id="rsm-error-message" class="rsm-error input-error">{{ message|safe }}</span></strong>
 
-<p><span class="rsm-error input-error"><strong>{{ message|safe }}</strong></p><span>
-
-    <div data-role="listview" class="ui-content">
-        <!--<div data-role="popup" id="sign-in-popup" class="ui-content" data-transition="pop" style="min-width:250px;">-->
-        <form method="post" id="rsm-choose-username" action="{% url 'rsmapp:validate_user' hashvalue %}" name="rsm-choose-username">
-            {% csrf_token %}
-            <div>
-                <label for="username" class="ui-hidden-accessible">Your current name:</label>
-                <input name="rsm_username" id="_rsm_username_" minlength="4" maxlength="50" type="text"  placeholder="{{person.display_name}}" value="{{person.display_name}}">
-                <input id="username-submit-button" type="submit" data-rel="back" data-inline="true" value="Choose this name!"/>
-                <br>Must be 4 or more characters
-                <p>
-
-                <br>(click on a different name below to select that, or the existing one)
-                <ul>
-                {% for item in suggestions %}
-                    <li><input class="btn btn-default"
-                               type="button"
-                               value="{{item}}"
-                               onclick="pushtext(this, '{{item}}')">
-                {% endfor %}
-                </ul>
-
-            </div>
-        </form>
-    </div>
+{% if not disabled %}
+<form method="post" id="rsm-choose-username" action="{% url 'rsmapp:validate_user' hashvalue %}" name="rsm-choose-username">
+    {% csrf_token %}
+    <label for="username">Your current name:</label>
+    <input name="rsm_username" id="_rsm_username_" minlength="4" maxlength="50" type="text" placeholder="{{person.display_name}}" value="{{person.display_name}}">
+    <input id="username-submit-button" type="submit" value="Choose this name!"/>
+    <br>Must be 4 or more characters
+    {% if suggestions %}
+    <p>(click on a different name below to select that, or use the existing one)
+        <ul data-inset="true"  >
+        {% for item in suggestions %}
+            <li><input type="button"
+                       value="{{item}}"
+                       onclick="pushtext(this, '{{item}}')">
+        {% endfor %}
+        </ul>
+    {% endif %}
+</form>
+{% endif %}
 
 
 {% endblock %}

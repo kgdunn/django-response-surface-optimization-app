@@ -19,6 +19,13 @@
 }
 </style>
 
+{% if disabled %}
+<script type="text/javascript">
+$(function() {
+    $("#rsm-expt-input").fadeTo( 2000, 0.33 );
+});
+</script>
+{% endif %}
 
 {% if input_set %}
 <hr>
@@ -32,10 +39,11 @@
 <p> You have to <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup"
 class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left"
 name="sign-in-popup-link">Sign-in</a>in order to run experiments on the website.
-
+<br>
 (We do not not use any passwords; we sign you in with a simple email.)
 {% endif %}
 
+<div id="rsm-expt-input">
 <form action="{% url 'rsmapp:show_one_system' system.slug %}" method="post">
 {% csrf_token %}
 
@@ -91,6 +99,7 @@ name="sign-in-popup-link">Sign-in</a>in order to run experiments on the website.
           value="Run my next experiment!" />
 </form>
 {% endif %} {# if input_set #}
+</div><!--/rsm-expt-input-->
 
 <hr>
 

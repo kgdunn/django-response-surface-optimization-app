@@ -30,7 +30,7 @@ class Token(models.Model):
     """ Tokens capture time/date and permissions of a user to access the
     ``System`` models.
     """
-    person = models.ForeignKey('rsm.Person')
+    person = models.ForeignKey('rsm.Person', null=True, blank=True)
     system = models.ForeignKey('rsm.System', null=True, blank=True)
     hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
     was_used = models.BooleanField(default=False)

@@ -1,3 +1,12 @@
+{% extends "base.html" %}
+{% load rsm_extras %}
+
+
+{% block title %}Optimize!{% endblock %}
+
+{% block content %}
+
+
 {% if system_list %}
     <ul>
     {% for system in system_list %}
@@ -7,3 +16,5 @@
 {% else %}
     <p>No systems are available.</p>
 {% endif %}
+
+{% endblock %}

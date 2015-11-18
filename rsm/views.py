@@ -264,7 +264,7 @@ def popup_sign_in(request):
     # 2. Is the user signed in already? Return back (essentially do nothing).
     if request.session.get('person_id', False):
         # TODO: handle this case still
-        return HttpResponse("You are already signed in", status=200)
+        return HttpResponse("You are already signed in.", status=200)
 
     # 3A: a brand new user, or
     # 3B: a returning user that has cleared cookies/not been present for a while
@@ -277,8 +277,8 @@ def popup_sign_in(request):
                                                       system)
         if token:
             token.save()
-            return HttpResponse(("Welcome back! Please check your email, and "
-                     "click on the link that we emailed you."), status=200)
+            return HttpResponse(("<i>Welcome back!</i> Please check your email,"
+                     " and click on the link that we emailed you."), status=200)
         else:
             return HttpResponse(("An email could not be sent to you. Please "
                                  "ensure your email address is correct."),
@@ -455,7 +455,7 @@ def adequate_username(request, username):
     # TODO.v2: check for offensive names
     return length*unique
 
-def validate_user(request, hashvalue, message='', force_GET=False):
+def validate_user(request, hashvalue):
     """ The new/returning user has been sent an email to sign in.
     Recall their token, mark them as validated, sign them in, run the experiment
     they had intended, and redirect them to the next URL associated with their
@@ -465,8 +465,17 @@ def validate_user(request, hashvalue, message='', force_GET=False):
     """
     logger.info('Locating validation token {0}'.format(hashvalue))
     token = get_object_or_404(models.Token, hash_value=hashvalue)
-    if request.POST and not(force_GET):
 
+    message = ''
+    request_new_token = False
+
+    if token.was_used:
+        # Prevents a token from being re-used.
+        message = ('That validation key has been used already. Please request '
+                   'another by clicking on the "Sign-in" button')
+        request_new_token = True
+
+    if request.POST:
         if adequate_username(request, request.POST['rsm_username'].strip()):
             username = request.POST['rsm_username'].strip()
             logger.info('NEW USER: {0}'.format(username))
@@ -480,28 +489,34 @@ def validate_user(request, hashvalue, message='', force_GET=False):
             token.was_used = True
             token.save()
             return sign_in_user(request, hashvalue)
-
         else:
             # Too short, or already used. Try again ...
             token.was_used = False
             token.save()
-            return validate_user(request, hashvalue, force_GET=True,
-                    message=("That username is too short, or already exists."))
+            return HttpResponse("That username is too short, or already exists",
+                                status=406)
     else:
         message = message or 'Thank you for validating your email address.'
         context = {'hashvalue': hashvalue,
                    'message': message,
                    'suggestions': create_fake_usernames(10),
-                   'person': token.person}
+                   'person': token.person,
+                   'disabled': False
+                  }
+        # Force the user to request a new token, as that one has been used.
+        if request_new_token:
+            context.pop('person')
+            context.pop('suggestions')
+            context['disabled'] = True
+
         return render(request, 'rsm/choose-new-leaderboard-name.html', context)
 
-def sign_in_user(request, hashvalue):
+def sign_in_user(request, hashvalue, renderit=True):
     """ User is sign-in with the unique hashcode sent to them,
         These steps are used once the user has successfully been validated,
         or if sign-in is successful."""
 
     logger.debug('Attempting sign-in with token {0}'.format(hashvalue))
-
     token = get_object_or_404(models.Token, hash_value=hashvalue)
     token.was_used = True
     token.save()
@@ -509,15 +524,26 @@ def sign_in_user(request, hashvalue):
     logger.info('RETURNING USER: {0}'.format(token.person.display_name))
 
     if token.system:
-        content = show_one_system(request, token.system.slug,
-                                  force_GET=True)
-        return HttpResponseRedirect(reverse('rsmapp:show_one_system',
-                                                args=(token.system.slug,)),
-                                        content=content)
+        next_uri = reverse('rsmapp:show_one_system', args=(token.system.slug,))
     else:
-        content = show_all_systems(request)
-        return HttpResponseRedirect(reverse('rsmapp:show_all_systems'),
-                                    content=content)
+        next_uri = reverse('rsmapp:show_all_systems')
+
+    if renderit:
+        if token.system:
+            next_uri = reverse('rsmapp:show_one_system',
+                                                     args=(token.system.slug,))
+            content = show_one_system(request, token.system.slug,
+                                                                force_GET=True)
+        else:
+            next_uri = reverse('rsmapp:show_all_systems')
+            content = show_all_systems(request)
+
+        # Now return that content
+        return HttpResponseRedirect(next_uri, content=content)
+    else:
+        # This case is used when the user is just getting a redirect (no
+        # rendered content)
+        return HttpResponse(next_uri, status=200)
 
 def send_suitable_email(person, hash_val):
     """ Sends a validation email, and logs the email message. """
@@ -940,7 +966,7 @@ def create_fake_usernames(number=10):
                   "Wilcoxon", "Neyman", "Deming", "Blackwell", "Tukey",
                   "Kendall", "Finetti", "Wold", "Hotelling", "Wishart",
                   "Anscombe", "Mosteller", "Federer", "Mahalanobis", "Markov",
-                  "Snedecor", "Watson", "Jupiter", "Saturn"
+                  "Snedecor", "Watson", "Jupiter", "Saturn",
                   "Weibull", "Marple", "Wimsey", "Dupin", "Holmes", "Marlowe",
                   "Poirot", "Magnum", "Millhone", "Dalgliesh", "Kojak", "Morse",
                   "Columbo", "Frost", "Clouseau", "CSI", "Quincy", "Nelson",
