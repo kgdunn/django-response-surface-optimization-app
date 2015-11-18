@@ -5,11 +5,6 @@
 {% block title %}{{ system.full_name }}{% endblock %}
 
 {% block content %}
-{{message|safe}}
-
-<h2>{{ system.full_name }}</h2>
-<p>{{system.description|safe|linebreaks}}
-
 <style type="text/css">
 .ui-input-text {
     width: 60% !important;
@@ -18,87 +13,78 @@
     padding-top: 10px;
 }
 </style>
-
 {% if disabled %}
-<script type="text/javascript">
-$(function() {
-    $("#rsm-expt-input").fadeTo( 2000, 0.33 );
-});
-</script>
+    <script type="text/javascript">
+    $(function() {
+        $("#rsm-expt-input").fadeTo( 2000, 0.33 );
+    });
+    </script>
 {% endif %}
+
+{{message|safe}}
+
+<h2>{{ system.full_name }}</h2>
+<p>{{system.description|safe|linebreaks}}
+
 
 {% if input_set %}
 <hr>
 <h2>The next experiment</h2>
 
-<span class="rsm-error input-error">
-{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
-<span>
+<span class="rsm-error input-error">{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}<span>
 
 {% if disabled %}
-<p> You have to <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup"
-class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left"
-name="sign-in-popup-link">Sign-in</a>in order to run experiments on the website.
-<br>
-(We do not not use any passwords; we sign you in with a simple email.)
+    <p> You have to <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup"
+        class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left"
+        name="sign-in-popup-link">Sign-in</a>in order to run experiments on the website.
+    <br>(We do not not use any passwords; we sign you in with a simple email.)
 {% endif %}
 
 <div id="rsm-expt-input">
-<form action="{% url 'rsmapp:show_one_system' system.slug %}" method="post">
-{% csrf_token %}
+    <form action="{% url 'rsmapp:show_one_system' system.slug %}" method="post">
+    {% csrf_token %}
 
-{% for item in input_set.all %}
-    <p>
-    <div data-role="fieldcontain">
+    {% for item in input_set.all %}
+        <div data-role="fieldcontain">
+            <label for="{{item.slug}}">{{item.display_name}}: {{item.units_prefix}}</label>
+            {% if item.ntype == "CON" %}
+                <input type="text"
+                       name="{{item.slug}}"
+                       data-clear-btn="true"
+                       data-inline="true"
+                       {% if disabled %}disabled="disabled"{% endif %}
+                       size="7"
+                       maxlength="7"
+                       placeholder="{{item.default_value|get_floatformat:item.n_decimals}}"
+                       {% if prior_values %}
+                           value="{{ prior_values|get_item:item.slug|floatformat:2 }}"
+                       {% endif %}
+                       id="{{item.slug}}">
+                {% elif item.ntype == "CAT" %}
+                    <fieldset data-role="controlgroup">
+                    {% for key, value in categoricals|dict_iteration:item.slug %}
+                        <input type="radio"
+                               name="{{item.slug}}"
+                               {% if disabled %}disabled="disabled"{% endif %}
+                               value="{{key}}"
+                               id="{{item.slug}}-{{forloop.counter}}"
+                        {% if value == "__checked__" %}checked{% endif %}>
+                        <label for="{{item.slug}}-{{forloop.counter}}">{{key}}</label>
+                    {% endfor %}
+                    </fieldset>
+                {% endif %}
+            <div class="rsm-input-suffix">{{item.units_suffix}}</div>
+        </div>  <!--/fieldcontain-->
 
-    <label for="{{item.slug}}">{{item.display_name}}:  {{item.units_prefix}}</label>
+        <div data-role="fieldcontain"><label></label>
+            <div class="rsm-extra-info" id="{{item.slug}}-error">{% if item.error_message%}({{item.error_message}}){% endif %}
+            </div>
+        </div><!--/fieldcontain-->
+    {% endfor %}
 
-    {% if item.ntype == "CON" %}
-
-    <input type="text"
-           name="{{item.slug}}"
-           data-clear-btn="true"
-           data-inline="true"
-           {% if disabled %}disabled="disabled"{% endif %}
-           size="7"
-           maxlength="7"
-           placeholder="{{item.default_value|get_floatformat:item.n_decimals}}"
-           {% if prior_values %}
-               value="{{ prior_values|get_item:item.slug|floatformat:2 }}"
-           {% endif %}
-           id="{{item.slug}}">
-    {% elif item.ntype == "CAT" %}
-        <fieldset data-role="controlgroup">
-        {% for key, value in categoricals|dict_iteration:item.slug %}
-            <input type="radio"
-                   name="{{item.slug}}"
-                   {% if disabled %}disabled="disabled"{% endif %}
-                   value="{{key}}"
-                   id="{{item.slug}}-{{forloop.counter}}"
-            {% if value == "__checked__" %}checked{% endif %}>
-            <label for="{{item.slug}}-{{forloop.counter}}">{{key}}</label>
-        {% endfor %}
-        </fieldset>
-    {% endif %}
-    <!--<label for="{{item.slug}}">-->
-    <div class="rsm-input-suffix">{{item.units_suffix}}</div>
-    <!--</label>-->
-
-    </div>  <!--/fieldcontain-->
-
-    <div data-role="fieldcontain">
-    <label></label>
-    <div class="rsm-extra-info" id="{{item.slug}}-error">
-        {% if item.error_message%}({{item.error_message}}){% endif %}
-    </div>
-    </div><!--/fieldcontain-->
-{% endfor %}
-
-<p><input type="submit"
-          {% if disabled %}disabled="disabled"{% endif %}
-          value="Run my next experiment!" />
-</form>
-{% endif %} {# if input_set #}
+    <p><input type="submit" {% if disabled %}disabled="disabled"{% endif %} value="Run my next experiment!" />
+    </form>
+    {% endif %} {# if input_set #}
 </div><!--/rsm-expt-input-->
 
 <hr>

@@ -315,7 +315,9 @@ def show_all_systems(request):
     Returns all the systems available to simulate at the user's current level.
     """
     system_list = models.System.objects.filter(is_active=True)
-    context = {'system_list': system_list}
+    context = {'system_list': system_list,
+               'disabled': True,
+              }
     return render(request, 'rsm/root.html', context)
 
 def process_experiment(request, short_name_slug):
@@ -496,7 +498,8 @@ def validate_user(request, hashvalue):
             return HttpResponse("That username is too short, or already exists",
                                 status=406)
     else:
-        message = message or 'Thank you for validating your email address.'
+        message = message or ('Thank you for validating your email address. '
+                              'Now please select a user name for yourself...')
         context = {'hashvalue': hashvalue,
                    'message': message,
                    'suggestions': create_fake_usernames(10),

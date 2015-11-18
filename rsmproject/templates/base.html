@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.css">
     <title>{% block title %} | Response Surface Method Optimization{% endblock %}</title>
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
@@ -52,6 +53,16 @@
         event.preventDefault(); // Prevent the form from submitting via the browser.
       });
     });
+
+    $(document).bind("pageinit", function(){
+        console.log('bindtomobileinit: event pageinit received');
+        //if ( !window.AppNode.router ){
+           //window.AppNode.router = new AppNode.singletons.router();
+        //   console.log("mobileRouter.js: Starting b history");
+        //}
+
+});
+
     </script>
 
 <style type="text/css">
@@ -65,40 +76,48 @@
 
 {% block body %}
 
-<div class="rsm-sign-in-button">
-    <div data-role="main" class="ui-content">
-        <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup" class="ui-btn ui-btn-inline ui-corner-all {% if disabled %}ui-icon-gear{% else %}ui-icon-check{% endif %} ui-btn-icon-left" name="sign-in-popup-link">
-        {% if disabled %}Sign-in{% else %}{{ person.display_name }}{% endif %}
+<div data-role="page">
 
-
-        </a>
-        <div data-role="popup" id="sign-in-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
-            <form method="post" id="sign-in-popup-form" action="{% url 'rsmapp:popup_sign_in' %}" name="sign-in-popup-form">
-                {% csrf_token %}
-                <div>
-                    <h3>Sign in with your email address</h3>
-                    <em>New user</em>? We send a confirmation email.<br>
-                    <em>Returning user</em>? We send a unique link, by email.
-                    <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
-                    <input type="email" name="emailaddress" id="usrnm" placeholder="Your email address">
-                    <span id="popup-message-back"></span>
-                    <br>
-                    <input id="popup-submit-button" type="submit" data-rel="back" data-inline="true" value="Email me a code to get started!">
-                    <span id="popup-OK-span"><input id="popup-OK-button" type="button" data-inline="true" value="OK"></span>
-                    <br>
-                    <em>Note</em>: we do not use passwords on this website.
+    <div data-role="header">
+        <div class="rsm-sign-in-button">
+            <div data-role="main" class="ui-content">
+                <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup" class="ui-btn ui-btn-inline ui-corner-all {% if disabled %}ui-icon-gear{% else %}ui-icon-check{% endif %} ui-btn-icon-left" name="sign-in-popup-link">
+                {% if disabled %}Sign-in{% else %}{{ person.display_name }}{% endif %}
+                </a>
+                <div data-role="popup" id="sign-in-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
+                    <form method="post" id="sign-in-popup-form" action="{% url 'rsmapp:popup_sign_in' %}" name="sign-in-popup-form">
+                        {% csrf_token %}
+                        <div>
+                            <h3>Sign in with your email address</h3>
+                            <em>New user</em>? We send a confirmation email.<br>
+                            <em>Returning user</em>? We send a unique link, by email.
+                            <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
+                            <input type="email" name="emailaddress" id="usrnm" placeholder="Your email address">
+                            <span id="popup-message-back"></span>
+                            <br>
+                            <input id="popup-submit-button" type="submit" data-rel="back" data-inline="true" value="Email me a code to get started!">
+                            <span id="popup-OK-span"><input id="popup-OK-button" type="button" data-inline="true" value="OK"></span>
+                            <br>
+                            <em>Note</em>: we do not use passwords on this website.
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </div>
-    </div>
-</div>
+    </div><!-- /header -->
 
-    <div class="main">
+
+    <div role="main" class="ui-content">
         {% block content %}{% endblock %}
-    </div>
-</div>
+    </div><!-- /content -->
+
+
+    <div data-role="footer">
+        Footer
+    </div><!-- /footer -->
 {% endblock %}
 
+</div><!-- /page -->
 </body>
 </html>
 
