@@ -331,7 +331,7 @@ def process_experiment(request, short_name_slug):
     values_checked = {}
     try:
         # We do all our checks here, and if any fail an Exception is raised.
-        # There are several checks: data entry, email validity, etc.
+        # There are several checks: data entry, etc.
 
         # NB: Read the user values first before doing any checking on them.
         inputs = models.Input.objects.filter(system=system).order_by('slug')
@@ -405,9 +405,12 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     if request.POST and not(force_GET):
 
         # Ensure a person is signed in.
-        assert(False)
-
-        return process_experiment(request, short_name_slug)
+        if request.session.get('person_id', 0) == 0:
+            return show_one_system(request, short_name_slug, force_GET=True,
+                        extend_dict={'message': ('You must sign in before '
+                                                 'running any experiments.')})
+        else:
+            return process_experiment(request, short_name_slug)
 
     # If it was not a POST request, but a (possibly forced) GET request...
     try:
@@ -446,7 +449,6 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     context.update(extend_dict)   # used for the ``force_GET`` case when the
                                   # user has POSTed prior invalid data.
     context['categoricals'] = categoricals
-    context['message'] = ''
     return render(request, 'rsm/system-detail.html', context)
 
 def adequate_username(request, username):
@@ -517,7 +519,11 @@ def validate_user(request, hashvalue):
 def sign_in_user(request, hashvalue, renderit=True):
     """ User is sign-in with the unique hashcode sent to them,
         These steps are used once the user has successfully been validated,
-        or if sign-in is successful."""
+        or if sign-in is successful.
+
+        A user is considered signed-in if "request.session['person_id']" returns
+        a valid ``person.id`` (used to look up their object in the DB)
+        """
 
     logger.debug('Attempting sign-in with token {0}'.format(hashvalue))
     token = get_object_or_404(models.Token, hash_value=hashvalue)
