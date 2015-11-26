@@ -335,8 +335,8 @@ def process_experiment(request, short_name_slug):
 
         # NB: Read the user values first before doing any checking on them.
         inputs = models.Input.objects.filter(system=system).order_by('slug')
-        if request.session.get('person_id', False):
-            person = models.Person.objects.get(id=request.session['person_id'])
+
+
 
         for item in inputs:
             try:
@@ -604,13 +604,8 @@ def create_experiment_object(request, system, values_checked, person=None):
                                  time_to_solve=-500,
                                  earliest_to_show=
     datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).replace(tzinfo=utc))
-    next_run.save()
+    return next_run
 
-    #hash_value = generate_random_token(10)
-    #token = models.Token(person=person,
-                         #system=system,
-                         #hash_value=hash_value,
-                         #experiment=next_run)
 
 def fetch_leaderboard_results(system=None):
     """ Returns the leaderboard for the current system.
