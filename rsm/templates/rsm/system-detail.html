@@ -55,7 +55,7 @@
                        {% if disabled %}disabled="disabled"{% endif %}
                        size="7"
                        maxlength="7"
-                       placeholder="{{item.default_value|get_floatformat:item.n_decimals}}"
+                       placeholder="{{item.default_value|get_floatformat:item.n_decimals}} (a typical value)"
                        {% if prior_values %}
                            value="{{ prior_values|get_item:item.slug|floatformat:2 }}"
                        {% endif %}
