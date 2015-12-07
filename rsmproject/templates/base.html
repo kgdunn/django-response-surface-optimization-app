@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.css">
+
     <title>{% block title %} | Response Surface Method Optimization{% endblock %}</title>
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-
     <script src="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.js"></script>
     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/2.0-latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.css">
 
     {{ANALYTICS_SNIPPET|safe}}
 
@@ -53,15 +53,6 @@
         event.preventDefault(); // Prevent the form from submitting via the browser.
       });
     });
-
-    $(document).bind("pageinit", function(){
-        console.log('bindtomobileinit: event pageinit received');
-        //if ( !window.AppNode.router ){
-           //window.AppNode.router = new AppNode.singletons.router();
-        //   console.log("mobileRouter.js: Starting b history");
-        //}
-
-});
 
     </script>
 
