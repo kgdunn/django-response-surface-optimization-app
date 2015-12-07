@@ -3,30 +3,30 @@
 
 
 {% block title %}{{ system.full_name }}{% endblock %}
+{# ------------------------------------------------#}
+{% block header %}
+    <style type="text/css">
+    .ui-input-text {
+        width: 60% !important;
+    }
+    .rsm-input-suffix{
+        padding-top: 10px;
+    }
+    </style>
+    {% if disabled %}
+        <script type="text/javascript">
+        $(function() {
+            $("#rsm-expt-input").fadeTo( 2000, 0.33 );
+        });
 
+        </script>
+    {% endif %}
+{% endblock %}
+{# ------------------------------------------------#}
 {% block content %}
-<style type="text/css">
-.ui-input-text {
-    width: 60% !important;
-}
-.rsm-input-suffix{
-    padding-top: 10px;
-}
-</style>
-{% if disabled %}
-    <script type="text/javascript">
-    $(function() {
-        $("#rsm-expt-input").fadeTo( 2000, 0.33 );
-    });
-    </script>
-{% endif %}
-
 {{message|safe}}
-
 <h2>{{ system.full_name }}</h2>
 <p>{{system.description|safe|linebreaks}}
-
-
 {% if input_set %}
 <hr>
 <h2>The next experiment</h2>
@@ -123,5 +123,4 @@
 </table>
 
 {% endif %}
-
 {% endblock %}
