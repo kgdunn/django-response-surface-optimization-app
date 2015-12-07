@@ -90,10 +90,12 @@
 <hr>
 
 {% if data_html %}
+
     <h2>Previous experiments run</h2>
-    <table width="100%">
-    <tr><td width="600px">{{plot_html|safe}}</td>
-    <td>
+    <div>
+        {{plot_html|safe}}
+    </div>
+
     {# Table of experimental results here #}
     <table class="prev-expts-table">
         <tr>
@@ -119,8 +121,6 @@
         {% endspaceless %}
         {% endfor %}
     </table>
-    </td></tr>
-</table>
 
 {% endif %}
 {% endblock %}
