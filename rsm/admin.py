@@ -5,9 +5,17 @@ from .models import Person, Token, Tag, Experiment, System, Input, PlotHash
 
 class SystemAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("full_name",)}
+    list_display = ('full_name', 'slug', 'is_active', 'n_inputs', 'n_outputs',
+                    'cost_per_experiment', 'max_experiments_allowed')
+    list_display_links = list_display
 
 class InputAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("display_name",)}
+    list_display = ('display_name', 'slug', 'system', 'ntype', 'lower_bound',
+                    'plot_lower_bound', 'upper_bound', 'plot_upper_bound',
+                    'units_prefix', 'default_value', 'units_suffix',
+                    'n_decimals')
+    list_display_links = list_display
 
 class ExperimentAdmin(admin.ModelAdmin):
     list_display = ('person', 'system', 'time_to_solve', 'earliest_to_show',

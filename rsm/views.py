@@ -300,8 +300,10 @@ def popup_sign_in(request):
             person.save()
             token.person = person  # must overwrite the prior "unsaved" person
             token.save()
-            return HttpResponse(("Please check your email, and click on the "
-                                 "link that we emailed you."), status=200)
+            return HttpResponse(("An account has been created for you, but must"
+                                 " be actived. Please check your email and "
+                                 "click on the link that we emailed you."),
+                                status=200)
         else:
             # ``token`` will automatically be forgotten when this function
             # returns here. Perfect!
@@ -516,7 +518,7 @@ def validate_user(request, hashvalue):
 
         return render(request, 'rsm/choose-new-leaderboard-name.html', context)
 
-def sign_in_user(request, hashvalue, renderit=True):
+def sign_in_user(request, hashvalue):
     """ User is sign-in with the unique hashcode sent to them,
         These steps are used once the user has successfully been validated,
         or if sign-in is successful.
@@ -537,22 +539,22 @@ def sign_in_user(request, hashvalue, renderit=True):
     else:
         next_uri = reverse('rsmapp:show_all_systems')
 
-    if renderit:
-        if token.system:
-            next_uri = reverse('rsmapp:show_one_system',
-                                                     args=(token.system.slug,))
-            content = show_one_system(request, token.system.slug,
-                                                                force_GET=True)
-        else:
-            next_uri = reverse('rsmapp:show_all_systems')
-            content = show_all_systems(request)
+    #if renderit:
+        #if token.system:
+            #next_uri = reverse('rsmapp:show_one_system',
+                                                     #args=(token.system.slug,))
+            #content = show_one_system(request, token.system.slug,
+                                                                #force_GET=True)
+        #else:
+            #next_uri = reverse('rsmapp:show_all_systems')
+            #content = show_all_systems(request)
 
-        # Now return that content
-        return HttpResponseRedirect(next_uri, content=content)
-    else:
+        ## Now return that content
+        #return HttpResponseRedirect(next_uri, content=content)
+    #else:
         # This case is used when the user is just getting a redirect (no
         # rendered content)
-        return HttpResponse(next_uri, status=200)
+    return HttpResponse(next_uri, status=200)
 
 def send_suitable_email(person, hash_val):
     """ Sends a validation email, and logs the email message. """
