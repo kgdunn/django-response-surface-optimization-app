@@ -58,7 +58,15 @@
 
     <style type="text/css">
     .rsm-sign-in-button{
-        float:right;
+        float:none;
+        overflow: auto;
+    }
+    .rsm-header{
+        clear:both;
+        overflow: auto;
+    }
+    .rsm-content{
+        padding-top: 0;
     }
     </style>
 
@@ -68,9 +76,10 @@
 
 {% block body %}
 
-<div data-role="page">
 
-    <div data-role="header">
+<div data-role="page">
+    <div data-role="rsm-header">
+    {% if not hide_sign_in %}
         <div class="rsm-sign-in-button">
             <div data-role="main" class="ui-content">
                 <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup" class="ui-btn ui-btn-inline ui-corner-all {% if disabled %}ui-icon-gear{% else %}ui-icon-check{% endif %} ui-btn-icon-left" name="sign-in-popup-link">
@@ -96,19 +105,16 @@
                 </div>
             </div>
         </div>
+    {% endif %}
     </div><!-- /header -->
 
-
-    <div role="main" class="ui-content">
+    <div role="main" class="ui-content rsm-content">
         {% block content %}{% endblock %}
     </div><!-- /content -->
 
-
-    <div data-role="footer">
-    </div><!-- /footer -->
-{% endblock %}
-
+    <div data-role="footer"></div><!-- /footer -->
 </div><!-- /page -->
+{% endblock %}
 </body>
 </html>
 

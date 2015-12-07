@@ -1,37 +1,38 @@
 {% extends "base.html" %}
 {% load rsm_extras %}
-
+{# ---------------------------------- #}
 {% block title %}Choose a name for the leaderboard{% endblock %}
+{# ---------------------------------- #}
+{% block header %}
+    <script type="text/javascript">
+    function pushtext(elmnt, text) {
+        document.getElementById("_rsm_username_").value = text;
+    }
+    $(function() {
+        $("#rsm-error-message").css('color','red');
+        $('#rsm-choose-username').submit(function(event) {
+            var form = $(this);
+            $.ajax({
+              type: form.attr('method'),
+              url:  form.attr('action'),
+              cache: false,
+              data: form.serialize()
+            }).done(function(data) {
+                // Redirect the user to the new location.
+                window.location.href = data;
+            }).fail(function(data) {
 
+                $("#rsm-error-message").text(data.responseText)
+            }).always(function(data){
+            });
+            event.preventDefault(); // Prevent the form from submitting via the browser.
+        });
+    });
+    </script>
+{% endblock %}
+{# ---------------------------------- #}
 {% block content %}
 
-<script type="text/javascript">
-function pushtext(elmnt, text) {
-    document.getElementById("_rsm_username_").value = text;
-}
-
-$(function() {
-    $("#rsm-error-message").css('color','red');
-    $('#rsm-choose-username').submit(function(event) {
-        var form = $(this);
-        $.ajax({
-          type: form.attr('method'),
-          url:  form.attr('action'),
-          cache: false,
-          data: form.serialize()
-        }).done(function(data) {
-            // Redirect the user to the new location.
-            window.location.href = data;
-        }).fail(function(data) {
-
-            $("#rsm-error-message").text(data.responseText)
-        }).always(function(data){
-        });
-        event.preventDefault(); // Prevent the form from submitting via the browser.
-    });
-});
-
-</script>
 {% if not disabled %}
 <h2>Please choose a name for our website</h2>
 <p>We require you to pick a short name for our leaderboards. This is so you can

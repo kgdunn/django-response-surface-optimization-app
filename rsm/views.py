@@ -527,7 +527,8 @@ def validate_user(request, hashvalue):
                    'message': message,
                    'suggestions': create_fake_usernames(10),
                    'person': token.person,
-                   'disabled': False
+                   'disabled': False,
+                   'hide_sign_in': True
                   }
         # Force the user to request a new token, as that one has been used.
         if request_new_token:
