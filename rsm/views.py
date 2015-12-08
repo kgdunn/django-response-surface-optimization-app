@@ -70,14 +70,6 @@ class OutOfBoundsInputError(RSMException):
     """ Raised when an input is outside the bounds."""
     pass
 
-def convert_inputs(**kwargs):
-    out = {}
-    for key, value in kwargs.iteritems():
-        out[key] = np.array(value)
-
-    return out
-
-
 def run_simulation(system, simvalues, show_solution=False):
     """Runs simulation of the required ``System``, with timeout. Returns a
     result no matter what, even if it is the default result (failure state).
@@ -100,6 +92,14 @@ def run_simulation(system, simvalues, show_solution=False):
         code += "\tout = {}\n"
         code += "\tfor key, value in kwargs.iteritems():\n"
         code += "\t\tout[key] = np.array(value)\n"
+        code += "\treturn out\n\n"
+        code += "def convert_outputs(**kwargs):\n"
+        code += "\tout = {}\n"
+        code += "\tfor key, value in kwargs.iteritems():\n"
+        code += "\t\tif isinstance(value, np.ndarray):\n"
+        code += "\t\t\tout[key] = value.tolist()\n"
+        code += "\t\telse:\n"
+        code += "\t\t\tout[key] = np.array(value)\n"
         code += "\treturn out\n\n"
         code += system.source
     else:
@@ -128,7 +128,7 @@ def run_simulation(system, simvalues, show_solution=False):
         else:
             code += "print(out)"
     else:
-        code += "print(out)"
+        code += "out = convert_outputs(**out)\nprint(out)"
 
     command = r'python -c"{0}"'.format(code)
     proc = subprocess.Popen(command,
@@ -225,7 +225,7 @@ def process_simulation_output(result, next_run, system):
     the ``Experiment`` objects. The output is returned, but not saved here (that
     is to be done elsewhere).
     """
-    result = result.strip('\n')
+    result = result.replace('\n', '')
     result = result.replace("'", '"')
     result = json.loads(result)
 
@@ -506,6 +506,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                                                            replace(tzinfo=utc)
             solution_date = datetime.datetime.now() + \
                        datetime.timedelta(0, system.max_seconds_before_solution)
+            solution_date = solution_date.replace(tzinfo=utc)
 
             persyst = models.PersonSystem(person=person, system=system,
                                           completed_date=future, frozen=False,
@@ -521,17 +522,24 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
             # Have we generated the solution before? If so, don't do it again.
             # But if not, generate it once, and then save it (it is expensive).
             if persyst.frozen == False:
-                generate_solution(persyst)
+                persyst = generate_solution(persyst)
 
             # Freeze it once the solution has been generated.
             persyst.frozen = True
             persyst.save()
 
-    # end: if enabled_status
+        # Only get this for signed in users
+        plot_data_HTML = get_plot_and_data_HTML(persyst, input_set,
+                                                show_solution)
+
+    else:
+        plot_data_HTML = [[ ], [ ]]
+
+    # if-else-end: if enabled_status
 
 
 
-    plot_data_HTML = get_plot_and_data_HTML(persyst, input_set, show_solution)
+
 
     input_set, categoricals = process_simulation_inputs_templates(input_set,
                                                                   request,
@@ -731,11 +739,11 @@ def generate_solution(persyst):
     system = persyst.system
     input_set = models.Input.objects.filter(system=system).order_by('slug')
 
-    solution_values = {}
+    solution_inputs = {}
     RESOLUTION = 50
     for inputi in input_set:
         input_name = inputi.slug.replace('-', '')
-        solution_values[input_name] = np.linspace(start=inputi.lower_bound,
+        solution_inputs[input_name] = np.linspace(start=inputi.lower_bound,
                                                   stop=inputi.upper_bound,
                                                   num=RESOLUTION,
                                                   endpoint=True)
@@ -744,14 +752,23 @@ def generate_solution(persyst):
     rotation = persyst.rotation
 
     # Ignore post_process(): which is where the noise is added.
-    result, duration = run_simulation(system, solution_values,
+    result, duration = run_simulation(system, solution_inputs,
                                       show_solution=True)
 
     # Finally, store the simulation results and return the experimental object
     class FakeClass(): pass
-    next_run = FakeClass()
-    process_simulation_output(result, next_run, system)
+    results = FakeClass()
+    results = process_simulation_output(result, results, system)
+    solution_data = {}
+    solution_data['inputs'] = serialize_numeric_dict(solution_inputs)
+    if results.was_successful:
+        solution_data['outputs'] = results.main_result
+    else:
+        logger.error('Error generating solution for {0}'.format(persyst))
+        assert(False)
 
+    persyst.solution_data = json.dumps(solution_data, allow_nan=True)
+    return persyst
 
 def fetch_leaderboard_results(system=None):
     """ Returns the leaderboard for the current system.
@@ -1221,3 +1238,13 @@ def csrf_failure(request, reason=""):
     return HttpResponseForbidden(("Cookies are required for this website to "
         "function as expected. Please enable them, at least for this website."),
         content_type='text/html')
+
+def serialize_numeric_dict(inputs):
+    """ Serializes dictionary values, especially those that contain NumPy
+    arrays.
+    """
+    for key, value in inputs.iteritems():
+        if isinstance(value, np.ndarray):
+            inputs[key] = value.tolist()
+
+    return inputs
