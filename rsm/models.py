@@ -33,8 +33,9 @@ class PersonSystem(models.Model):
     completed_date = models.DateTimeField()
     # At this point onwards the user is considered to have solved it.
     show_solution_as_of = models.DateTimeField()
-    frozen = models.BooleanField(default=False)
-    started_on = models.DateTimeField(auto_now_add=False)
+    frozen = models.BooleanField(default=False, help_text=('If true, prevents '
+                        'any further additions to this system.'))
+    started_on = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return '{0} [{1}]'.format(self.system.full_name,

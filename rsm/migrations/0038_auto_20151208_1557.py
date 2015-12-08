@@ -16,13 +16,18 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='personsystem',
             name='started_on',
-            field=models.DateTimeField(default=datetime.datetime(2015, 12, 8, 15, 40, 32, 832131, tzinfo=utc), auto_now_add=True),
+            field=models.DateTimeField(default=datetime.datetime(2015, 12, 8, 15, 57, 22, 237258, tzinfo=utc), auto_now_add=True),
             preserve_default=False,
         ),
         migrations.AddField(
             model_name='system',
             name='max_seconds_to_solve',
             field=models.PositiveIntegerField(default=2147483647, help_text=b'Max seconds to wait before showing the solution. 43200=30 days, as an example.'),
+        ),
+        migrations.AlterField(
+            model_name='personsystem',
+            name='frozen',
+            field=models.BooleanField(default=False, help_text=b'If true, prevents any further additions to this system.'),
         ),
         migrations.AlterField(
             model_name='personsystem',

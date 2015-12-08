@@ -459,7 +459,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
         # Initiate the ``PersonSystem`` for this combination only once
         if models.PersonSystem.objects.filter(system=system,
-                                              person=person).count() != 0:
+                                              person=person).count() == 0:
             future = datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).\
                                                            replace(tzinfo=utc)
             show_solution = datetime.datetime.now() + \

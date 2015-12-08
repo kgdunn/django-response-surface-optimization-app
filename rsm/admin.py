@@ -1,12 +1,19 @@
 from django.contrib import admin
 
 
-from .models import Person, Token, Tag, Experiment, System, Input, PlotHash
+from .models import Person, Token, Tag, Experiment, System, Input, PlotHash, \
+                    PersonSystem
 
 class SystemAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("full_name",)}
     list_display = ('full_name', 'slug', 'is_active', 'n_inputs', 'n_outputs',
                     'cost_per_experiment', 'max_experiments_allowed')
+    list_display_links = list_display
+
+class PersonSystemAdmin(admin.ModelAdmin):
+
+    list_display = ('person', 'system', 'rotation', 'offsets', 'completed_date',
+                    'show_solution_as_of', 'frozen', 'started_on')
     list_display_links = list_display
 
 class InputAdmin(admin.ModelAdmin):
@@ -44,3 +51,4 @@ admin.site.register(PlotHash, PlotHashAdmin)
 admin.site.register(Experiment, ExperimentAdmin)
 admin.site.register(System, SystemAdmin)
 admin.site.register(Input, InputAdmin)
+admin.site.register(PersonSystem, PersonSystemAdmin)
