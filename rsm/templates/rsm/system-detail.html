@@ -13,7 +13,7 @@
         padding-top: 10px;
     }
     </style>
-    {% if disabled %}
+    {% if not enabled %}
         <script type="text/javascript">
         $(function() {
             $("#rsm-expt-input").fadeTo( 2000, 0.33 );
@@ -33,7 +33,7 @@
 
 <span class="rsm-error input-error">{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}<span>
 
-{% if disabled %}
+{% if not enabled %}
     <p> You have to <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup"
         class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left"
         name="sign-in-popup-link">Sign-in</a>in order to run experiments on the website.
@@ -52,7 +52,7 @@
                        name="{{item.slug}}"
                        data-clear-btn="true"
                        data-inline="true"
-                       {% if disabled %}disabled="disabled"{% endif %}
+                       {% if not enabled %}disabled="disabled"{% endif %}
                        size="7"
                        maxlength="7"
                        placeholder="{{item.default_value|get_floatformat:item.n_decimals}} (a typical value)"
@@ -65,7 +65,7 @@
                     {% for key, value in categoricals|dict_iteration:item.slug %}
                         <input type="radio"
                                name="{{item.slug}}"
-                               {% if disabled %}disabled="disabled"{% endif %}
+                               {% if not enabled %}disabled="disabled"{% endif %}
                                value="{{key}}"
                                id="{{item.slug}}-{{forloop.counter}}"
                         {% if value == "__checked__" %}checked{% endif %}>
@@ -82,7 +82,7 @@
         </div><!--/fieldcontain-->
     {% endfor %}
 
-    <p><input type="submit" {% if disabled %}disabled="disabled"{% endif %} value="Run my next experiment!" />
+    <p><input type="submit" {% if not enabled %}disabled="disabled"{% endif %} value="Run my next experiment!" />
     </form>
     {% endif %} {# if input_set #}
 </div><!--/rsm-expt-input-->

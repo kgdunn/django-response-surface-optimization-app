@@ -72,7 +72,7 @@
         background-color: blue;
     }
     .ui-btn-icon-left:after {
-        background-color: {% if disabled %}red{% else %}blue{% endif %};
+        background-color: {% if enabled %}blue{% else %}red{% endif %};
     }
     </style>
 
@@ -88,8 +88,8 @@
     {% if not hide_sign_in %}
         <div class="rsm-sign-in-button">
             <div data-role="main" class="ui-content">
-                <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all {% if disabled %}ui-icon-gear red{% else %}ui-icon-check blue{% endif %} ui-btn-icon-left" name="sign-in-popup-link">
-                {% if disabled %}Sign-in{% else %}{{ person.display_name }}{% endif %}
+                <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all {% if enabled %}ui-icon-check blue{% else %}ui-icon-gear red{% endif %} ui-btn-icon-left" name="sign-in-popup-link">
+                {% if enabled %}{{ person.display_name }}{% else %}Sign-in{% endif %}
                 </a>
                 <div data-role="popup" id="sign-in-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
                     <form method="post" id="sign-in-popup-form" action="{% url 'rsmapp:popup_sign_in' %}" name="sign-in-popup-form">

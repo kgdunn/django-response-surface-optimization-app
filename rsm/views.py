@@ -321,11 +321,11 @@ def show_all_systems(request):
     Returns all the systems available to simulate at the user's current level.
     """
     system_list = models.System.objects.filter(is_active=True)
-    person, disabled_status = get_person_info(request)
+    person, enabled_status = get_person_info(request)
 
     context = {'system_list': system_list,
                'person': person,
-               'disabled': disabled_status,
+               'enabled': enabled_status,
               }
     return render(request, 'rsm/root.html', context)
 
@@ -419,10 +419,10 @@ def get_person_info(request):
         except models.Person.DoesNotExist:
             pass
 
-    disabled_status = (person.is_validated == False) or \
-                                        (person.display_name == '__Anonymous__')
+    enabled_status = (person.is_validated == True) or \
+                                        (person.display_name != '__Anonymous__')
 
-    return person, disabled_status
+    return person, enabled_status
 
 def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     """ Returns the details of one system that has been selected, including
@@ -452,11 +452,12 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
     fetch_leaderboard_results()
 
-    # Get the current ``person`` and ``disabled_status=True`` would indicate
-    # it is an anonymous person.
-    person, disabled_status = get_person_info(request)
+    # Get the current ``person`` and ``enabled_status=True`` would indicate
+    # it is an anonymous, or unvalidated person.
+    person, enabled_status = get_person_info(request)
 
-    if not(disabled_status):
+    if not(enabled_status):
+        pass
 
 
     # Get the relevant input objects
@@ -469,7 +470,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     context = {'system': system,
                'input_set': input_set,
                'person': person,
-               'disabled': disabled_status,
+               'enabled': enabled_status,
                'plot_html': plot_data_HTML[0],
                'data_html': plot_data_HTML[1]}
     context.update(extend_dict)   # used for the ``force_GET`` case when the
@@ -532,14 +533,14 @@ def validate_user(request, hashvalue):
                    'message': message,
                    'suggestions': create_fake_usernames(10),
                    'person': token.person,
-                   'disabled': False,
+                   'enabled': True,
                    'hide_sign_in': True
                   }
         # Force the user to request a new token, as that one has been used.
         if request_new_token:
             context.pop('person')
             context.pop('suggestions')
-            context['disabled'] = True
+            context['enabled'] = False
 
         return render(request, 'rsm/choose-new-leaderboard-name.html', context)
 
