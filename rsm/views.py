@@ -446,8 +446,8 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
         # Have there been any prior experiments for this person?
         if models.Experiment.objects.filter(system=system, person=person,
                                             was_successful=True).count() == 0:
+
             # Create a baseline run for the person at the default values:
-            #{u'selling-price': 0.75, u'throughput': 325.0}
             default_values = {}
             for inputi in input_set:
                 default_values[inputi.slug] = inputi.default_value
@@ -456,6 +456,19 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                                                 default_values, person)
             baseline = execute_experiment_object(baseline, system,
                                                  default_values)
+
+        # Initiate the ``PersonSystem`` for this combination only once
+        if models.PersonSystem.objects.filter(system=system,
+                                              person=person).count() != 0:
+            future = datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).\
+                                                           replace(tzinfo=utc)
+            show_solution = datetime.datetime.now() + \
+                             datetime.timedelta(0, system.max_seconds_to_solve)
+
+            persyst = models.PersonSystem(person=person, system=system,
+                                          completed_date=future, frozen=False,
+                                          show_solution_as_of=show_solution)
+            persyst.save()
 
 
 
