@@ -345,8 +345,6 @@ def process_experiment(request, short_name_slug):
         # NB: Read the user values first before doing any checking on them.
         inputs = models.Input.objects.filter(system=system).order_by('slug')
 
-
-
         for item in inputs:
             try:
                 values[item.slug] = request.POST[item.slug]
@@ -357,14 +355,16 @@ def process_experiment(request, short_name_slug):
         # We've got all the inputs now; so validate them.
         values_checked.update(process_simulation_input(values, inputs))
 
-        # Success in checking the inputs. Create an input object for the user,
-        # and run the experiment.
-        # NOTE: ``next_run`` will not exist if an error was raised when
-        #       generating that object.
-        next_run = create_experiment_object(request, system, values_checked)
-
-
         # TODO.v2: try-except path here to intercept time-limited experiments
+        # if a new run is not valid, then raise an exception.
+
+
+        # NOTE: ``next_run`` (below) will not exist if an error was raised in
+        #       the above code when generating that object.
+
+        # Success! at this point all inputs have been checked.
+        # Create an input object for the user, and run the experiment.
+        next_run = create_experiment_object(request, system, values_checked)
 
     except (WrongInputError, OutOfBoundsInputError, MissingInputError) as err:
 
@@ -452,7 +452,12 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
     fetch_leaderboard_results()
 
+    # Get the current ``person`` and ``disabled_status=True`` would indicate
+    # it is an anonymous person.
     person, disabled_status = get_person_info(request)
+
+    if not(disabled_status):
+
 
     # Get the relevant input objects
     input_set = models.Input.objects.filter(system=system).order_by('slug')
@@ -642,10 +647,11 @@ def get_person_experimental_data(person, system, input_set):
     """
     data = defaultdict(list)
 
-    # Retrieve prior experiments which were valid, for this system, for person
+    # Retrieve prior experiments which were successful, for this system,
+    # for the current logged in person.
     prior_expts = models.Experiment.objects.filter(system=system,
-                                                person=person,
-                                                was_successful=True).order_by('earliest_to_show')
+                            person=person,
+                            was_successful=True).order_by('earliest_to_show')
     data_string = str(person) + ';' + str(system)
     for entry in prior_expts:
         inputs = json.loads(entry.inputs)
