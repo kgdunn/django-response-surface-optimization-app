@@ -200,10 +200,10 @@ def process_simulation_output(result, next_run, system):
     if result:
         next_run.other_outputs = json.dumps(result)
 
-    # TODO: adding the time-delay before results are displayed to the user.
+    # TODO v2: adding the time-delay before results are displayed to the user.
     next_run.earliest_to_show = datetime.datetime.now().replace(tzinfo=utc)
 
-    # TODO: add biasing for the user here
+    # TODO v2: add biasing for the user here
     return next_run
 
 def create_token_send_email_check_success(person, system_slug, system):
@@ -379,24 +379,7 @@ def process_experiment(request, short_name_slug):
         return show_one_system(request, short_name_slug, force_GET=True,
                        extend_dict=extend_dict)
 
-
-    # Clean-up the inputs by dropping any disallowed characters from the
-    # function inputs:
-    values_simulation = values_checked.copy()
-    for key in values_simulation.keys():
-        value = values_simulation.pop(key)
-        key = key.replace('-', '')
-        values_simulation[key] = value
-
-    # TODO.v2: Get the rotation here
-    rotation = 0
-
-    result, duration = run_simulation(system, values_simulation, rotation)
-    next_run.time_to_solve = duration
-
-    # Finally, store the simulation results
-    next_run = process_simulation_output(result, next_run, system)
-    next_run.save()
+    next_run = execute_experiment_object(next_run, system, values_checked)
 
     # Return an HttpResponseRedirect after dealing with POST. Prevents data
     #from being posted twice if a user hits the Back button.
@@ -456,12 +439,26 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     # it is an anonymous, or unvalidated person.
     person, enabled_status = get_person_info(request)
 
-    if not(enabled_status):
-        pass
-
-
-    # Get the relevant input objects
+    # Get the relevant input objects for this system
     input_set = models.Input.objects.filter(system=system).order_by('slug')
+
+    if enabled_status:
+        # Have there been any prior experiments for this person?
+        if models.Experiment.objects.filter(system=system, person=person,
+                                            was_successful=True).count() == 0:
+            # Create a baseline run for the person at the default values:
+            #{u'selling-price': 0.75, u'throughput': 325.0}
+            default_values = {}
+            for inputi in input_set:
+                default_values[inputi.slug] = inputi.default_value
+
+            baseline = create_experiment_object(request, system,
+                                                default_values, person)
+            baseline = execute_experiment_object(baseline, system,
+                                                 default_values)
+
+
+
     plot_data_HTML = get_plot_and_data_HTML(person, system, input_set)
 
     input_set, categoricals = process_simulation_inputs_templates(input_set,
@@ -634,6 +631,27 @@ def create_experiment_object(request, system, values_checked, person=None):
     datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).replace(tzinfo=utc))
     return next_run
 
+def execute_experiment_object(expt_obj, system, values_checked):
+    """Typically called after ``create_experiment_object`` once all inputs
+    have been cleaned and checked."""
+    # Clean-up the inputs by dropping any disallowed characters from the
+    # function inputs:
+    values_simulation = values_checked.copy()
+    for key in values_simulation.keys():
+        value = values_simulation.pop(key)
+        key = key.replace('-', '')
+        values_simulation[key] = value
+
+    # TODO.v2: Get the rotation here
+    rotation = 0
+
+    result, duration = run_simulation(system, values_simulation, rotation)
+    expt_obj.time_to_solve = duration
+
+    # Finally, store the simulation results and return the experimental object
+    expt_obj = process_simulation_output(result, expt_obj, system)
+    expt_obj.save()
+    return expt_obj
 
 def fetch_leaderboard_results(system=None):
     """ Returns the leaderboard for the current system.

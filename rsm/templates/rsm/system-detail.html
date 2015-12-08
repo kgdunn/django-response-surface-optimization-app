@@ -30,8 +30,13 @@
 {% if input_set %}
 <hr>
 <h2>The next experiment</h2>
+<div class="rsm-info">
+    {% if data_html %}
+        You have run {{ data_html|length }} experiment{{ data_html|length|pluralize }} already. There are a maximum of {{system.max_experiments_allowed}} experiments allowed.
+    {% endif %}
+</div>
 
-<span class="rsm-error input-error">{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}<span>
+<div class="rsm-error input-error">{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}</div>
 
 {% if not enabled %}
     <p> You have to <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup"

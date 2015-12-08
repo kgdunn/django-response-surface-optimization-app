@@ -82,6 +82,9 @@ class Experiment(models.Model):
                                                    blank=True, null=True)
     hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
 
+    def __str__(self):
+            return 'System: {0}: {1}'.format(self.system.slug, str(self.inputs))
+
 class System(models.Model):
     """ A simulated system, or process. """
     full_name = models.CharField(max_length=250)
