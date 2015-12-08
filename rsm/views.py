@@ -70,25 +70,65 @@ class OutOfBoundsInputError(RSMException):
     """ Raised when an input is outside the bounds."""
     pass
 
-def run_simulation(system, simvalues, rotation):
+def convert_inputs(**kwargs):
+    out = {}
+    for key, value in kwargs.iteritems():
+        out[key] = np.array(value)
+
+    return out
+
+
+def run_simulation(system, simvalues, show_solution=False):
     """Runs simulation of the required ``System``, with timeout. Returns a
     result no matter what, even if it is the default result (failure state).
+
+    Note: when ``show_solution=True`` then two things which are unusual happen:
+        1/ a new function is appended and executed first that takes all inputs
+           and if they are NumPy arrays represented as lists, then are converted
+           back to NumPy arrays first, before the ``simulate(...)`` function is
+           called.
+
+        2/ the ``post_process(...)`` function is not executed
     """
     # If Python < 3.x, then we require the non-builtin library ``subprocess32``
     start_time = time.clock()
 
-    code = "\nimport numpy as np\n" + system.source
-    code_call = """\n\nout = simulate("""
+    code = "\nimport numpy as np\n"
+
+    if show_solution:
+        code += "def convert_inputs(**kwargs):\n"
+        code += "\tout = {}\n"
+        code += "\tfor key, value in kwargs.iteritems():\n"
+        code += "\t\tout[key] = np.array(value)\n"
+        code += "\treturn out\n\n"
+        code += system.source
+    else:
+        code += system.source
+
+
+    code_call = '\n\nout = simulate('
+    if show_solution:
+        code_call += '**convert_inputs('
+
     for key, value in simvalues.iteritems():
+        if isinstance(value, np.ndarray):
+            value = value.tolist()
         code_call = code_call + "{0}={1}, ".format(key, value)
 
-    code_call = code_call + ")\n"
-    code = code + code_call
-
-    if r"post_process(" in system.source:
-        code = code + "print(post_process(out))"
+    if show_solution:
+        code_call += "))\n"
     else:
-        code = code + "print(out)"
+        code_call += ")\n"
+
+    code += code_call
+
+    if not(show_solution):
+        if (r"post_process(" in system.source):
+            code += "print(post_process(out))"
+        else:
+            code += "print(out)"
+    else:
+        code += "print(out)"
 
     command = r'python -c"{0}"'.format(code)
     proc = subprocess.Popen(command,
@@ -442,6 +482,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     # Get the relevant input objects for this system
     input_set = models.Input.objects.filter(system=system).order_by('slug')
 
+    show_solution = False
     if enabled_status:
         # Have there been any prior experiments for this person?
         if models.Experiment.objects.filter(system=system, person=person,
@@ -458,21 +499,39 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                                                  default_values)
 
         # Initiate the ``PersonSystem`` for this combination only once
-        if models.PersonSystem.objects.filter(system=system,
-                                              person=person).count() == 0:
+        persysts = models.PersonSystem.objects.filter(system=system,
+                                                                 person=person)
+        if persysts.count() == 0:
             future = datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).\
                                                            replace(tzinfo=utc)
-            show_solution = datetime.datetime.now() + \
-                             datetime.timedelta(0, system.max_seconds_to_solve)
+            solution_date = datetime.datetime.now() + \
+                       datetime.timedelta(0, system.max_seconds_before_solution)
 
             persyst = models.PersonSystem(person=person, system=system,
                                           completed_date=future, frozen=False,
-                                          show_solution_as_of=show_solution)
+                                          show_solution_as_of=solution_date)
+            persyst.save()
+        else:
+            persyst = persysts[0]
+
+        if datetime.datetime.now().replace(tzinfo=utc) > \
+                               persyst.show_solution_as_of.replace(tzinfo=utc):
+            show_solution = True
+
+            # Have we generated the solution before? If so, don't do it again.
+            # But if not, generate it once, and then save it (it is expensive).
+            if persyst.frozen == False:
+                generate_solution(persyst)
+
+            # Freeze it once the solution has been generated.
+            persyst.frozen = True
             persyst.save()
 
+    # end: if enabled_status
 
 
-    plot_data_HTML = get_plot_and_data_HTML(person, system, input_set)
+
+    plot_data_HTML = get_plot_and_data_HTML(persyst, input_set, show_solution)
 
     input_set, categoricals = process_simulation_inputs_templates(input_set,
                                                                   request,
@@ -658,7 +717,7 @@ def execute_experiment_object(expt_obj, system, values_checked):
     # TODO.v2: Get the rotation here
     rotation = 0
 
-    result, duration = run_simulation(system, values_simulation, rotation)
+    result, duration = run_simulation(system, values_simulation)
     expt_obj.time_to_solve = duration
 
     # Finally, store the simulation results and return the experimental object
@@ -666,12 +725,40 @@ def execute_experiment_object(expt_obj, system, values_checked):
     expt_obj.save()
     return expt_obj
 
+def generate_solution(persyst):
+    """Generates a solution for a given Person/System combination. This is
+    expensive process, so save the results. """
+    system = persyst.system
+    input_set = models.Input.objects.filter(system=system).order_by('slug')
+
+    solution_values = {}
+    RESOLUTION = 50
+    for inputi in input_set:
+        input_name = inputi.slug.replace('-', '')
+        solution_values[input_name] = np.linspace(start=inputi.lower_bound,
+                                                  stop=inputi.upper_bound,
+                                                  num=RESOLUTION,
+                                                  endpoint=True)
+
+    # TODO.v2: Apply the necessary rotation here
+    rotation = persyst.rotation
+
+    # Ignore post_process(): which is where the noise is added.
+    result, duration = run_simulation(system, solution_values,
+                                      show_solution=True)
+
+    # Finally, store the simulation results and return the experimental object
+    class FakeClass(): pass
+    next_run = FakeClass()
+    process_simulation_output(result, next_run, system)
+
+
 def fetch_leaderboard_results(system=None):
     """ Returns the leaderboard for the current system.
     """
     pass
 
-def get_person_experimental_data(person, system, input_set):
+def get_person_experimental_data(persyst, input_set):
     """Gets the data for a person and returns it, together with a hash value
     that should/is unique up to that point.
 
@@ -681,10 +768,10 @@ def get_person_experimental_data(person, system, input_set):
 
     # Retrieve prior experiments which were successful, for this system,
     # for the current logged in person.
-    prior_expts = models.Experiment.objects.filter(system=system,
-                            person=person,
+    prior_expts = models.Experiment.objects.filter(system=persyst.system,
+                                                   person=persyst.person,
                             was_successful=True).order_by('earliest_to_show')
-    data_string = str(person) + ';' + str(system)
+    data_string = str(persyst.person) + ';' + str(persyst.system)
     for entry in prior_expts:
         inputs = json.loads(entry.inputs)
         for item in input_set:
@@ -705,8 +792,8 @@ def get_person_experimental_data(person, system, input_set):
         hash_value = hashlib.md5(data_string).hexdigest()
 
         # TODO.v2: consider putting this in the ``Experiment`` object
-        plothash = models.PlotHash.objects.get_or_create(person=person,
-                                                         system=system,
+        plothash = models.PlotHash.objects.get_or_create(person=persyst.person,
+                                                         system=persyst.system,
                                                          hash_value=hash_value)
         plothash = plothash[0]
     return data, hash_value, plothash
@@ -960,12 +1047,11 @@ def plot_wrapper(data, system, inputs, hash_value):
     return plot_HTML
 
 
-def get_plot_and_data_HTML(person, system, input_set):
+def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
     """Plots the data by generating HTML code that may be rendered into the
     Django template."""
 
-    data, hash_value, plothash = get_person_experimental_data(person,
-                                                              system,
+    data, hash_value, plothash = get_person_experimental_data(persyst,
                                                               input_set)
     expt_data = []
     expt = namedtuple('Expt', ['output', 'datetime', 'inputs'])
@@ -979,14 +1065,18 @@ def get_plot_and_data_HTML(person, system, input_set):
                     inputs=input_item)
         expt_data.append(item)
 
+    if show_solution:
+        # Generate the solution code here.
+        pass
 
     if hash_value:
         if plothash and plothash.plot_HTML:
             plot_html = plothash.plot_HTML
         else:
-            # This speeds up page refreshed. We don't need to recreate existing
-            # plots for a person.
-            plot_html = plot_wrapper(data, system, input_set, hash_value)
+            # This speeds up page refreshes. We don't need to recreate existing
+            # plots for a person/system combination.
+            plot_html = plot_wrapper(data, persyst.system, input_set,
+                                     hash_value)
             plothash.plot_HTML = plot_html
             plothash.save()
     else:

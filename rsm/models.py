@@ -27,7 +27,7 @@ class PersonSystem(models.Model):
     system = models.ForeignKey('System')
     rotation = models.PositiveSmallIntegerField(default=0,
                             help_text='Rotation around axis for this system')
-    offsets = models.TextField(default='',
+    offsets = models.TextField(default='', blank=True,
                             verbose_name="Offsets for each system input")
     # When did the user initiate completion of the system?
     completed_date = models.DateTimeField()
@@ -36,6 +36,7 @@ class PersonSystem(models.Model):
     frozen = models.BooleanField(default=False, help_text=('If true, prevents '
                         'any further additions to this system.'))
     started_on = models.DateTimeField(auto_now_add=True)
+    solution_data = models.TextField(help_text='In JSON format', blank=True)
 
     def __str__(self):
         return '{0} [{1}]'.format(self.system.full_name,
@@ -119,7 +120,7 @@ class System(models.Model):
                                            "name ``simulate(...)`` must exist. "
                                            "The NumPy library is available "
                                            "as ``np``."),
-                              default=u"def simulate(A, B, ):\n    # Code here",
+                              default=u"def simulate(**inputs):\n  # Code here",
                               unique=True, blank=False)
     simulation_timeout = models.PositiveSmallIntegerField(blank=False,
                                                           null=False,
@@ -147,7 +148,7 @@ class System(models.Model):
     cost_per_experiment = models.FloatField(help_text="Dollar cost per run",
                                             default=10.00)
     max_experiments_allowed = models.PositiveIntegerField(default=100)
-    max_seconds_to_solve = models.PositiveIntegerField(default=2147483647,
+    max_seconds_before_solution = models.PositiveIntegerField(default=2147483647,
         help_text=('Max seconds to wait before showing the solution. 43200=30 '
                    'days, as an example.'))
 
