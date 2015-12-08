@@ -21,10 +21,20 @@ class Person(models.Model):
         self.display_name  = self.display_name.strip()
         super(Person, self).save(*args, **kwargs) # Call the "real" save()
 
+class PersonSystem(models.Model):
+    """ Changes made to a System for a specific Person."""
+    person = models.ForeignKey('Person')
+    system = models.ForeignKey('System')
+    rotation = models.PositiveSmallIntegerField(\
+                           help_text='Rotation around axis for this system')
+    offsets = models.TextField(verbose_name="Offsets for each system input")
+    completed_date = models.DateTimeField()
+    show_solution_as_of = models.DateTimeField()
+    frozen = models.BooleanField(default=False)
 
-#class PersonSystem(models.Model):
-#    """ Changes made to a System for a specific Person."""
-#    rotation
+    def __str__(self):
+        return '{0} [{1}]'.format(self.system.full_name,
+                                  self.person.display_name, )
 
 class Token(models.Model):
     """ Tokens capture time/date and permissions of a user to access the
