@@ -482,13 +482,12 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     # Get the relevant input objects for this system
     input_set = models.Input.objects.filter(system=system).order_by('slug')
 
-    show_solution = False
     if enabled_status:
         # Have there been any prior experiments for this person?
         if models.Experiment.objects.filter(system=system, person=person,
                                             was_successful=True).count() == 0:
 
-            # Create a baseline run for the person at the default values:
+            # If not: Create a baseline run for the person at the default values
             default_values = {}
             for inputi in input_set:
                 default_values[inputi.slug] = inputi.default_value
@@ -501,6 +500,9 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
         # Initiate the ``PersonSystem`` for this combination only once
         persysts = models.PersonSystem.objects.filter(system=system,
                                                                  person=person)
+
+        # If this is zero, it is because it is the first time the person has
+        # visited this system
         if persysts.count() == 0:
             future = datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).\
                                                            replace(tzinfo=utc)
@@ -515,6 +517,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
         else:
             persyst = persysts[0]
 
+        # Should we show the solution? Let's check:
         if datetime.datetime.now().replace(tzinfo=utc) > \
                                persyst.show_solution_as_of.replace(tzinfo=utc):
             show_solution = True
@@ -525,8 +528,10 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                 persyst = generate_solution(persyst)
 
             # Freeze it once the solution has been generated.
-            persyst.frozen = True
+            #persyst.frozen = True
             persyst.save()
+        else:
+            show_solution = False
 
         # Only get this for signed in users
         plot_data_HTML = get_plot_and_data_HTML(persyst, input_set,
@@ -536,10 +541,6 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
         plot_data_HTML = [[ ], [ ]]
 
     # if-else-end: if enabled_status
-
-
-
-
 
     input_set, categoricals = process_simulation_inputs_templates(input_set,
                                                                   request,
@@ -743,8 +744,8 @@ def generate_solution(persyst):
     RESOLUTION = 50
     for inputi in input_set:
         input_name = inputi.slug.replace('-', '')
-        solution_inputs[input_name] = np.linspace(start=inputi.lower_bound,
-                                                  stop=inputi.upper_bound,
+        solution_inputs[input_name] = np.linspace(start=inputi.plot_lower_bound,
+                                                  stop=inputi.plot_upper_bound,
                                                   num=RESOLUTION,
                                                   endpoint=True)
 
@@ -795,25 +796,28 @@ def get_person_experimental_data(persyst, input_set):
             data[item.slug].append(inputs[item.slug])
             data['_datetime_'].append(entry.earliest_to_show)
 
+            # Append these to the string:
+            data_string += str(data[item.slug])
+
         # After processing all inputs, also process the response value:
         data['_output_'].append(entry.main_result)
+        data_string += str(data['_datetime_'])
 
-    # Update the data_string
+    # Append the outputs, and the solution data
     data_string += str(data['_output_'])
-    for item in input_set:
-        data_string += str(data[item.slug])
+    data_string += persyst.solution_data
 
     if not(data['_output_']):
-        hash_value = plothash = None
+        hash_value = None
     else:
         hash_value = hashlib.md5(data_string).hexdigest()
 
-        # TODO.v2: consider putting this in the ``Experiment`` object
-        plothash = models.PlotHash.objects.get_or_create(person=persyst.person,
-                                                         system=persyst.system,
-                                                         hash_value=hash_value)
-        plothash = plothash[0]
-    return data, hash_value, plothash
+        # If the hash has changed, then delete the old HTML
+        if hash_value != persyst.plot_hash:
+            persyst.plot_HTML = ''
+        persyst.plot_hash = hash_value
+        persyst.save()
+    return data, hash_value
 
 def plot_wrapper(data, system, inputs, hash_value):
     """Creates a plot of the data, and returns the HTML code to display the
@@ -1068,7 +1072,7 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
     """Plots the data by generating HTML code that may be rendered into the
     Django template."""
 
-    data, hash_value, plothash = get_person_experimental_data(persyst,
+    data, hash_value = get_person_experimental_data(persyst,
                                                               input_set)
     expt_data = []
     expt = namedtuple('Expt', ['output', 'datetime', 'inputs'])
@@ -1087,11 +1091,13 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
         pass
 
     if hash_value:
-        if plothash and plothash.plot_HTML:
-            plot_html = plothash.plot_HTML
-        else:
+        if persyst.plot_HTML:
             # This speeds up page refreshes. We don't need to recreate existing
             # plots for a person/system combination.
+            plot_html = plothash.plot_HTML
+        else:
+            # The plot_HTML has been cleared; we're going to have to regenerate
+            # the plot code.
             plot_html = plot_wrapper(data, persyst.system, input_set,
                                      hash_value)
             plothash.plot_HTML = plot_html

@@ -32,7 +32,7 @@
 <h2>The next experiment</h2>
 <div class="rsm-info">
     {% if data_html %}
-        You have run {{ data_html|length }} experiment{{ data_html|length|pluralize }} already. There are a maximum of {{system.max_experiments_allowed}} experiments allowed.
+        You have run {{ data_html|length }} experiment{{ data_html|length|pluralize }} already (see below). There are a maximum of {{system.max_experiments_allowed}} experiments allowed.
     {% endif %}
 </div>
 

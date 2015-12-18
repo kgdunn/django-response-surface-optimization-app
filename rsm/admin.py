@@ -1,8 +1,7 @@
 from django.contrib import admin
 
 
-from .models import Person, Token, Tag, Experiment, System, Input, PlotHash, \
-                    PersonSystem
+from .models import Person, Token, Tag, Experiment, System, Input, PersonSystem
 
 class SystemAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("full_name",)}
@@ -47,7 +46,6 @@ class PlotHashAdmin(admin.ModelAdmin):
 admin.site.register(Tag)
 admin.site.register(Person, PersonAdmin)
 admin.site.register(Token, TokenAdmin)
-admin.site.register(PlotHash, PlotHashAdmin)
 admin.site.register(Experiment, ExperimentAdmin)
 admin.site.register(System, SystemAdmin)
 admin.site.register(Input, InputAdmin)

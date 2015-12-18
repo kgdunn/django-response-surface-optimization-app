@@ -36,7 +36,13 @@ class PersonSystem(models.Model):
     frozen = models.BooleanField(default=False, help_text=('If true, prevents '
                         'any further additions to this system.'))
     started_on = models.DateTimeField(auto_now_add=True)
-    solution_data = models.TextField(help_text='In JSON format', blank=True)
+    solution_data = models.TextField(help_text='In JSON format', blank=True,
+                                     default='')
+    # Plots are expensive to draw; hash them this way to cache them.
+    plot_hash = models.CharField(max_length=32, editable=False, default='-'*32)
+    plot_HTML = models.TextField(default='', blank=True)
+
+
 
     def __str__(self):
         return '{0} [{1}]'.format(self.system.full_name,
@@ -56,14 +62,14 @@ class Token(models.Model):
                                 blank=True)
     experiment = models.ForeignKey('rsm.Experiment', blank=True, null=True)
 
-class PlotHash(models.Model):
-    """ Plots are expensive to draw; hash them this way to cache them.
-    """
-    person = models.ForeignKey('rsm.Person')
-    system = models.ForeignKey('rsm.System')
-    hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
-    time_last_used = models.DateTimeField(auto_now=True, auto_now_add=False)
-    plot_HTML = models.TextField(default='', blank=True)
+#class PlotHash(models.Model):
+#    """ Plots are expensive to draw; hash them this way to cache them.
+#    """
+#    person = models.ForeignKey('rsm.Person')
+#    system = models.ForeignKey('rsm.System')
+#    hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
+#    time_last_used = models.DateTimeField(auto_now=True, auto_now_add=False)
+#    plot_HTML = models.TextField(default='', blank=True)
 
 class Tag(models.Model):
     """ Tags for ``Systems``. """
