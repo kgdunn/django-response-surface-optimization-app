@@ -528,7 +528,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                 persyst = generate_solution(persyst)
 
             # Freeze it once the solution has been generated.
-            #persyst.frozen = True
+            persyst.frozen = True
             persyst.save()
         else:
             show_solution = False
@@ -819,12 +819,14 @@ def get_person_experimental_data(persyst, input_set):
         persyst.save()
     return data, hash_value
 
-def plot_wrapper(data, system, inputs, hash_value):
+def plot_wrapper(data, system, inputs, hash_value, show_solution=False):
     """Creates a plot of the data, and returns the HTML code to display the
-    plot"""
-
+    plot.
+    Optionally shows the solution if ``show_solution`` is True.
+    """
     USE_NATIVE = False
     USE_PLOTLY = not(USE_NATIVE)
+    USE_JSON = True
 
     def plotting_defaults(vector, clamps=None):
         """ Finds suitable clamping ranges and a "dy" offset to place marker
@@ -1072,8 +1074,7 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
     """Plots the data by generating HTML code that may be rendered into the
     Django template."""
 
-    data, hash_value = get_person_experimental_data(persyst,
-                                                              input_set)
+    data, hash_value = get_person_experimental_data(persyst, input_set)
     expt_data = []
     expt = namedtuple('Expt', ['output', 'datetime', 'inputs'])
     for idx, output in enumerate(data['_output_']):
@@ -1086,10 +1087,7 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
                     inputs=input_item)
         expt_data.append(item)
 
-    if show_solution:
-        # Generate the solution code here.
-        pass
-
+    # ``hash_value`` is None if .....
     if hash_value:
         if persyst.plot_HTML:
             # This speeds up page refreshes. We don't need to recreate existing
@@ -1098,10 +1096,10 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
         else:
             # The plot_HTML has been cleared; we're going to have to regenerate
             # the plot code.
-            plot_html = plot_wrapper(data, persyst.system, input_set,
-                                     hash_value)
-            plothash.plot_HTML = plot_html
+            persyst.plot_HTML = plot_wrapper(data, persyst.system, input_set,
+                                             hash_value, show_solution)
             plothash.save()
+            plot_html = persyst.plot_HTML
     else:
         plot_html = 'No plot to display; please run an experiment first.'
 
