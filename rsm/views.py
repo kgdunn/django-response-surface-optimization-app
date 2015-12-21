@@ -2,9 +2,8 @@
 # pip install -U django
 # pip install -U numpy
 # pip install -U subprocess32
-# pip install -U matplotlib
-# pip install -U pillow
-# pip install -U plotly
+# pip install -U pillow   <--- not yet
+
 
 from django.shortcuts import get_object_or_404, render
 from django.http import (Http404, HttpResponseRedirect, HttpResponse,
@@ -30,18 +29,8 @@ from collections import defaultdict, namedtuple
 import logging
 import numpy as np
 
-# Ensure we can use Matplotlib in the background, on a headless machine
-# This helps with Plotly
-#import matplotlib as matplotlib
-#if matplotlib.get_backend() != 'agg':
-#    matplotlib.use('agg')
-#import matplotlib.pyplot as plt
-#import plotly.plotly as py
-#from plotly.exceptions import PlotlyError
-
 # Some settings for this app:
 TOKEN_LENGTH = 5
-
 
 logger = logging.getLogger(__name__)
 logger.debug('A new call to the views.py file')
@@ -824,10 +813,6 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     plot.
     Optionally shows the solution if ``show_solution`` is True.
     """
-    USE_NATIVE = False
-    USE_PLOTLY = not(USE_NATIVE)
-    USE_JSON = True
-
     def plotting_defaults(vector, clamps=None):
         """ Finds suitable clamping ranges and a "dy" offset to place marker
         labels using heuristics.
@@ -890,52 +875,64 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
                       fontsize=10,
                       family='serif')
 
-    # 1. Get the limits of the plot from the inputs
-    # 2. Create the title automatically
+    # 0. Create the empty figure
+    # 1. Get  data to plot, and the numeric limits for each axis from the inputs
+    # 2. Create the title
     # 3. Get the axis names from the inputs
-    # 4a. Plot the scatterplot of the data
-    # 4b: use a marker size proportional to objective function
-    # 5. Add labels to each point
-    # 6. Add gridlines
+    # 4. Set the axis limits
+    # 5. Plot the scatterplot of the data
+    # 6: use a marker size proportional to objective function
+    # 7. Add labels to each point
+    # 8. Add gridlines
+    # 9. Add axes
 
-    # Create the figure
-    if USE_NATIVE:
-        from matplotlib.figure import Figure
-        from matplotlib.backends.backend_agg import FigureCanvasAgg
+    # 0. Create the empty figure
+    #=========================
+    plot_HTML = """
+    <style type="text/css">
+        .axis path,
+        .axis line {
+          fill: none;
+          stroke: #000;
+          shape-rendering: crispEdges;
+        }
+        .tick{
+            font: 10px sans-serif;
+        }
+    </style>
+    <div id="chart"></div>
+    <script type="text/javascript">"""
+    plot_HTML += """
+        var margin = {T:30, R:20, B:20, L:40 },
+        width = 600 - margin.L - margin.R,
+        height = 500 - margin.T - margin.B,
 
-        matplotlib.rcParams['xtick.direction'] = 'out'
-        matplotlib.rcParams['ytick.direction'] = 'out'
-        fig = Figure(figsize=(9,7))
-        rect = [0.15, 0.1, 0.80, 0.85] # Left, bottom, width, height
-        ax = fig.add_axes(rect, frameon=True)
-        marker_size = 20
+        // ``range``: the output scale mapped to SVG port dimensions
+        scalex = d3.scale.linear().range([0, width]),
+        scaley = d3.scale.linear().range([height - 60, 0]);
 
-    elif USE_PLOTLY:
+        var svg = d3.select("#chart").append("svg")
+                    .attr("width", width + margin.L + margin.R)
+                    .attr("height", height + margin.T + margin.B)
+                    .style('position','relative')
+                    .attr('class','rsm-figure');
 
-        marker_size = 10
-        fig, ax = plt.subplots()
+        // Group that will contain all of the plot elements
+        // translated over by margin.L and down by margin.T
+        var groups = svg.append("g").attr("transform",
+                   "translate(" + margin.L + "," + margin.T + ")");
+        """
 
-    ax.set_title('Response surface: summary of all experiments performed',
-                 fontsize=16)
-
+    # 1. Get the data to plot and the plot bounds
+    #=========================
     if len(inputs) == 1:
         x_data = data[inputs[0].slug]
         y_data = data['_output_']
-
-        ax.set_xlabel(get_axis_label_name(inputs[0]),
-                      fontsize=16)
-        ax.set_ylabel('Response: {0}'.format(\
-                        persyst.system.primary_output_display_name_with_units),
-                      fontsize=16)
 
         x_range_min, x_range_max, dx = plotting_defaults(x_data,
             clamps=[inputs[0].plot_lower_bound, inputs[0].plot_upper_bound])
 
         y_range_min, y_range_max, dy = plotting_defaults(data['_output_'])
-
-        ax.set_xlim([x_range_min, x_range_max])
-        ax.set_ylim([y_range_min, y_range_max])
-
 
     elif len(inputs) == 2:
         # To ensure we always present the data in the same way
@@ -944,32 +941,108 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         x_data = data[inputs[0].slug]
         y_data = data[inputs[1].slug]
 
-        ax.set_xlabel(get_axis_label_name(inputs[0]), fontsize=16)
-        ax.set_ylabel(get_axis_label_name(inputs[1]), fontsize=16)
-
         x_range_min, x_range_max, dx = plotting_defaults(x_data,
                 clamps=[inputs[0].plot_lower_bound, inputs[0].plot_upper_bound])
         y_range_min, y_range_max, dy = plotting_defaults(y_data,
                 clamps=[inputs[1].plot_lower_bound, inputs[1].plot_upper_bound])
 
-        ax.set_xlim([x_range_min, x_range_max])
-        ax.set_ylim([y_range_min, y_range_max])
-
     elif len(inputs) >= 3:
         pass
 
-    # Now add the actual data points
-    if len(inputs) == 1:
-        ax.plot(x_data, y_data, 'k.', ms=marker_size)
 
-    elif len(inputs) == 2:
+    # 2. Plot title
+    #=========================
+    # ax.set_title('Response surface: summary of all experiments performed')
 
-        # TODO: marker size proportional to response value
-        ax.plot(x_data, y_data, 'k.', ms=marker_size)
+    # 3. Set the axis names
+    #=========================
+    # 1 input
+    # --------
+    #ax.set_xlabel(get_axis_label_name(inputs[0]))
+    #ax.set_ylabel('Response: {0}'.format(\
+    #                persyst.system.primary_output_display_name_with_units))
+
+    # 2 inputs
+    # --------
+    #ax.set_xlabel(get_axis_label_name(inputs[0]), fontsize=16)
+    #ax.set_ylabel(get_axis_label_name(inputs[1]), fontsize=16)
+
+    # 4. Set the axis limits
+    #=========================
+    #ax.set_xlim([x_range_min, x_range_max])
+    #ax.set_ylim([y_range_min, y_range_max])
+    plot_HTML += """
+    // Set the axes, as well as details on their ticks
+    var xAxis = d3.svg.axis()
+        .scale(scalex)
+        .ticks(10)
+        .tickSubdivide(true)
+        .tickSize(6, 3, 0)
+        .orient("bottom");
+
+    var yAxis = d3.svg.axis()
+        .scale(scaley)
+        .ticks(10)
+        .tickSubdivide(true)
+        .tickSize(6, 3, 0)
+        .orient("left");
+    """
+
+    plot_HTML += """
+    scalex.domain([{}, {}]);
+    scaley.domain([{}, {}]);
+    """.format(x_range_min, x_range_max, y_range_min, y_range_max)
+
+    # 5. Now add the actual data points
+    # TODO: marker size proportional to response value
+    #=========================
+    #
+    #    if len(inputs) in [1, 2]:
+    #        ax.plot(x_data, y_data, 'k.', ms=marker_size)
+    plot_HTML += "\nvar rawdata = ["
+    for idx, point in enumerate(x_data):
+        plot_HTML += '{{"x": {0}, "y": {1}, "rad": {2}, "col": "{3}"}},'\
+            .format(point, y_data[idx], 4, "black")
+    # cut off the last ","
+    plot_HTML = plot_HTML[0:-1]
+    plot_HTML += "];\n"
+
+    plot_HTML += """
+        var circles = groups.selectAll("circle")
+                        .data(rawdata)
+                        .enter()
+                        .append("circle");
+
+        var circleAttributes = circles
+                      .attr("cx", function (d) { return scalex(d.x); })
+                      .attr("cy", function (d) { return scaley(d.y); })
+                      .attr("r",  function (d) { return d.rad; })
+                      .style("fill", function(d) { return d.col; });
+    """
+
+    plot_HTML += """
+    // draw axes and axis labels
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(" + margin.L + "," + (height - 60 + margin.T) + ")")
+        .call(xAxis)
+        .append("text")
+        .attr("class", "label")
+        .attr("x", width)
+        .attr("y", -6)
+        .style("text-anchor", "end")
+        .text("X-axis-label");
+
+
+    svg.append("g")
+        .attr("class", "y axis")
+        .attr("transform", "translate(" + margin.L + "," + margin.T + ")")
+        .call(yAxis);
+
+    """
 
     # Label the points in the plot
-    add_labels(ax, len(inputs), x_data, y_data, dx=dx, dy=dy, rotate=False)
-
+    #add_labels(ax, len(inputs), x_data, y_data, dx=dx, dy=dy, rotate=False)
 
     #if show_result:
         #r = 70         # resolution of surface
@@ -1030,102 +1103,11 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         #ax.text(xA+dx, xB+dy, str(idx+1),horizontalalignment='center', verticalalignment='center',)
 
     # 6. Grid lines
-    ax.grid(color='k', linestyle=':', linewidth=1)
+    #  ax.grid(color='k', linestyle=':', linewidth=1)
 
-    if USE_PLOTLY:
-        logger.debug('Begin: generating Plotly figure: ' + hash_value)
-        #try:
-            #plot_url = py.plot_mpl(fig,
-                                   #filename=hash_value,
-                                   #fileopt='overwrite',
-                                   #auto_open=False,
-                                   #sharing='public')
-        #except PlotlyError as e:
-            #logger.error('Failed to generate Plotly plot:{0}'.format(e.message))
-            #return ('A plotting error has occurred and has been logged. However'
-                    #', for faster response, please inform kgdunn@gmail.com. '
-                    #'Thank you.')
-
-
-        #plot_HTML = """<iframe frameborder="0" seamless="seamless"
-            #autosize="true" width=100% height=600 modebar="false"
-            #src="{0}.embed"></iframe>""".format(plot_url)
-        plot_HTML = """
-        <div id="chart">
-    <script type="text/javascript">
-    de = [{'count': 728, 'name': 'sample0'},
-	      {'count': 824, 'name': 'sample1'},
-	      {'count': 963, 'name': 'sample2'},
-	      {'count': 927, 'name': 'sample3'}, {'count': 221, 'name': 'sample4'}, {'count': 574, 'name': 'sample5'}, {'count': 733, 'name': 'sample6'}, {'count': 257, 'name': 'sample7'}, {'count': 879, 'name': 'sample8'}, {'count': 620, 'name': 'sample9'}];
-
-    var mySVG = d3.select("#chart")
-      .append("svg")
-      .attr("width", 500)
-      .attr("height", 500)
-      .style('position','relative')
-      .style('top',50)
-      .style('left',40)
-      .attr('class','fig');
-
-    var heightScale = d3.scale.linear()
-      .domain([0, d3.max(de,function(d) { return d.count;})])
-      .range([0, 400]);
-
-    mySVG.selectAll(".xLabel")
-      .data(de)
-      .enter().append("svg:text")
-      .attr("x", function(d,i) {return 113 + (i * 22);})
-      .attr("y", 435)
-      .attr("text-anchor", "middle")
-      .text(function(d,i) {return d.name;})
-      .attr('transform',function(d,i) {return 'rotate(-90,' + (113 + (i * 22)) + ',435)';});
-
-    mySVG.selectAll(".yLabel")
-      .data(heightScale.ticks(10))
-      .enter().append("svg:text")
-      .attr('x',80)
-      .attr('y',function(d) {return 400 - heightScale(d);})
-      .attr("text-anchor", "end")
-      .text(function(d) {return d;});
-
-    mySVG.selectAll(".yTicks")
-      .data(heightScale.ticks(10))
-      .enter().append("svg:line")
-      .attr('x1','90')
-      .attr('y1',function(d) {return 400 - heightScale(d);})
-      .attr('x2',320)
-      .attr('y2',function(d) {return 400 - heightScale(d);})
-      .style('stroke','lightgray');
-
-    var myBars = mySVG.selectAll('rect')
-      .data(de)
-      .enter()
-      .append('svg:rect')
-      .attr('width',20)
-      .attr('height',function(d,i) {return heightScale(d.count);})
-      .attr('x',function(d,i) {return (i * 22) + 100;})
-      .attr('y',function(d,i) {return 400 - heightScale(d.count);})
-      .style('fill','lightblue'); </script>
-    </div>"""
-        #plot_url =
-        #logger.debug('Done : generating Plotly figure: ' + plot_url)
-
-    elif USE_NATIVE:
-
-        canvas=FigureCanvasAgg(fig)
-        logger.debug('Saving figure: ' + hash_value)
-        fig.savefig(hash_value+'.png',
-                    dpi=150,
-                    facecolor='w',
-                    edgecolor='w',
-                    orientation='portrait',
-                    papertype=None,
-                    format=None,
-                    transparent=True)
-        plot_HTML = hash_value+'.png'
+    plot_HTML += '\n</script>\n'
 
     return plot_HTML
-
 
 def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
     """Plots the data by generating HTML code that may be rendered into the
