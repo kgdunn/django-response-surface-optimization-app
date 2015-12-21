@@ -32,12 +32,12 @@ import numpy as np
 
 # Ensure we can use Matplotlib in the background, on a headless machine
 # This helps with Plotly
-import matplotlib as matplotlib
-if matplotlib.get_backend() != 'agg':
-    matplotlib.use('agg')
-import matplotlib.pyplot as plt
-import plotly.plotly as py
-from plotly.exceptions import PlotlyError
+#import matplotlib as matplotlib
+#if matplotlib.get_backend() != 'agg':
+#    matplotlib.use('agg')
+#import matplotlib.pyplot as plt
+#import plotly.plotly as py
+#from plotly.exceptions import PlotlyError
 
 # Some settings for this app:
 TOKEN_LENGTH = 5
@@ -527,9 +527,9 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
             if persyst.frozen == False:
                 persyst = generate_solution(persyst)
 
-            # Freeze it once the solution has been generated.
-            persyst.frozen = True
-            persyst.save()
+                # Freeze it once the solution has been generated.
+                persyst.frozen = True
+                persyst.save()
         else:
             show_solution = False
 
@@ -819,7 +819,7 @@ def get_person_experimental_data(persyst, input_set):
         persyst.save()
     return data, hash_value
 
-def plot_wrapper(data, system, inputs, hash_value, show_solution=False):
+def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     """Creates a plot of the data, and returns the HTML code to display the
     plot.
     Optionally shows the solution if ``show_solution`` is True.
@@ -845,7 +845,6 @@ def plot_wrapper(data, system, inputs, hash_value, show_solution=False):
             y_range = y_max - y_min
         elif y_range == 0.0 and not(finite_clamps):
             y_range = 1.0
-
 
         y_range_min, y_range_max = y_min - 0.07*y_range, y_max + 0.07*y_range
         dy = 0.015*y_range
@@ -926,7 +925,7 @@ def plot_wrapper(data, system, inputs, hash_value, show_solution=False):
         ax.set_xlabel(get_axis_label_name(inputs[0]),
                       fontsize=16)
         ax.set_ylabel('Response: {0}'.format(\
-                            system.primary_output_display_name_with_units),
+                        persyst.system.primary_output_display_name_with_units),
                       fontsize=16)
 
         x_range_min, x_range_max, dx = plotting_defaults(x_data,
@@ -1035,23 +1034,81 @@ def plot_wrapper(data, system, inputs, hash_value, show_solution=False):
 
     if USE_PLOTLY:
         logger.debug('Begin: generating Plotly figure: ' + hash_value)
-        try:
-            plot_url = py.plot_mpl(fig,
-                                   filename=hash_value,
-                                   fileopt='overwrite',
-                                   auto_open=False,
-                                   sharing='public')
-        except PlotlyError as e:
-            logger.error('Failed to generate Plotly plot:{0}'.format(e.message))
-            return ('A plotting error has occurred and has been logged. However'
-                    ', for faster response, please inform kgdunn@gmail.com. '
-                    'Thank you.')
+        #try:
+            #plot_url = py.plot_mpl(fig,
+                                   #filename=hash_value,
+                                   #fileopt='overwrite',
+                                   #auto_open=False,
+                                   #sharing='public')
+        #except PlotlyError as e:
+            #logger.error('Failed to generate Plotly plot:{0}'.format(e.message))
+            #return ('A plotting error has occurred and has been logged. However'
+                    #', for faster response, please inform kgdunn@gmail.com. '
+                    #'Thank you.')
 
-        plot_HTML = """<iframe frameborder="0" seamless="seamless"
-            autosize="true" width=100% height=600 modebar="false"
-            src="{0}.embed"></iframe>""".format(plot_url)
 
-        logger.debug('Done : generating Plotly figure: ' + plot_url)
+        #plot_HTML = """<iframe frameborder="0" seamless="seamless"
+            #autosize="true" width=100% height=600 modebar="false"
+            #src="{0}.embed"></iframe>""".format(plot_url)
+        plot_HTML = """
+        <div id="chart">
+    <script type="text/javascript">
+    de = [{'count': 728, 'name': 'sample0'},
+	      {'count': 824, 'name': 'sample1'},
+	      {'count': 963, 'name': 'sample2'},
+	      {'count': 927, 'name': 'sample3'}, {'count': 221, 'name': 'sample4'}, {'count': 574, 'name': 'sample5'}, {'count': 733, 'name': 'sample6'}, {'count': 257, 'name': 'sample7'}, {'count': 879, 'name': 'sample8'}, {'count': 620, 'name': 'sample9'}];
+
+    var mySVG = d3.select("#chart")
+      .append("svg")
+      .attr("width", 500)
+      .attr("height", 500)
+      .style('position','relative')
+      .style('top',50)
+      .style('left',40)
+      .attr('class','fig');
+
+    var heightScale = d3.scale.linear()
+      .domain([0, d3.max(de,function(d) { return d.count;})])
+      .range([0, 400]);
+
+    mySVG.selectAll(".xLabel")
+      .data(de)
+      .enter().append("svg:text")
+      .attr("x", function(d,i) {return 113 + (i * 22);})
+      .attr("y", 435)
+      .attr("text-anchor", "middle")
+      .text(function(d,i) {return d.name;})
+      .attr('transform',function(d,i) {return 'rotate(-90,' + (113 + (i * 22)) + ',435)';});
+
+    mySVG.selectAll(".yLabel")
+      .data(heightScale.ticks(10))
+      .enter().append("svg:text")
+      .attr('x',80)
+      .attr('y',function(d) {return 400 - heightScale(d);})
+      .attr("text-anchor", "end")
+      .text(function(d) {return d;});
+
+    mySVG.selectAll(".yTicks")
+      .data(heightScale.ticks(10))
+      .enter().append("svg:line")
+      .attr('x1','90')
+      .attr('y1',function(d) {return 400 - heightScale(d);})
+      .attr('x2',320)
+      .attr('y2',function(d) {return 400 - heightScale(d);})
+      .style('stroke','lightgray');
+
+    var myBars = mySVG.selectAll('rect')
+      .data(de)
+      .enter()
+      .append('svg:rect')
+      .attr('width',20)
+      .attr('height',function(d,i) {return heightScale(d.count);})
+      .attr('x',function(d,i) {return (i * 22) + 100;})
+      .attr('y',function(d,i) {return 400 - heightScale(d.count);})
+      .style('fill','lightblue'); </script>
+    </div>"""
+        #plot_url =
+        #logger.debug('Done : generating Plotly figure: ' + plot_url)
 
     elif USE_NATIVE:
 
@@ -1096,9 +1153,8 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
         else:
             # The plot_HTML has been cleared; we're going to have to regenerate
             # the plot code.
-            persyst.plot_HTML = plot_wrapper(data, persyst.system, input_set,
+            persyst.plot_HTML = plot_wrapper(data, persyst, input_set,
                                              hash_value, show_solution)
-            plothash.save()
             plot_html = persyst.plot_HTML
     else:
         plot_html = 'No plot to display; please run an experiment first.'
