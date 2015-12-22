@@ -881,8 +881,8 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     # 3. Get the axis names from the inputs
     # 4. Set the axis limits
     # 5. Plot the scatterplot of the data
-    # 6: use a marker size proportional to objective function
-    # 7. Add labels to each point
+    # 6: Use a marker size proportional to objective function
+    # 7. Add labels for each point
     # 8. Add gridlines
     # 9. Add axes
 
@@ -1001,10 +1001,9 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     #        ax.plot(x_data, y_data, 'k.', ms=marker_size)
     plot_HTML += "\nvar rawdata = ["
     for idx, point in enumerate(x_data):
-        plot_HTML += '{{"x": {0}, "y": {1}, "rad": {2}, "col": "{3}"}},'\
-            .format(point, y_data[idx], 4, "black")
-    # cut off the last ","
-    plot_HTML = plot_HTML[0:-1]
+        plot_HTML += '{{"x": {0}, "y": {1}, "rad": {2}, "col": "{3}", "ord": "{4}}},'\
+            .format(point, y_data[idx], 4, "black", idx+1)
+
     plot_HTML += "];\n"
 
     plot_HTML += """
@@ -1021,7 +1020,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     """
 
     plot_HTML += """
-    // draw axes and axis labels
+    // Draw axes and axis labels
     svg.append("g")
         .attr("class", "x axis")
         .attr("transform", "translate(" + margin.L + "," + (height - 60 + margin.T) + ")")
@@ -1032,7 +1031,6 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         .attr("y", -6)
         .style("text-anchor", "end")
         .text("X-axis-label");
-
 
     svg.append("g")
         .attr("class", "y axis")
