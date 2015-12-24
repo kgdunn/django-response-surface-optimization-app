@@ -987,7 +987,13 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         x_range_min, x_range_max, dx = plotting_defaults(x_data,
             clamps=[inputs[0].plot_lower_bound, inputs[0].plot_upper_bound])
 
-        y_range_min, y_range_max, dy = plotting_defaults(responses)
+        if len(responses) == 1:
+            # Special case: when just initializing the system and the
+            # only experiment is our baseline experiment.
+            y_range_min, y_range_max, dy = plotting_defaults(responses,
+                clamps=[responses[0]*0.9, responses[0]*1.10])
+        else:
+            y_range_min, y_range_max, dy = plotting_defaults(responses)
 
     elif len(inputs) == 2:
         # To ensure we always present the data in the same way
@@ -1194,6 +1200,10 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     var mouseOn = function() {
         var circle = d3.select(this);
 
+        // Highlight the moused datapoint. The HTML #ID is defined in the
+        // table template.
+        $('#rsm-result-'+circle.attr('ord')).css( "background-color",
+                                                   "rgb(128, 128, 255)" );
         circle.transition()
             .duration(800)
             .style("opacity", 1)
@@ -1234,6 +1244,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     // what happens when we leave a bubble?
     var mouseOff = function() {
         var circle = d3.select(this);
+        $('#rsm-result-'+circle.attr('ord')).css( "background-color", "" );
 
         // go back to original size and opacity
         circle.transition()
