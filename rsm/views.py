@@ -816,6 +816,8 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     def plotting_defaults(vector, clamps=None):
         """ Finds suitable clamping ranges and a "dy" offset to place marker
         labels using heuristics.
+
+        Independent of how plots are generated.
         """
         finite_clamps = True
         if clamps is None:
@@ -836,7 +838,10 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         return (y_range_min, y_range_max, dy)
 
     def get_axis_label_name(input_item):
-        """Returns an axis label for a particular input."""
+        """Returns an axis label for a particular input.
+
+        Independent of how plots are generated.
+        """
         if input_item.units_prefix and not(input_item.units_suffix):
             return '{0} [{1}]'.format(input_item.display_name,
                                       input_item.units_prefix)
@@ -850,13 +855,13 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         else:
             return input_item.display_name
 
-    def add_labels(axis, dims, xvalues, yvalues, zvalues=None, dx=0, dy=0, dz=0,
-                   rotate=False):
+    def add_data_labels_NOT_USED(axis, dims, xvalues, yvalues, zvalues=None,
+                        dx=0, dy=0, dz=0, rotate=False):
         """Adds labels to an axis ``axis`` in 1, 2 or 3 dimensions.
-        If ``rotate`` is True, then the labels are randomly rotated about the
-        plotted point. The ``dx``, ``dy`` and ``dz`` are the base offsets from
-        the coordinate values given in ``xvalues``, ``yvalues``, and ``zvalues``
-        respectively.
+        If ``rotate`` is True, then the labels are randomly rotated
+        (placed) about the plotted point. The ``dx``, ``dy`` and ``dz`` are
+        the base offsets from the coordinate values given in ``xvalues``,
+        ``yvalues``, and ``zvalues`` respectively.
         """
         for idx, xvalue in enumerate(xvalues):
             if rotate:
@@ -877,62 +882,112 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
     # 0. Create the empty figure
     # 1. Get  data to plot, and the numeric limits for each axis from the inputs
-    # 2. Create the title
-    # 3. Get the axis names from the inputs
-    # 4. Set the axis limits
-    # 5. Plot the scatterplot of the data
-    # 6: Use a marker size proportional to objective function
-    # 7. Add labels for each point
-    # 8. Add gridlines
-    # 9. Add axes
+    # 2. Create the axes and set the axes names
+    # 3. Create the gridlines
+    # 4. Plot title
+    # 5. Now add the actual data points
+
+    # ...: Use a marker size proportional to objective function
+    # ...: Add labels for each point
+
+    # 7. Add a legend
+    # 8. What to do when we mouse over the plot?
+    # 9. Close off and render the plot
 
     # 0. Create the empty figure
     #=========================
     plot_HTML = """
     <style type="text/css">
-        .axis path,
-        .axis line {
-          fill: none;
-          stroke: #000;
-          shape-rendering: crispEdges;
-        }
-        .tick{
-            font: 10px sans-serif;
-        }
+	.axis path,
+	.axis line {
+		fill: none;
+		stroke: #000;
+		shape-rendering: crispEdges;
+	}
+	.tick{
+		font: 12px sans-serif;
+	}
+	.grid .tick {
+	    stroke: lightgrey;
+	}
+    .expt-results{
+        display: inline-block;
+        *display: inline;
+        vertical-align: middle;
+        zoom: 1;
+    }
     </style>
-    <div id="chart"></div>
+    <div id="rsmchart" class="expt-results" ></div>
     <script type="text/javascript">"""
+
     plot_HTML += """
-        var margin = {T:30, R:20, B:20, L:40 },
-        width = 600 - margin.L - margin.R,
-        height = 500 - margin.T - margin.B,
+        // Global defaults
+        var showlegend = false;
+        var n_ticks_x = 8;
+        var n_ticks_y = 8;
+        var deltabuffer = 5; // small buffers away from axes
+        var margin = {top:40, right:showlegend?120:50, bottom:40, left:50 }
 
-        // ``range``: the output scale mapped to SVG port dimensions
-        scalex = d3.scale.linear().range([0, width]),
-        scaley = d3.scale.linear().range([height - 60, 0]);
+        var chartDiv = document.getElementById("rsmchart");
+        var svgcontainer = d3.select(chartDiv)
 
-        var svg = d3.select("#chart").append("svg")
-                    .attr("width", width + margin.L + margin.R)
-                    .attr("height", height + margin.T + margin.B)
-                    .style('position','relative')
-                    .attr('class','rsm-figure');
+        function redraw_rsmchart(){
 
-        // Group that will contain all of the plot elements
-        // translated over by margin.L and down by margin.T
-        var groups = svg.append("g").attr("transform",
-                   "translate(" + margin.L + "," + margin.T + ")");
+            svgcontainer.selectAll("*").remove();
+
+
+            // Extract the width and height that was computed by CSS.
+            var outerwidth = Math.min(600, Math.max(600, chartDiv.clientWidth));
+            var outerheight = 400;
+            var width = outerwidth - margin.left - margin.right;
+            var height = outerheight - margin.top - margin.bottom;
+
+            // ``range``: the output scale mapped to SVG port dimensions
+            var scalex = d3.scale.linear().range([0, width]);
+            var scaley = d3.scale.linear().range([height, 0]);
+
+        var svg = svgcontainer.append("svg")
+            .attr("width", outerwidth)
+            .attr("height", outerheight)
+            .attr('class','rsm-figure')
+
+            // Everything that will be added to the plot is now
+            // relative to this transformed container.
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        // To help with layout: show the boundaries
+        // Do not ordinarily display this.
+        // svg.append("rect")
+        //     .attr("width", width)
+        //     .attr("height", height)
+        //     .attr("opacity", 0.2);
+
+        // Set the axes, as well as details on their ticks
+        var xAxis = d3.svg.axis()
+            .scale(scalex)
+            .ticks(n_ticks_x)
+            .tickSubdivide(true)
+            .tickSize(6, 0);
+
+        var yAxis = d3.svg.axis()
+            .scale(scaley)
+            .ticks(n_ticks_y)
+            .tickSubdivide(true)
+            .tickSize(6, 0);
         """
 
     # 1. Get the data to plot and the plot bounds
     #=========================
+    responses = data['_output_']
     if len(inputs) == 1:
         x_data = data[inputs[0].slug]
-        y_data = data['_output_']
+        y_data = responses
 
         x_range_min, x_range_max, dx = plotting_defaults(x_data,
             clamps=[inputs[0].plot_lower_bound, inputs[0].plot_upper_bound])
 
-        y_range_min, y_range_max, dy = plotting_defaults(data['_output_'])
+        y_range_min, y_range_max, dy = plotting_defaults(responses)
 
     elif len(inputs) == 2:
         # To ensure we always present the data in the same way
@@ -949,161 +1004,274 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     elif len(inputs) >= 3:
         pass
 
-
-    # 2. Plot title
-    #=========================
-    # ax.set_title('Response surface: summary of all experiments performed')
-
-    # 3. Set the axis names
-    #=========================
-    # 1 input
-    # --------
-    #ax.set_xlabel(get_axis_label_name(inputs[0]))
-    #ax.set_ylabel('Response: {0}'.format(\
-    #                persyst.system.primary_output_display_name_with_units))
-
-    # 2 inputs
-    # --------
-    #ax.set_xlabel(get_axis_label_name(inputs[0]), fontsize=16)
-    #ax.set_ylabel(get_axis_label_name(inputs[1]), fontsize=16)
-
-    # 4. Set the axis limits
-    #=========================
-    #ax.set_xlim([x_range_min, x_range_max])
-    #ax.set_ylim([y_range_min, y_range_max])
-    plot_HTML += """
-    // Set the axes, as well as details on their ticks
-    var xAxis = d3.svg.axis()
-        .scale(scalex)
-        .ticks(10)
-        .tickSubdivide(true)
-        .tickSize(6, 3, 0)
-        .orient("bottom");
-
-    var yAxis = d3.svg.axis()
-        .scale(scaley)
-        .ticks(10)
-        .tickSubdivide(true)
-        .tickSize(6, 3, 0)
-        .orient("left");
-    """
-
     plot_HTML += """
     scalex.domain([{}, {}]);
     scaley.domain([{}, {}]);
     """.format(x_range_min, x_range_max, y_range_min, y_range_max)
 
+    # 2. Create the axes and set the axes names
+    #=========================
+    x_label = get_axis_label_name(inputs[0])
+    if len(inputs) == 1:
+        y_label = 'Response: {0}'.format(
+                    persyst.system.primary_output_display_name_with_units)
+    elif len(inputs) == 2:
+        y_label = get_axis_label_name(inputs[1])
+
+    plot_HTML += """
+    // Bottom x-axis
+    svg.append("g")
+        .attr("class", "x axis bottom")
+        .attr("transform", "translate(0 ," + height + ")")
+        .call(xAxis.orient("bottom"))
+
+    // Bottom X-axis label
+    svg.append("g")
+        .attr("class", "x axis bottom label")
+        .attr("transform", "translate(0," + (height + margin.bottom - deltabuffer) + ")")
+        .append("text")
+        .attr("font-family", "sans-serif")
+        .attr("x", (width)/2)
+        .attr("y", 0)
+        .style("text-anchor", "middle")
+        .text("{0}");
+
+    // Top x-axis
+    svg.append("g")
+        .attr("class", "x axis top")
+        .attr("transform", "translate(0, 0)")
+        .call(xAxis.orient('top'));
+
+    // Y-axis and y-axis label
+    svg.append("g")
+        .attr("class", "y axis left")
+        .attr("transform", "translate(0, 0)")
+        .call(yAxis.orient("left"))
+
+    // Y-axis label
+    svg.append("g")
+        .attr("class", "y axis left label")
+        .attr("transform", "translate(" + -margin.left/3*2 + "," + 0 + ")")
+        .append("text")
+        .attr("transform", "rotate(270)")
+        .attr("class", "axislabel")
+        .attr("font-family", "sans-serif")
+        .attr("x", -height/2.0)
+        .attr("y", -deltabuffer)
+        .style("text-anchor", "middle")
+        .text("{1}");
+
+    // Y-axis right hand side
+    svg.append("g")
+        .attr("class", "y axis right")
+        .attr("transform", "translate(" + width + "," + 0 + ")")
+        .call(yAxis.orient("right"));
+
+    """.format(x_label, y_label)
+
+
+    # 3. Create the gridlines
+    #=========================
+    plot_HTML += """
+    // X-axis gridlines
+    svg.append("g")
+        .attr("class", "x grid")
+        .attr("transform", "translate(0, 0)")
+        .call(xAxis
+            .tickSize(-height, 0, 0)
+            .tickFormat("")
+        )
+
+    // Y-axis gridlines
+    svg.append("g")
+        .attr("class", "y grid")
+        .attr("transform", "translate(0, 0)")
+        .call(yAxis
+            .tickSize(width, 0, 0)
+            .tickFormat("")
+        )
+    """
+
+    # 4. Plot title
+    #=========================
+    plot_HTML += """
+    // Chart title
+    svg.append("g")
+        .append("text")
+        .attr("class", "rsm-plot title")
+        // halfway between the plot and the outer edge
+        .attr("transform", "translate(" + (0) + "," + (-0.5*margin.top) + ")")
+        .attr("x", (width/2.0))
+        .attr("y", -deltabuffer)
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "20px")
+        .attr("fill", "black")
+        .attr("text-anchor", "middle")
+        .text("Summary of all experiments performed");
+    """
+
+
     # 5. Now add the actual data points
-    # TODO: marker size proportional to response value
+    # TODO.v2: marker size proportional to response value
     #=========================
     #
     #    if len(inputs) in [1, 2]:
     #        ax.plot(x_data, y_data, 'k.', ms=marker_size)
-    plot_HTML += "\nvar rawdata = ["
+    plot_HTML += "\n    var rawdata = [\n"
     for idx, point in enumerate(x_data):
-        plot_HTML += '{{"x": {0}, "y": {1}, "rad": {2}, "col": "{3}", "ord": "{4}}},'\
-            .format(point, y_data[idx], 4, "black", idx+1)
+        plot_HTML += ('{{"x": {0}, "y": {1}, "rad": {2}, "col": "{3}", '
+                      '"ord": "{4}", "resp": {5}}},\n')\
+            .format(point, y_data[idx], 4, "black", idx+1, responses[idx])
 
-    plot_HTML += "];\n"
-
-    plot_HTML += """
-        var circles = groups.selectAll("circle")
-                        .data(rawdata)
-                        .enter()
-                        .append("circle");
-
-        var circleAttributes = circles
-                      .attr("cx", function (d) { return scalex(d.x); })
-                      .attr("cy", function (d) { return scaley(d.y); })
-                      .attr("r",  function (d) { return d.rad; })
-                      .style("fill", function(d) { return d.col; });
-    """
+    plot_HTML += "    ];\n"
 
     plot_HTML += """
-    // Draw axes and axis labels
-    svg.append("g")
-        .attr("class", "x axis")
-        .attr("transform", "translate(" + margin.L + "," + (height - 60 + margin.T) + ")")
-        .call(xAxis)
-        .append("text")
-        .attr("class", "label")
-        .attr("x", width)
-        .attr("y", -6)
-        .style("text-anchor", "end")
-        .text("X-axis-label");
-
-    svg.append("g")
-        .attr("class", "y axis")
-        .attr("transform", "translate(" + margin.L + "," + margin.T + ")")
-        .call(yAxis);
-
+    // Data is placed on top of the gridlines
+    var circles = svg.append("g")
+        .selectAll("circle")
+        .data(rawdata)
+        .enter()
+        .append("circle")
+        .attr("class", "rsm-plot datapoints")
+        .attr("cx", function (d) { return scalex(d.x); })
+        .attr("cy", function (d) { return scaley(d.y); })
+        .attr("r",  function (d) { return d.rad; })
+        .attr("radius",  function (d) { return d.rad; })
+        .style("fill", function(d) { return d.col; })
+        .attr("ord", function (d) { return d.ord; });
     """
 
     # Label the points in the plot
-    #add_labels(ax, len(inputs), x_data, y_data, dx=dx, dy=dy, rotate=False)
-
+    # =======================
+    # Use the defunct ``add_data_labels_NOT_USED`` function above,
+    # or rather do this using Javascript
+    #
     #if show_result:
-        #r = 70         # resolution of surface
-        #x1 = np.arange(limits_A[0], limits_A[1], step=(limits_A[1] - limits_A[0])/(r+0.0))
-        #x2 = np.arange(limits_B[0], limits_B[1], step=(limits_B[1] - limits_B[0])/(r+0.0))
-        #X3_lo = 'H'
-        #X3_hi = 'X'
+    # =========================
+    # CS_lo = ax.contour(X1, X2, Y_lo, colors='#777777', levels=levels_lo,
+    # baseline_xA, baseline_xB = transform_coords(x1=start_point[0],
+    #                                             x2=start_point[1],
+    #                                             rot=360-the_student.rotation)
 
-        #X1, X2 = np.meshgrid(x1, x2)
-        #Y_lo, Y_lo_noisy = generate_result(the_student, (X1, X2, X3_lo),
-                                           #pure_response=True)
-        #Y_hi, Y_hi_noisy = generate_result(the_student, (X1, X2, X3_hi),
-                                           #pure_response=True)
+    # 7. Add the legend
+    # =============================
+    plot_HTML += """
+    if(showlegend){
+	var legbox = svg.append("g")
+            .attr("class", "legend")
+            .attr("transform", "translate(" + (width+margin.right/4*1.5) + "," + height/2.0 + ")");
 
-        #levels_lo = np.linspace(-30, 3000, 55)*1
-        #levels_hi = np.linspace(-30, 3101, 55)*1
-##
-## DO NOT SHOW BLACK CONTOURS
-##
-##        CS_lo = ax.contour(X1, X2, Y_lo, colors='#777777', levels=levels_lo,
-##                           linestyles='solid', linewidths=1)
-        #CS_hi = ax.contour(X1, X2, Y_hi, colors='#FF0000', levels=levels_hi,
-                           #linestyles='dotted', linewidths=1)
-##        ax.clabel(CS_lo, inline=1, fontsize=10, fmt='%1.0f' )
-        #ax.clabel(CS_hi, inline=1, fontsize=10, fmt='%1.0f' )
+        var legend_square = 10;
 
+        var legend = legbox.selectAll(".legend")
+            .data(["Group 1", "Group 2"])
+            .enter().append("g")
+            .attr("class", "legenditem")
+            .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
 
-    # Plot constraint
-    #ax.plot([constraint_a[0], constraint_b[0]], [constraint_a[1], constraint_b[1]], color="#EA8700", linewidth=2)
+        // draw legend colored rectangles
+        legend.append("rect")
+            .attr("x", 0)
+            .attr("width", legend_square)
+            .attr("height", legend_square)
+            .style("fill", "red");
 
-    #baseline_xA, baseline_xB = transform_coords(x1=start_point[0], x2=start_point[1],
-    #                                            rot=360-the_student.rotation)
-    #my_logger.debug('Baseline [%s] = (%s, %s)' % (the_student.student_number,
-    #                                              baseline_xA, baseline_xB))
+        // draw legend text
+        legend.append("text")
+            .attr("x", legend_square+deltabuffer)
+            .attr("y", legend_square/2.0)
+            .attr("dy", ".35em")
+            .style("text-anchor", "left")
+            .text(function(d) { return d;})
 
-    #ax.text(391, 20.5, the_student.group_name, horizontalalignment='left', verticalalignment='center', fontsize=10, fontstyle='italic')
+    };
+    """
 
-    # Baseline marker and label.
-    #ax.text(baseline_xA, baseline_xB, "    Baseline",
-    #        horizontalalignment='left', verticalalignment='center',
-    #        color="#0000FF")
-    #ax.plot(baseline_xA, baseline_xB, 'r.', linewidth=2, ms=20)
+    # 8. What to do when we mouse over the plot?
+    # =============================
+    plot_HTML += """
+    // What to do when we mouse over a bubble
+    var mouseOn = function() {
+        var circle = d3.select(this);
 
-    #for idx, entry_A in enumerate(factor_A):
+        circle.transition()
+            .duration(800)
+            .style("opacity", 1)
+            .attr("r", parseInt(circle.attr('radius'))*2)
+            .ease("elastic");
 
-        ## Do not rotate the location of the labels
-        #xA, xB = entry_A, factor_B[idx]
-        #if factor_C[idx] == 'H':
-            #ax.plot(xA, xB, 'k.', ms=20)
-        #else:
-            #ax.plot(xA, xB, 'r.', ms=20)
+        // append lines to bubbles that will be used to show the precise data points.
+        // translate their location based on margins
+        svg.append("g")
+            .attr("class", "guide")
+            .append("line")
+            .attr("x1", circle.attr("cx"))
+            .attr("x2", circle.attr("cx"))
+            .attr("y1", +circle.attr("cy"))
+            .attr("y2", height)
+            .attr("stroke-width", 2)
+            .style("stroke", "blue");  //circle.style("fill")
 
+        svg.append("g")
+            .attr("class", "guide")
+            .append("line")
+            .attr("x1", +circle.attr("cx"))
+            .attr("x2", 0)
+            .attr("y1", circle.attr("cy"))
+            .attr("y2", circle.attr("cy"))
+            .attr("stroke-width", 2)
+            .style("stroke", "blue"); // circle.style("fill")
 
-        #rand_theta = random.uniform(0, 2*np.pi)
-        #dx = 1.4 * np.cos(rand_theta) # math.copysign(random.uniform(0.45, 0.55), random.uniform(-1,1))
-        #dy = 1.0 * np.sin(rand_theta) # math.copysign(random.uniform(0.45, 0.55), random.uniform(-1,1))
+        // function to move mouseover item to front of SVG stage, in case
+        // another bubble overlaps it
+        d3.selection.prototype.moveToFront = function() {
+          return this.each(function() {
+            this.parentNode.appendChild(this);
+          });
+        };
+    };
 
-        #ax.text(xA+dx, xB+dy, str(idx+1),horizontalalignment='center', verticalalignment='center',)
+    // what happens when we leave a bubble?
+    var mouseOff = function() {
+        var circle = d3.select(this);
 
-    # 6. Grid lines
-    #  ax.grid(color='k', linestyle=':', linewidth=1)
+        // go back to original size and opacity
+        circle.transition()
+            .duration(800)
+            .style("opacity", 1.0)
+            .attr("r", parseInt(circle.attr("radius")))
+            .ease("sin");
 
-    plot_HTML += '\n</script>\n'
+        // fade out guide lines, then remove them
+        d3.selectAll(".guide")
+            .transition()
+            .duration(100)
+            .styleTween("opacity", function() {
+                return d3.interpolate(.5, 0); })
+            .remove()
+    };
+
+    // run the mouseon/out functions
+    circles.on("mouseover", mouseOn);
+    circles.on("mouseout", mouseOff);
+    """
+
+    # 9. Close off and render the plot
+    # =============================
+    plot_HTML += """
+
+    }  // end of the function: ``redraw_rsmchart``
+    $(document).ready( function() {
+        // wait for DOM to be ready, otherwise you have DIV that has
+        // size of zero.
+        redraw_rsmchart();
+    });
+
+    // Redraw char whenever the browser window is resized.
+    window.addEventListener("resize", redraw_rsmchart);
+    </script>
+
+    """
 
     return plot_HTML
 

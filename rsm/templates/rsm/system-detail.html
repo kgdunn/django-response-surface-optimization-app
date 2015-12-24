@@ -12,13 +12,22 @@
     .rsm-input-suffix{
         padding-top: 10px;
     }
+    .row-odd{
+    background: #DDDDDD;
+    }
+
+    .expt-response{
+        text-align: right;
+    }
+    .expt-input{
+        text-align: center
+    }
     </style>
     {% if not enabled %}
         <script type="text/javascript">
         $(function() {
             $("#rsm-expt-input").fadeTo( 2000, 0.33 );
         });
-
         </script>
     {% endif %}
 {% endblock %}
@@ -46,7 +55,8 @@
 {% endif %}
 
 <div id="rsm-expt-input">
-    <form action="{% url 'rsmapp:show_one_system' system.slug %}" method="post">
+    <form action="{% url 'rsmapp:show_one_system' system.slug %}"
+    method="post" data-ajax="false">
     {% csrf_token %}
 
     {% for item in input_set.all %}
@@ -97,35 +107,36 @@
 {% if data_html %}
 
     <h2>Previous experiments run</h2>
-    <div>
+
         {{plot_html|safe}}
-    </div>
 
-    {# Table of experimental results here #}
-    <table class="prev-expts-table">
-        <tr>
-        <th>Experiment<br>number</th>
-        <th>Date and time</th>
-        {% for item in input_set.all %}
-            <th class="{{item.slug}}">{{item.display_name}}<br>
-            [{{item.units_prefix}}{{item.units_suffix}}]</th>
-        {% endfor %}
-        <th>{{system.primary_output_display_name_with_units}}</th>
-        </tr>
+        {# Table of experimental results goes here #}
 
-        {% for expt in data_html %}
-        {%spaceless%}
-        <tr class="{% cycle 'odd' 'even' %} expt-result">
-            <td class="expt-number">{{forloop.counter}}</td>
-            <td class="datetime">{{expt.datetime|date:"d F Y H:i:s"}}</td>
+        <table class="expt-results" style="display: inline-block;">
+            <tr>
+            <th>Experiment<br>number</th>
+            <th>Date and time</th>
             {% for item in input_set.all %}
-                <td class="expt-input">{{expt.inputs|get_item:item.slug}}</td>
+                <th class="{{item.slug}}">{{item.display_name}}<br>
+                [{{item.units_prefix}}{{item.units_suffix}}]</th>
             {% endfor %}
-            <td class="response">{{expt.output|floatformat:0}}</td>
-        </tr>
-        {% endspaceless %}
-        {% endfor %}
-    </table>
+            <th>{{system.primary_output_display_name_with_units}}</th>
+            </tr>
+
+            {% for expt in data_html %}
+            {%spaceless%}
+            <tr class="row-{% cycle 'odd' 'even' %} expt-result" id="rsm-result-{{forloop.counter}}">
+                <td class="expt-number">{{forloop.counter}}</td>
+                <td class="datetime">{{expt.datetime|date:"d M Y H:i:s"}}</td>
+                {% for item in input_set.all %}
+                    <td class="expt-input">{{expt.inputs|get_item:item.slug}}</td>
+                {% endfor %}
+                <td class="expt-response">{{expt.output|floatformat:0}}</td>
+            </tr>
+            {% endspaceless %}
+            {% endfor %}
+        </table>
+
 
 {% endif %}
 {% endblock %}
