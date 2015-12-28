@@ -1,0 +1,390 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+    <title>Maximize manufacturing profit</title>
+
+    <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+
+
+<style type="text/css">
+.axis path,
+.axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+.tick{
+    font: 12px sans-serif;
+}
+.grid .tick {
+    stroke: lightgrey;
+}
+.expt-results{
+    display: inline-block;
+    *display: inline;
+    vertical-align: middle;
+    zoom: 1;
+}
+</style>
+<div id="rsmchart" class="expt-results" ></div>
+<script type="text/javascript">
+    // Global defaults
+    var showlegend = false;
+    var n_ticks_x = 8;
+    var n_ticks_y = 8;
+    var deltabuffer = 5; // small buffers away from axes
+    var margin = {top:40, right:showlegend?120:50, bottom:40, left:50 };
+    var chartDiv = document.getElementById("rsmchart");
+    var svgcontainer = d3.select(chartDiv);
+    function redraw_rsmchart(){
+        svgcontainer.selectAll("*").remove();
+        // Extract the width and height that was computed by CSS.
+        // But clamp it to a maximum width of 600px. Ideally then the
+        // table of results is side-by-side on a wide screen monitor.
+        var outerwidth = Math.min(600, Math.max(600, chartDiv.clientWidth));
+        var outerheight = 400;
+        var width = outerwidth - margin.left - margin.right;
+        var height = outerheight - margin.top - margin.bottom;
+        // ``range``: the output scale mapped to SVG port dimensions
+        var scalex = d3.scale.linear().range([0, width]);
+        var scaley = d3.scale.linear().range([height, 0]);
+    var svg = svgcontainer.append("svg")
+        .attr("width", outerwidth)
+        .attr("height", outerheight)
+        .attr('class','rsm-figure')
+        // Everything that will be added to the plot is now relative to this
+        //transformed container.
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    // To help with layout: show the boundaries
+    // Do not ordinarily display this.
+    // svg.append("rect")
+    //     .attr("width", width)
+    //     .attr("height", height)
+    //     .attr("opacity", 0.2);
+    // Set the axes, as well as details on their ticks
+    var xAxis = d3.svg.axis()
+        .scale(scalex)
+        .ticks(n_ticks_x)
+        .tickSubdivide(true)
+        .tickSize(6, 0);
+    var yAxis = d3.svg.axis()
+        .scale(scaley)
+        .ticks(n_ticks_y)
+        .tickSubdivide(true)
+        .tickSize(6, 0);
+
+scalex.domain([42.13, 316.87]);
+scaley.domain([-8.12, 124.12]);
+
+// Bottom x-axis
+svg.append("g")
+    .attr("class", "x axis bottom")
+    .attr("transform", "translate(0 ," + height + ")")
+    .call(xAxis.orient("bottom"));
+// Bottom X-axis label
+svg.append("g")
+    .attr("class", "x axis bottom label")
+    .attr("transform", "translate(0," + (height + margin.bottom - deltabuffer) + ")")
+    .append("text")
+    .attr("font-family", "sans-serif")
+    .attr("x", (width)/2)
+    .attr("y", 0)
+    .style("text-anchor", "middle")
+    .text("Cooking time [seconds]");
+// Top x-axis
+svg.append("g")
+    .attr("class", "x axis top")
+    .attr("transform", "translate(0, 0)")
+    .call(xAxis.orient('top'));
+// Y-axis and y-axis label
+svg.append("g")
+    .attr("class", "y axis left")
+    .attr("transform", "translate(0, 0)")
+    .call(yAxis.orient("left"));
+// Y-axis label
+svg.append("g")
+    .attr("class", "y axis left label")
+    .attr("transform", "translate(" + -margin.left/3*2 + "," + 0 + ")")
+    .append("text")
+    .attr("transform", "rotate(270)")
+    .attr("class", "axislabel")
+    .attr("font-family", "sans-serif")
+    .attr("x", -height/2.0)
+    .attr("y", -deltabuffer)
+    .style("text-anchor", "middle")
+    .text("Response: Number of popped kernels");
+// Y-axis right hand side
+svg.append("g")
+    .attr("class", "y axis right")
+    .attr("transform", "translate(" + width + "," + 0 + ")")
+    .call(yAxis.orient("right"));
+
+// X-axis gridlines
+svg.append("g")
+    .attr("class", "x grid")
+    .attr("transform", "translate(0, 0)")
+    .call(xAxis
+        .tickSize(-height, 0, 0)
+        .tickFormat("")
+    );
+// Y-axis gridlines
+svg.append("g")
+    .attr("class", "y grid")
+    .attr("transform", "translate(0, 0)")
+    .call(yAxis
+        .tickSize(width, 0, 0)
+        .tickFormat("")
+    );
+
+// Chart title
+svg.append("g")
+    .append("text")
+    .attr("class", "rsm-plot title")
+    // halfway between the plot and the outer edge
+    .attr("transform", "translate(" + (0) + "," + (-0.5*margin.top) + ")")
+    .attr("x", (width/2.0))
+    .attr("y", -deltabuffer)
+    .attr("font-family", "sans-serif")
+    .attr("font-size", "20px")
+    .attr("fill", "black")
+    .attr("text-anchor", "middle")
+    .text("Summary of all experiments performed");
+
+    var rawdata = [
+{"x": 100.0, "y": 42.0, "rad": 4, "col": "black", "ord": "1", "resp": 42.0},
+{"x": 180.0, "y": 116.0, "rad": 4, "col": "black", "ord": "2", "resp": 116.0},
+{"x": 250.0, "y": 69.0, "rad": 4, "col": "black", "ord": "3", "resp": 69.0},
+{"x": 220.0, "y": 100.0, "rad": 4, "col": "black", "ord": "4", "resp": 100.0},
+{"x": 160.0, "y": 109.0, "rad": 4, "col": "black", "ord": "5", "resp": 109.0},
+{"x": 59.0, "y": 0.0, "rad": 4, "col": "black", "ord": "6", "resp": 0.0},
+{"x": 300.0, "y": 0.0, "rad": 4, "col": "black", "ord": "7", "resp": 0.0},
+{"x": 200.0, "y": 110.0, "rad": 4, "col": "black", "ord": "8", "resp": 110.0},
+{"x": 180.0, "y": 114.0, "rad": 4, "col": "black", "ord": "9", "resp": 114.0},
+    ];
+
+// Data is placed on top of the gridlines
+var circles = svg.append("g")
+    .selectAll("circle")
+    .data(rawdata)
+    .enter()
+    .append("circle")
+    .attr("class", "rsm-plot datapoints")
+    .attr("cx", function (d) { return scalex(d.x); })
+    .attr("cy", function (d) { return scaley(d.y); })
+    .attr("r",  function (d) { return d.rad; })
+    .attr("radius",  function (d) { return d.rad; })
+    .style("fill", function(d) { return d.col; })
+    .attr("ord", function (d) { return d.ord; });
+
+
+	var colorScale = d3.scale.linear()
+		.range(['blue', 'green', 'red'])
+		.domain([0, 60, 120]);
+
+	var soldata = [[
+{"x": 50.0, "y": -69.1, "rad": 1 },
+{"x": 55.1020408163, "y": -55.0, "rad": 1 },
+{"x": 60.2040816327, "y": -41.5, "rad": 1 },
+{"x": 65.306122449, "y": -28.5, "rad": 1 },
+{"x": 70.4081632653, "y": -16.1, "rad": 1 },
+{"x": 75.5102040816, "y": -4.2, "rad": 1 },
+{"x": 80.612244898, "y": 7.1, "rad": 1 },
+{"x": 85.7142857143, "y": 17.8, "rad": 1 },
+{"x": 90.8163265306, "y": 28.0, "rad": 1 },
+{"x": 95.9183673469, "y": 37.6, "rad": 1 },
+{"x": 101.020408163, "y": 46.7, "rad": 1 },
+{"x": 106.12244898, "y": 55.2, "rad": 1 },
+{"x": 111.224489796, "y": 63.2, "rad": 1 },
+{"x": 116.326530612, "y": 70.6, "rad": 1 },
+{"x": 121.428571429, "y": 77.5, "rad": 1 },
+{"x": 126.530612245, "y": 83.8, "rad": 1 },
+{"x": 131.632653061, "y": 89.5, "rad": 1 },
+{"x": 136.734693878, "y": 94.7, "rad": 1 },
+{"x": 141.836734694, "y": 99.3, "rad": 1 },
+{"x": 146.93877551, "y": 103.4, "rad": 1 },
+{"x": 152.040816327, "y": 106.9, "rad": 1 },
+{"x": 157.142857143, "y": 109.9, "rad": 1 },
+{"x": 162.244897959, "y": 112.3, "rad": 1 },
+{"x": 167.346938776, "y": 114.2, "rad": 1 },
+{"x": 172.448979592, "y": 115.5, "rad": 1 },
+{"x": 177.551020408, "y": 116.2, "rad": 1 },
+{"x": 182.653061224, "y": 116.4, "rad": 1 },
+{"x": 187.755102041, "y": 116.1, "rad": 1 },
+{"x": 192.857142857, "y": 115.2, "rad": 1 },
+{"x": 197.959183673, "y": 113.7, "rad": 1 },
+{"x": 203.06122449, "y": 111.6, "rad": 1 },
+{"x": 208.163265306, "y": 109.1, "rad": 1 },
+{"x": 213.265306122, "y": 105.9, "rad": 1 },
+{"x": 218.367346939, "y": 102.2, "rad": 1 },
+{"x": 223.469387755, "y": 98.0, "rad": 1 },
+{"x": 228.571428571, "y": 93.2, "rad": 1 },
+{"x": 233.673469388, "y": 87.8, "rad": 1 },
+{"x": 238.775510204, "y": 81.9, "rad": 1 },
+{"x": 243.87755102, "y": 75.4, "rad": 1 },
+{"x": 248.979591837, "y": 68.4, "rad": 1 },
+{"x": 254.081632653, "y": 60.8, "rad": 1 },
+{"x": 259.183673469, "y": 52.7, "rad": 1 },
+{"x": 264.285714286, "y": 44.0, "rad": 1 },
+{"x": 269.387755102, "y": 34.7, "rad": 1 },
+{"x": 274.489795918, "y": 24.9, "rad": 1 },
+{"x": 279.591836735, "y": 14.6, "rad": 1 },
+{"x": 284.693877551, "y": 3.7, "rad": 1 },
+{"x": 289.795918367, "y": -7.8, "rad": 1 },
+{"x": 294.897959184, "y": -19.8, "rad": 1 },
+{"x": 300.0, "y": -32.4, "rad": 1 },
+    ]];
+
+
+// Data is placed on top of the gridlines
+	var linefunc = d3.svg.line()
+		.x(function(d) {
+			console.log(d.x);
+			return scalex(d.x);
+		})
+		.y(function(d) {
+			return scaley(d.y);
+		})
+		.interpolate("linear");
+
+
+	var solution = svg.append("g")
+		.attr("class", "rsm-plot solution");
+
+	// Create a number of line segements from which to
+	// construct the solution. One "g" per segment
+	var solution_path = solution.selectAll("g")
+		.data(soldata)
+		.enter()
+		.append("g");
+
+	function segments(values) {
+		var i = 0, n = values.length, segments = new Array(n - 1);
+		while (++i < n) {
+			segments[i - 1] = [values[i - 1], values[i]];
+		}
+		return segments;
+	}
+
+	var solution_pieces = solution_path.selectAll("path")
+		.data(segments)
+		.enter()
+		.append("path")
+		.attr("d", linefunc)
+		.attr("stroke-width", 4)
+		.attr("stroke-opacity", 0.2)
+		.style("stroke", function(d) {
+			return colorScale(d[0].y);
+		});
+
+
+// Add a legend
+// Add opacity outside validated solution zone
+// Code needs to determine the solution scaling function
+
+
+
+if(showlegend){
+var legbox = svg.append("g")
+        .attr("class", "legend")
+        .attr("transform", "translate(" + (width+margin.right/4*1.5) + "," + height/2.0 + ")");
+    var legend_square = 10;
+    var legend = legbox.selectAll(".legend")
+        .data(["Group 1", "Group 2"])
+        .enter().append("g")
+        .attr("class", "legenditem")
+        .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+    // draw legend colored rectangles
+    legend.append("rect")
+        .attr("x", 0)
+        .attr("width", legend_square)
+        .attr("height", legend_square)
+        .style("fill", "red");
+    // draw legend text
+    legend.append("text")
+        .attr("x", legend_square+deltabuffer)
+        .attr("y", legend_square/2.0)
+        .attr("dy", ".35em")
+        .style("text-anchor", "left")
+        .text(function(d) { return d;})
+};
+
+// What to do when we mouse over a bubble
+var mouseOn = function() {
+    var circle = d3.select(this);
+    // Highlight the moused datapoint. The HTML #ID is defined in the table
+    // template.
+    $('#rsm-result-'+circle.attr('ord')).css( "background-color",
+                                               "rgb(128, 128, 255)" );
+    circle.transition()
+        .duration(800)
+        .style("opacity", 1)
+        .attr("r", parseInt(circle.attr('radius'))*2)
+        .ease("elastic");
+    // Append lines to bubbles that will be used to show the precise data
+    // points. Translate their location based on margins.
+    svg.append("g")
+        .attr("class", "guide")
+        .append("line")
+        .attr("x1", circle.attr("cx"))
+        .attr("x2", circle.attr("cx"))
+        .attr("y1", +circle.attr("cy"))
+        .attr("y2", height)
+        .attr("stroke-width", 2)
+        .style("stroke", "blue");  //circle.style("fill")
+    svg.append("g")
+        .attr("class", "guide")
+        .append("line")
+        .attr("x1", +circle.attr("cx"))
+        .attr("x2", 0)
+        .attr("y1", circle.attr("cy"))
+        .attr("y2", circle.attr("cy"))
+        .attr("stroke-width", 2)
+        .style("stroke", "blue"); // circle.style("fill")
+    // Function to move mouseover item to front of SVG stage, in case
+    // another bubble overlaps it
+    d3.selection.prototype.moveToFront = function() {
+      return this.each(function() {
+        this.parentNode.appendChild(this);
+      });
+    };
+};
+// What happens when we leave a bubble?
+var mouseOff = function() {
+    var circle = d3.select(this);
+    $('#rsm-result-'+circle.attr('ord')).css( "background-color", "" );
+    // go back to original size and opacity
+    circle.transition()
+        .duration(800)
+        .style("opacity", 1.0)
+        .attr("r", parseInt(circle.attr("radius")))
+        .ease("sin");
+    // fade out guide lines, then remove them
+    d3.selectAll(".guide")
+        .transition()
+        .duration(100)
+        .styleTween("opacity", function() {
+            return d3.interpolate(.5, 0); })
+        .remove();
+};
+// The mousing functions
+circles.on("mouseover", mouseOn);
+circles.on("mouseout", mouseOff);
+
+}  // End of the function: ``redraw_rsmchart``
+
+    // Wait for DOM to be ready, otherwise you have DIV that has size of 0.
+    redraw_rsmchart();
+// Redraw char whenever the browser window is resized.
+window.addEventListener("resize", redraw_rsmchart);
+</script>
+
+</body>
+</html>
+

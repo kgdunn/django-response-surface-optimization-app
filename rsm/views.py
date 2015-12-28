@@ -926,17 +926,17 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         var n_ticks_x = 8;
         var n_ticks_y = 8;
         var deltabuffer = 5; // small buffers away from axes
-        var margin = {top:40, right:showlegend?120:50, bottom:40, left:50 }
+        var margin = {top:40, right:showlegend?120:50, bottom:40, left:50 };
 
         var chartDiv = document.getElementById("rsmchart");
-        var svgcontainer = d3.select(chartDiv)
+        var svgcontainer = d3.select(chartDiv);
 
         function redraw_rsmchart(){
-
             svgcontainer.selectAll("*").remove();
 
-
             // Extract the width and height that was computed by CSS.
+            // But clamp it to a maximum width of 600px. Ideally then the
+            // table of results is side-by-side on a wide screen monitor.
             var outerwidth = Math.min(600, Math.max(600, chartDiv.clientWidth));
             var outerheight = 400;
             var width = outerwidth - margin.left - margin.right;
@@ -951,8 +951,8 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             .attr("height", outerheight)
             .attr('class','rsm-figure')
 
-            // Everything that will be added to the plot is now
-            // relative to this transformed container.
+            // Everything that will be added to the plot is now relative to this
+            //transformed container.
             .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -1029,7 +1029,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     svg.append("g")
         .attr("class", "x axis bottom")
         .attr("transform", "translate(0 ," + height + ")")
-        .call(xAxis.orient("bottom"))
+        .call(xAxis.orient("bottom"));
 
     // Bottom X-axis label
     svg.append("g")
@@ -1052,7 +1052,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     svg.append("g")
         .attr("class", "y axis left")
         .attr("transform", "translate(0, 0)")
-        .call(yAxis.orient("left"))
+        .call(yAxis.orient("left"));
 
     // Y-axis label
     svg.append("g")
@@ -1072,7 +1072,6 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         .attr("class", "y axis right")
         .attr("transform", "translate(" + width + "," + 0 + ")")
         .call(yAxis.orient("right"));
-
     """.format(x_label, y_label)
 
 
@@ -1086,7 +1085,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         .call(xAxis
             .tickSize(-height, 0, 0)
             .tickFormat("")
-        )
+        );
 
     // Y-axis gridlines
     svg.append("g")
@@ -1095,7 +1094,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         .call(yAxis
             .tickSize(width, 0, 0)
             .tickFormat("")
-        )
+        );
     """
 
     # 4. Plot title
@@ -1151,9 +1150,45 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     # =======================
     # Use the defunct ``add_data_labels_NOT_USED`` function above,
     # or rather do this using Javascript
-    #
-    #if show_result:
+
+    # 6. Show the result
+    if show_solution:
     # =========================
+        soldata = json.loads(persyst.solution_data)
+        if len(inputs) == 1:
+            x_soldata = soldata['inputs'][inputs[0].slug.replace('-', '')]
+            y_soldata = soldata['outputs']
+
+
+        # 2D case here:
+
+
+
+        plot_HTML += """var colorScale.range(['blue', 'green', 'red'])
+        .domain([0, 100, 200]);
+        var soldata = [[\n"""
+        for idx, point in enumerate(x_soldata):
+            plot_HTML += '{{"x": {0}, "y": {1}, "rad": {2} }},\n'\
+                .format(point, y_soldata[idx], 1)
+
+        plot_HTML += "    ]];\n"
+
+        plot_HTML += """
+        // Data is placed on top of the gridlines
+        var circles = svg.append("g")
+            .selectAll("circle")
+            .data(rawdata)
+            .enter()
+            .append("circle")
+            .attr("class", "rsm-plot datapoints")
+            .attr("cx", function (d) { return scalex(d.x); })
+            .attr("cy", function (d) { return scaley(d.y); })
+            .attr("r",  function (d) { return d.rad; })
+            .attr("radius",  function (d) { return d.rad; })
+            .style("fill", function(d) { return d.col; })
+            .attr("ord", function (d) { return d.ord; });
+        """
+
     # CS_lo = ax.contour(X1, X2, Y_lo, colors='#777777', levels=levels_lo,
     # baseline_xA, baseline_xB = transform_coords(x1=start_point[0],
     #                                             x2=start_point[1],
@@ -1189,7 +1224,6 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             .attr("dy", ".35em")
             .style("text-anchor", "left")
             .text(function(d) { return d;})
-
     };
     """
 
@@ -1200,8 +1234,8 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     var mouseOn = function() {
         var circle = d3.select(this);
 
-        // Highlight the moused datapoint. The HTML #ID is defined in the
-        // table template.
+        // Highlight the moused datapoint. The HTML #ID is defined in the table
+        // template.
         $('#rsm-result-'+circle.attr('ord')).css( "background-color",
                                                    "rgb(128, 128, 255)" );
         circle.transition()
@@ -1210,8 +1244,8 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             .attr("r", parseInt(circle.attr('radius'))*2)
             .ease("elastic");
 
-        // append lines to bubbles that will be used to show the precise data points.
-        // translate their location based on margins
+        // Append lines to bubbles that will be used to show the precise data
+        // points. Translate their location based on margins.
         svg.append("g")
             .attr("class", "guide")
             .append("line")
@@ -1232,7 +1266,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             .attr("stroke-width", 2)
             .style("stroke", "blue"); // circle.style("fill")
 
-        // function to move mouseover item to front of SVG stage, in case
+        // Function to move mouseover item to front of SVG stage, in case
         // another bubble overlaps it
         d3.selection.prototype.moveToFront = function() {
           return this.each(function() {
@@ -1241,7 +1275,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         };
     };
 
-    // what happens when we leave a bubble?
+    // What happens when we leave a bubble?
     var mouseOff = function() {
         var circle = d3.select(this);
         $('#rsm-result-'+circle.attr('ord')).css( "background-color", "" );
@@ -1259,10 +1293,10 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             .duration(100)
             .styleTween("opacity", function() {
                 return d3.interpolate(.5, 0); })
-            .remove()
+            .remove();
     };
 
-    // run the mouseon/out functions
+    // The mousing functions
     circles.on("mouseover", mouseOn);
     circles.on("mouseout", mouseOff);
     """
@@ -1271,20 +1305,25 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     # =============================
     plot_HTML += """
 
-    }  // end of the function: ``redraw_rsmchart``
+    }  // End of the function: ``redraw_rsmchart``
     $(document).ready( function() {
-        // wait for DOM to be ready, otherwise you have DIV that has
-        // size of zero.
+        // Wait for DOM to be ready, otherwise you have DIV that has size of 0.
         redraw_rsmchart();
     });
 
     // Redraw char whenever the browser window is resized.
     window.addEventListener("resize", redraw_rsmchart);
     </script>
-
     """
 
-    return plot_HTML
+    plot_out = ''
+    for line in plot_HTML.split('\n'):
+        if line.find('//') < 0:
+            plot_out += line.strip()
+        else:
+            plot_out += line[0:line.find('//')].strip()
+
+    return plot_out
 
 def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
     """Plots the data by generating HTML code that may be rendered into the
