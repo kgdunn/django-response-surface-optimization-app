@@ -29,6 +29,8 @@ from collections import defaultdict, namedtuple
 import logging
 import numpy as np
 
+
+
 # Some settings for this app:
 TOKEN_LENGTH = 5
 
@@ -731,12 +733,30 @@ def generate_solution(persyst):
 
     solution_inputs = {}
     RESOLUTION = 50
-    for inputi in input_set:
+    data, hash_value = get_person_experimental_data(persyst, input_set)
+
+    for idx, inputi in enumerate(input_set):
         input_name = inputi.slug.replace('-', '')
-        solution_inputs[input_name] = np.linspace(start=inputi.plot_lower_bound,
-                                                  stop=inputi.plot_upper_bound,
+
+        # Generate the contour plot in the range that the user worked in.
+        sub_data = data[inputi.slug]
+        range_min, range_max, delta = plotting_defaults(sub_data,
+            clamps=[inputi.plot_lower_bound, inputi.plot_upper_bound])
+
+        solution_inputs[input_name] = np.linspace(start=range_min,
+                                                  stop=range_max,
                                                   num=RESOLUTION,
                                                   endpoint=True)
+        # Get the data necessary to construct the meshgrid
+        if idx == 0 and len(input_set) == 2:
+            x = solution_inputs[input_name]
+            xname = input_name
+        if idx == 1 and len(input_set) == 2:
+            y = solution_inputs[input_name]
+            yname = input_name
+
+    if len(input_set) == 2:
+        solution_inputs[xname], solution_inputs[yname] = np.meshgrid(x, y)
 
     # TODO.v2: Apply the necessary rotation here
     rotation = persyst.rotation
@@ -808,35 +828,35 @@ def get_person_experimental_data(persyst, input_set):
         persyst.save()
     return data, hash_value
 
+def plotting_defaults(vector, clamps=None):
+    """ Finds suitable clamping ranges and a "dy" offset to place marker
+    labels using heuristics.
+
+    Independent of how plots are generated.
+    """
+    finite_clamps = True
+    if clamps is None:
+        clamps = [float('-inf'), float('+inf')]
+        finite_clamps = False
+
+    y_min = max(min(vector), clamps[0])
+    y_max = min(max(vector), clamps[1])
+    y_range = y_max - y_min
+    if y_range == 0.0 and finite_clamps:
+        y_min, y_max = clamps
+        y_range = y_max - y_min
+    elif y_range == 0.0 and not(finite_clamps):
+        y_range = 1.0
+
+    y_range_min, y_range_max = y_min - 0.07*y_range, y_max + 0.07*y_range
+    dy = 0.015*y_range
+    return (y_range_min, y_range_max, dy)
+
 def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     """Creates a plot of the data, and returns the HTML code to display the
     plot.
     Optionally shows the solution if ``show_solution`` is True.
     """
-    def plotting_defaults(vector, clamps=None):
-        """ Finds suitable clamping ranges and a "dy" offset to place marker
-        labels using heuristics.
-
-        Independent of how plots are generated.
-        """
-        finite_clamps = True
-        if clamps is None:
-            clamps = [float('-inf'), float('+inf')]
-            finite_clamps = False
-
-        y_min = max(min(vector), clamps[0])
-        y_max = min(max(vector), clamps[1])
-        y_range = y_max - y_min
-        if y_range == 0.0 and finite_clamps:
-            y_min, y_max = clamps
-            y_range = y_max - y_min
-        elif y_range == 0.0 and not(finite_clamps):
-            y_range = 1.0
-
-        y_range_min, y_range_max = y_min - 0.07*y_range, y_max + 0.07*y_range
-        dy = 0.015*y_range
-        return (y_range_min, y_range_max, dy)
-
     def get_axis_label_name(input_item):
         """Returns an axis label for a particular input.
 
@@ -1105,13 +1125,13 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         .append("text")
         .attr("class", "rsm-plot title")
         // halfway between the plot and the outer edge
-        .attr("transform", "translate(" + (0) + "," + (-0.5*margin.top) + ")")
-        .attr("x", (width/2.0))
-        .attr("y", -deltabuffer)
-        .attr("font-family", "sans-serif")
-        .attr("font-size", "20px")
-        .attr("fill", "black")
-        .attr("text-anchor", "middle")
+        .attr("transform","translate(" + (0) + "," + (-0.5*margin.top) + ")")
+        .attr("x",(width/2.0))
+        .attr("y",-deltabuffer)
+        .attr("font-family","sans-serif")
+        .attr("font-size","20px")
+        .attr("fill","black")
+        .attr("text-anchor","middle")
         .text("Summary of all experiments performed");
     """
 
@@ -1137,13 +1157,13 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         .data(rawdata)
         .enter()
         .append("circle")
-        .attr("class", "rsm-plot datapoints")
-        .attr("cx", function (d) { return scalex(d.x); })
-        .attr("cy", function (d) { return scaley(d.y); })
-        .attr("r",  function (d) { return d.rad; })
-        .attr("radius",  function (d) { return d.rad; })
-        .style("fill", function(d) { return d.col; })
-        .attr("ord", function (d) { return d.ord; });
+        .attr("class","rsm-plot datapoints")
+        .attr("cx",function(d){return scalex(d.x);})
+        .attr("cy",function(d){return scaley(d.y);})
+        .attr("r",function(d){return d.rad;})
+        .attr("radius",function (d){ return d.rad;})
+        .style("fill",function(d){return d.col;})
+        .attr("ord",function(d){return d.ord;});
     """
 
     # Label the points in the plot
@@ -1154,24 +1174,124 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     # 6. Show the result
     if show_solution:
     # =========================
+        plot_HTML_org = plot_HTML
         soldata = json.loads(persyst.solution_data)
         if len(inputs) == 1:
+            plot_HTML += "// Shows solution now \nvar soldata = \n[\n"
             x_soldata = soldata['inputs'][inputs[0].slug.replace('-', '')]
             y_soldata = soldata['outputs']
+            plot_HTML += """var colorScale.range(['blue', 'green', 'red'])
+                    .domain([0, 100, 200]);
+                    var soldata = [[\n"""
+            for idx, point in enumerate(x_soldata):
+                plot_HTML += '{{"x":{0},"y":{1},"opcty":{2}}},\n'\
+                    .format(point, y_soldata[idx], 1)
 
+            plot_HTML += "    ]];\n"
 
         # 2D case here:
+        if len(inputs) == 2:
+
+            X = soldata['inputs'][inputs[0].slug.replace('-', '')]
+            Y = soldata['inputs'][inputs[1].slug.replace('-', '')]
+            Z = soldata['outputs']
+
+            # Rough rule of thumb for rounding
+            x_round = int(np.ceil(4 - np.log10(np.max(X) - np.min(X))))
+            y_round = int(np.ceil(4 - np.log10(np.max(Y) - np.min(Y))))
+
+            # Takes a long time to load this library, so do it here during dev.
+            import matplotlib.pyplot as plt
+            CS = plt.contour(X, Y, Z)
+            levels = CS.levels.tolist()
+            max_resp = np.max(Z)
+            N = len(levels)
+            # Add some extra levels based on a sqrt mapping (log(0.5) mapping)
+            # i.e. find the values xx and yy below, given ``max_resp``
+            # Value       Map   sqrt(Map)
+            # levels[N-1] 2048  45
+            # levels[N]   1024  32
+            # xx          512   23
+            # yy          256   16
+            # max_resp    128   11
+            slope1 = (1024 - 2048)/(levels[-1] - levels[-2] + 0.0)
+            slope2 = (1024 - 128)/(levels[-1] - max_resp + 0.0)
+            slope3 = (2048 - 128)/(levels[-2] - max_resp + 0.0)
+            slope = (slope1 + slope2 + slope3)/3.0
+            xx = levels[-2] -(2048 - 512)/slope
+            yy = (xx + max_resp)/2.0
+            levels.extend([xx, yy, (yy+max_resp+max_resp+max_resp)/4.0])
+            CS = plt.contour(X, Y, Z, levels=levels)
+            colour = []
+
+            # Now write the contour plot to D3 SVG code
+            plot_HTML += "// Shows solution now \nvar soldata = \n[\n"
+            for idx, contour in enumerate(CS.allsegs):
+                colour.append(\
+                    (np.round(CS.collections[idx].get_color()[0][0:3]*255))\
+                    .tolist())
+                plot_HTML += "\t[\n"
+                for kontour in contour:
+                    plot_HTML += "\t\t[\n"
+                    for item in kontour:
+                        ritem = item.round(3)
+                        plot_HTML += '\t\t\t{{"x":{0},"y":{1}}},\n'\
+                             .format(item[0].round(x_round),
+                                     item[1].round(y_round))
+                    plot_HTML += "\t\t],\n"
+                plot_HTML += "\t],\n"
+            plot_HTML += "];\n"
+
+            if isinstance(CS.levels, list):
+                plot_HTML += "var soln_levels = {0};\n".format(CS.levels)
+            else:
+                # Must be a numpy array
+                plot_HTML += "var soln_levels = {0};\n".format(CS.levels.tolist())
+            plot_HTML += "var soln_col = {0};\n".format(colour)
+
+            plot_HTML += """
+            var solution = svg.append("g")
+                .attr("class", "rsm-plot solution");
+
+            // Create a number of line segements from which to
+            // construct the solution. One "g" per contour line
+            var solution_path = solution.selectAll("g")
+                .data(soldata)
+                .enter()
+                .append("g");
+
+            var linefunc = d3.svg.line()
+                .x(function(d) {
+                    return scalex(d.x);
+                })
+                .y(function(d) {
+                    return scaley(d.y);
+                })
+                .interpolate("cardinal");
+
+                function segments(values) {
+                    return values;
+                }
+
+            var solution_pieces = solution_path.selectAll("path")
+                .data(segments)
+                .enter()
+                .append("path")
+                .attr("d", linefunc)
+                .attr("stroke-width", 2)
+                .attr("stroke-opacity", 1)
+                .attr("fill", "none")
+                .style("stroke", function(d, subgroup, maingroup) {
+                    var colour = soln_col[maingroup];
+                    return d3.rgb(colour[0], colour[1], colour[2]);
+                });
+            """
+
+            # TODO.v2 Put the gaps for the labels? Angle of the labels?
+            # See ax.clabel(CS)
 
 
 
-        plot_HTML += """var colorScale.range(['blue', 'green', 'red'])
-        .domain([0, 100, 200]);
-        var soldata = [[\n"""
-        for idx, point in enumerate(x_soldata):
-            plot_HTML += '{{"x": {0}, "y": {1}, "rad": {2} }},\n'\
-                .format(point, y_soldata[idx], 1)
-
-        plot_HTML += "    ]];\n"
 
         plot_HTML += """
         // Data is placed on top of the gridlines
@@ -1347,12 +1467,13 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
         if persyst.plot_HTML:
             # This speeds up page refreshes. We don't need to recreate existing
             # plots for a person/system combination.
-            plot_html = plothash.plot_HTML
+            plot_html = persyst.plot_HTML
         else:
             # The plot_HTML has been cleared; we're going to have to regenerate
             # the plot code.
             persyst.plot_HTML = plot_wrapper(data, persyst, input_set,
                                              hash_value, show_solution)
+            persyst.save()
             plot_html = persyst.plot_HTML
     else:
         plot_html = 'No plot to display; please run an experiment first.'

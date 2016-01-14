@@ -242,7 +242,8 @@ var circles = svg.append("g")
     ]];
 
 
-// Data is placed on top of the gridlines
+// Coloured solution line idea from
+// http://bl.ocks.org/mbostock/1117287
 	var linefunc = d3.svg.line()
 		.x(function(d) {
 			console.log(d.x);
@@ -284,7 +285,7 @@ var circles = svg.append("g")
 		});
 
 
-// Add a legend
+// Add a legend for the solution
 // Add opacity outside validated solution zone
 // Code needs to determine the solution scaling function
 
