@@ -57,14 +57,104 @@
     </script>
 
     <style type="text/css">
+body {
+    /* From: http://matthewjamestaylor.com/blog/perfect-3-column.htm */
+    margin:0;
+    padding:0;
+    border:0;			/* This removes the border around the viewport in old versions of IE */
+    width:100%;
+    background:#ffffff;
+
+}
+
+#rsm-header {
+    clear: both;
+    float: left;
+    width: 100%;
+    display: block;
+}
+.rsm-header-row{
+    float: left;
+    width: 100%;
+    clear: both;
+}
+.rsm-header-left{
+    float: left;
+    position: relative;
+    left: +1%;
+    width: 30%;
+}
+.rsm-header-center{
+    display: inline-block;
+    position: relative;
+    text-align: center;
+    width: 40%;
+}
+.rsm-header-right{
+    float: right;
+    position: relative;
+    left: -1%;
+}
+
+#rsm-site-title{
+    border-bottom: 1px solid #aaa;
+    margin-top: -1em;
+    float: center;
+}
+#rsm-contentwrap{
+    display: block;
+    overflow: hidden;
+}
+#rsm-content-main{
+    float: left;
+    width: 100%;
+}
+
+#rsm-navigation-bottom{
+    clear: both;
+}
+#rsm-footer{
+    clear: both;
+}
+
+
+.rsm-header-right .ui-content{
+    padding: 0;
+}
+#rsm-item-header-left{
+    float: left;
+    text-align: left;
+}
+#rsm-item-header-right{
+    float: right;
+    text-align: right;
+}
+
+#rsm-top-menu{
+    padding-top: 0.25em;
+}
+
+#rsm-top-menu a {
+    text-decoration: none;
+    font-weight: bold;
+    font: 20px 'Inconsolata','Lucida Grande','Lucida Sans Unicode','Geneva','Verdana',sans-serif;
+}
+#rsm-top-menu a:hover{
+    text-decoration: underline;
+}
+#rsm-site-title h1 a {
+    color: black;
+    text-decoration: none;
+    text-align: center;
+    font: 36px/1.0 'Inconsolata','Lucida Grande','Lucida Sans Unicode','Geneva','Verdana',sans-serif;
+    font-weight: bold;
+}
+
     .rsm-sign-in-button{
         float:none;
         overflow: auto;
     }
-    .rsm-header{
-        clear:both;
-        overflow: auto;
-    }
+
     .rsm-content{
         padding-top: 0;
     }
@@ -83,44 +173,84 @@
 {% block body %}
 
 
-<div data-role="page">
-    <div data-role="rsm-header">
-    {% if not hide_sign_in %}
-        <div class="rsm-sign-in-button">
-            <div data-role="main" class="ui-content">
-                <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all {% if enabled %}ui-icon-check blue{% else %}ui-icon-gear red{% endif %} ui-btn-icon-left" name="sign-in-popup-link">
-                {% if enabled %}{{ person.display_name }}{% else %}Sign-in{% endif %}
-                </a>
-                <div data-role="popup" id="sign-in-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
-                    <form method="post" id="sign-in-popup-form" action="{% url 'rsmapp:popup_sign_in' %}" name="sign-in-popup-form">
-                        {% csrf_token %}
-                        <div>
-                            <h3>Sign in with your email address</h3>
-                            <em>New user</em>? We send a confirmation email.<br>
-                            <em>Returning user</em>? We send a unique link, by email.
-                            <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
-                            <input type="email" name="emailaddress" id="usrnm" placeholder="Your email address">
-                            <span id="popup-message-back"></span>
-                            <br>
-                            <input id="popup-submit-button" type="submit" data-rel="back" data-inline="true" value="Email me a code to get started!">
-                            <span id="popup-OK-span"><input id="popup-OK-button" type="button" data-inline="true" value="OK"></span>
-                            <br>
-                            <em>Note</em>: we do not use passwords on this website.
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    {% endif %}
-    </div><!-- /header -->
 
+
+
+<div data-role="page">
+    <div class="rsm-header-row rsm-header" id="rsm-top-menu">
+        <div class="rsm-header-left">
+            <a href="/" accesskey="h">Home</a>
+        </div>{#rsm-header-left#}
+        <div class="rsm-header-center" id="rsm-site-title">
+            <h1><a href="/" title="Optimize!">Optimize!</a></h1>
+        </div>{#rsm-header-center#}
+        <div class="rsm-header-right rsm-header">
+
+            <div class="rsm-header-right rsm-header">
+                <div data-role="rsm-header">
+                    {% if not hide_sign_in %}
+                    <div class="rsm-sign-in-button">
+                        <div data-role="main" class="ui-content">
+                            <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all {% if enabled %}ui-icon-check blue{% else %}ui-icon-gear red{% endif %} ui-btn-icon-left" name="sign-in-popup-link">
+                            {% if enabled %}{{ person.display_name }}{% else %}Sign-in{% endif %}
+                            </a>
+                            <div data-role="popup" id="sign-in-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
+                                <form method="post" id="sign-in-popup-form" action="{% url 'rsmapp:popup_sign_in' %}" name="sign-in-popup-form">
+                                    {% csrf_token %}
+                                    <div>
+                                        <h3>Sign in with your email address</h3>
+                                        <em>New user</em>? We send a confirmation email.<br>
+                                        <em>Returning user</em>? We send a unique link, by email.
+                                        <label for="usrnm" class="ui-hidden-accessible">Email address:</label>
+                                        <input type="email" name="emailaddress" id="usrnm" placeholder="Your email address">
+                                        <span id="popup-message-back"></span>
+                                        <br>
+                                        <input id="popup-submit-button" type="submit" data-rel="back" data-inline="true" value="Email me a code to get started!">
+                                        <span id="popup-OK-span"><input id="popup-OK-button" type="button" data-inline="true" value="OK"></span>
+                                        <br>
+                                        <em>Note</em>: we do not use passwords on this website.
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>{#rsm-header#}
+            </div>{#rsm-header-right#}
+
+        </div>{#rsm-header-right#}
+    </div>{#rsm-header-row#}
+
+
+
+
+
+    <div style="clear:both;"></div>
     <div role="main" class="ui-content rsm-content">
         {% block content %}{% endblock %}
     </div><!-- /content -->
 
-    <div data-role="footer"></div><!-- /footer -->
+    <!-- footer -->
+    <div id="rsm-footer" data-role="footer">
+      <div class="rsm-footer-left">
+        <ul>
+          <a href="/about">About this site</a>
+        </ul>
+      </div>
+      <div class="rsm-footer-right">
+      </div>
+    </div> <!--#rsm-footer-->
+
+
 </div><!-- /page -->
 {% endblock %}
 </body>
 </html>
+
+
+
+
+    <div id="lit-contentwrap">
+    </div><!--#lit-contentwrap-->
+
 

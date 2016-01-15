@@ -918,8 +918,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     #=========================
     plot_HTML = """
     <style type="text/css">
-	.axis path,
-	.axis line {
+	.axis path, .axis line {
 		fill: none;
 		stroke: #000;
 		shape-rendering: crispEdges;
@@ -936,6 +935,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         vertical-align: middle;
         zoom: 1;
     }
+
     </style>
     <div id="rsmchart" class="expt-results" ></div>
     <script type="text/javascript">"""
@@ -1000,6 +1000,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     # 1. Get the data to plot and the plot bounds
     #=========================
     responses = data['_output_']
+    x_range_min, x_range_max, y_range_min, y_range_max = 0, 0, 0, 0
     if len(inputs) == 1:
         x_data = data[inputs[0].slug]
         y_data = responses
@@ -1028,7 +1029,8 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
                 clamps=[inputs[1].plot_lower_bound, inputs[1].plot_upper_bound])
 
     elif len(inputs) >= 3:
-        pass
+        x_data = []
+        y_data = []
 
     plot_HTML += """
     scalex.domain([{}, {}]);
@@ -1041,7 +1043,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     if len(inputs) == 1:
         y_label = 'Response: {0}'.format(
                     persyst.system.primary_output_display_name_with_units)
-    elif len(inputs) == 2:
+    elif len(inputs) >= 2:
         y_label = get_axis_label_name(inputs[1])
 
     plot_HTML += """
