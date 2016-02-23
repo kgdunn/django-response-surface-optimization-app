@@ -1179,17 +1179,61 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         plot_HTML_org = plot_HTML
         soldata = json.loads(persyst.solution_data)
         if len(inputs) == 1:
-            plot_HTML += "// Shows solution now \nvar soldata = \n[\n"
+            plot_HTML += "// Shows solution now \n\n"
             x_soldata = soldata['inputs'][inputs[0].slug.replace('-', '')]
             y_soldata = soldata['outputs']
-            plot_HTML += """var colorScale.range(['blue', 'green', 'red'])
-                    .domain([0, 100, 200]);
-                    var soldata = [[\n"""
+            trio = [np.min(y_soldata), np.median(y_soldata), np.max(y_soldata)]
+            plot_HTML += ("var colorScale = d3.scale.linear()"
+                          ".range(['blue', 'green', 'red'])"
+                          ".domain({0});".format(str(trio)))
+            plot_HTML += "var soldata = [[\n"
             for idx, point in enumerate(x_soldata):
                 plot_HTML += '{{"x":{0},"y":{1},"opcty":{2}}},\n'\
                     .format(point, y_soldata[idx], 1)
 
-            plot_HTML += "    ]];\n"
+            plot_HTML += """    ]];
+
+            // Coloured solution line idea from
+            // http://bl.ocks.org/mbostock/1117287
+                var linefunc = d3.svg.line()
+                    .x(function(d) {
+                        return scalex(d.x);
+                    })
+                    .y(function(d) {
+                        return scaley(d.y);
+                    })
+                    .interpolate("linear");
+
+
+                var solution = svg.append("g")
+                    .attr("class", "rsm-plot solution");
+
+                // Create a number of line segements from which to
+                // construct the solution. One "g" per segment
+                var solution_path = solution.selectAll("g")
+                    .data(soldata)
+                    .enter()
+                    .append("g");
+
+                function segments(values) {
+                    var i = 0, n = values.length, segments = new Array(n - 1);
+                    while (++i < n) {
+                        segments[i - 1] = [values[i - 1], values[i]];
+                    }
+                    return segments;
+                }
+
+                var solution_pieces = solution_path.selectAll("path")
+                    .data(segments)
+                    .enter()
+                    .append("path")
+                    .attr("d", linefunc)
+                    .attr("stroke-width", 4)
+                    .attr("stroke-opacity", 0.5)
+                    .style("stroke", function(d) {
+                        return colorScale(d[0].y);
+                    });
+            """
 
         # 2D case here:
         if len(inputs) == 2:
@@ -1441,9 +1485,9 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     plot_out = ''
     for line in plot_HTML.split('\n'):
         if line.find('//') < 0:
-            plot_out += line.strip()
+            plot_out += line + '\n'
         else:
-            plot_out += line[0:line.find('//')].strip()
+            plot_out += line[0:line.find('//')] + '\n'
 
     return plot_out
 

@@ -3,6 +3,8 @@ from django.conf.urls import url
 from . import views
 
 urlpatterns = [
+
+    # ex: /   (base URL)
     url(r'^$', views.show_all_systems, name='show_all_systems'),
 
     # ex: /system/short_name/
