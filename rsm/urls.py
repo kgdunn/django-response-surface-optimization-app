@@ -11,6 +11,11 @@ urlpatterns = [
     url(r'^system/(?P<short_name_slug>[-\w]+)/$', views.show_one_system,
         name='show_one_system'),
 
+    # ex: /system/short_name/reset
+    url(r'^system/(?P<short_name_slug>[-\w]+)/reset$', views.reset_one_system,
+        name='reset_one_system'),
+
+
     # Example: /validate/asd1241a
     url(r'^validate/(?P<hashvalue>[-\w]+)/$', views.validate_user,
         name='validate_user'),

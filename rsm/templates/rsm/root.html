@@ -3,16 +3,33 @@
 
 
 {% block title %}Optimize!{% endblock %}
+{# ------------------------------------------------#}
+{% block header %}
+    <style type="text/css">
+    .rsm-left {
+        float: left;
+        width: 50%;
+    }
+    .rsm-right {
+        float: right;
+        width: 50%;
+    }
+    </style>
+{% endblock %}
+{# ------------------------------------------------#}
 
 {% block content %}
 
 
 {% if system_list %}
-    <ul>
+<div class="container">
     {% for system in system_list %}
-        <li><a href="{% url 'rsmapp:show_one_system' system.slug %}" data-ajax="false">{{ system.full_name }}</a></li>
+
+        <img class="{% cycle 'rsm-left' 'rsm-right' %}" src="this-is-a-portrait-image.jpg" alt="test"/>
+        <a class="{% cycle 'rsm-left' 'rsm-right' %}" href="{% url 'rsmapp:show_one_system' system.slug %}" data-ajax="false">{{ system.full_name }}</a>
+        <br>
     {% endfor %}
-    </ul>
+</div>
 {% else %}
     <p>No systems are available.</p>
 {% endif %}
