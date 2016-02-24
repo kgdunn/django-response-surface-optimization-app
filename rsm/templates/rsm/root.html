@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load rsm_extras %}
-
+{% load staticfiles %}
 
 {% block title %}Optimize!{% endblock %}
 {# ------------------------------------------------#}
@@ -14,6 +14,10 @@
         float: right;
         width: 50%;
     }
+    .front-image
+    {
+        width: 300px;
+    }
     </style>
 {% endblock %}
 {# ------------------------------------------------#}
@@ -25,8 +29,9 @@
 <div class="container">
     {% for system in system_list %}
 
-        <img class="{% cycle 'rsm-left' 'rsm-right' %}" src="this-is-a-portrait-image.jpg" alt="test"/>
-        <a class="{% cycle 'rsm-left' 'rsm-right' %}" href="{% url 'rsmapp:show_one_system' system.slug %}" data-ajax="false">{{ system.full_name }}</a>
+        <img class="{% cycle 'rsm-left' 'rsm-right' %} front-image" src="http://openmv.net/media{% static system.image_description.url %}" />
+        <a class="{% cycle 'rsm-left' 'rsm-right' %} front-image" href="{% url 'rsmapp:show_one_system' system.slug %}" data-ajax="false">{{ system.full_name }}</a>
+        <p>
         <br>
     {% endfor %}
 </div>

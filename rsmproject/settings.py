@@ -23,6 +23,7 @@ SECRET_KEY = 'cl^c+j_z%p(kdm07a36+kj!)=5wkr8#o62^gslbctaj(+5il_t'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+SEND_BROKEN_LINK_EMAILS = not(DEBUG)
 
 ALLOWED_HOSTS = ['127.0.0.1',]
 
@@ -72,6 +73,7 @@ TEMPLATES = [
     },
 ]
 
+
 WSGI_APPLICATION = 'rsmproject.wsgi.application'
 
 # Database
@@ -92,8 +94,9 @@ USE_L10N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.8/howto/static-files/
-STATIC_URL = '/media/'
+# https://docs.djangoproject.com/en/1.9/howto/static-files/
+STATIC_URL = '/images/'
+#STATIC_ROOT = '/Users/kevindunn/Dropbox/Coursera/RSM-app/rsmproject/images/'
 
 try:
     from local_settings import *

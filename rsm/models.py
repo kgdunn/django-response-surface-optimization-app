@@ -62,15 +62,6 @@ class Token(models.Model):
                                 blank=True)
     experiment = models.ForeignKey('rsm.Experiment', blank=True, null=True)
 
-#class PlotHash(models.Model):
-#    """ Plots are expensive to draw; hash them this way to cache them.
-#    """
-#    person = models.ForeignKey('rsm.Person')
-#    system = models.ForeignKey('rsm.System')
-#    hash_value = models.CharField(max_length=32, editable=False, default='-'*32)
-#    time_last_used = models.DateTimeField(auto_now=True, auto_now_add=False)
-#    plot_HTML = models.TextField(default='', blank=True)
-
 class Tag(models.Model):
     """ Tags for ``Systems``. """
     short_name = models.CharField(max_length=50)
@@ -117,7 +108,7 @@ class System(models.Model):
     is_active = models.BooleanField(default=False, help_text=("If False, then "
             "this system will not be usable."))
 
-    #image_description = models.ImageField()
+    image_description = models.ImageField(null=True, upload_to='rsm/static/rsm/')
     level = models.PositiveSmallIntegerField(verbose_name=("Skill level "
                                                            "required by user"),
                                      blank=False, null=False, default=0)
