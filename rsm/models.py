@@ -150,6 +150,9 @@ class System(models.Model):
         help_text=('Max seconds to wait before showing the solution. 43200=30 '
                    'days, as an example.'))
 
+    offset_y_range = models.CharField(max_length=100,
+                                      help_text='JSON: [Two values, in a list]')
+
 
     #noise_standard_deviation = models.FloatField(default=0,
     #    verbose_name=("Standard deviation of normally distributed noise to add. "
