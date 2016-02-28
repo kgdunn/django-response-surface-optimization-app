@@ -25,10 +25,11 @@ class PersonSystem(models.Model):
     """ Changes made to a System for a specific Person."""
     person = models.ForeignKey('Person')
     system = models.ForeignKey('System')
-    rotation = models.PositiveSmallIntegerField(default=0,
+    rotation = models.TextField(default='', blank=True,
                             help_text='Rotation around axis for this system')
-    offsets = models.TextField(default='', blank=True,
-                            verbose_name="Offsets for each system input")
+    offset_y = models.TextField(default='', blank=True,
+                                verbose_name="Offsets for system output")
+
     # When did the user initiate completion of the system?
     completed_date = models.DateTimeField()
     # At this point onwards the user is considered to have solved it.

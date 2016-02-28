@@ -11,8 +11,9 @@ class SystemAdmin(admin.ModelAdmin):
 
 class PersonSystemAdmin(admin.ModelAdmin):
 
-    list_display = ('person', 'system', 'rotation', 'offsets', 'completed_date',
-                    'show_solution_as_of', 'frozen', 'started_on')
+    list_display = ('person', 'system', 'rotation', 'offset_y',
+                    'completed_date', 'show_solution_as_of', 'frozen',
+                    'started_on')
     list_display_links = list_display
 
 class InputAdmin(admin.ModelAdmin):
