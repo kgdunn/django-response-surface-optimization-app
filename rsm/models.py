@@ -27,8 +27,8 @@ class PersonSystem(models.Model):
     system = models.ForeignKey('System')
     rotation = models.TextField(default='', blank=True,
                             help_text='Rotation around axis for this system')
-    offset_y = models.TextField(default='', blank=True,
-                                verbose_name="Offsets for system output")
+    offset_y = models.FloatField(default=0, blank=True,
+                                verbose_name="Offset for system output")
 
     # When did the user initiate completion of the system?
     completed_date = models.DateTimeField()
@@ -153,6 +153,17 @@ class System(models.Model):
     offset_y_range = models.CharField(max_length=100,
                                       help_text='JSON: [Two values, in a list]')
 
+    def continuous_dimensionality(self):
+        """ Determines how many continuous variables are in the system.
+            Used to calculate rotations.
+        """
+        input_set = Input.objects.filter(system=self)
+        dimensionality = 0
+        for inputi in input_set:
+            if inputi.ntype == 'CON':
+                dimensionality += 1
+
+        return dimensionality
 
     #noise_standard_deviation = models.FloatField(default=0,
     #    verbose_name=("Standard deviation of normally distributed noise to add. "

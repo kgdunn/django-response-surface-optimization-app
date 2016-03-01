@@ -61,6 +61,66 @@ class OutOfBoundsInputError(RSMException):
     """ Raised when an input is outside the bounds."""
     pass
 
+class Rotation(object):
+    def __init__(self, slidescale, dim=None, rotation_matrix=''):
+        """Will construct a rotation object it will
+        randomly create a rotation matrix for the appropriate dimension.
+
+        The slidescale matrix should also be supplied, it is the (ndim x 2)
+        matrix. Column 1 = lower bounds for the ``ndim`` inputs, and Column 2
+        is the upper bound for each input.
+        """
+        self.dim = dim
+        self.slidescale = slidescale
+        if rotation_matrix == '':
+            if dim == 1:
+                self.rotation_matrix = None
+            if dim == 2:
+                theta = np.random.randint(0, 360) * np.pi/180.0
+                self.rotmat = np.array([[np.cos(theta), -np.sin(theta)],
+                                     [np.sin(theta),  np.cos(theta)]])
+            if dim >= 3:
+                assert(False)
+
+        elif rotation_matrix:
+            self.rotmat = np.array(json.loads(rotation_matrix))
+            self.dim = self.rotmat.ndim
+
+    def get_rotation_string(self):
+        """
+        Returns the rotation matrix for this class as a string.
+        An object of this class can then subsequently be reconstructed as:
+
+        object = Rotation(slidescale=str_slidescale,
+                          rotation_matrix=str_rotation_matrix)
+        """
+        return json.dumps(self.rotmat.tolist())
+
+    def forward_rotate(self, data):
+        """ Applies the forward rotation.
+
+        Multiplies the (ndim x ndim) rotation matrix with the (ndim x N) data
+        matrix, where N is the number of datapoints being individually rotated.
+        The output is an (ndim x N) matrix of rotated points.
+        """
+        offset =  np.sum(self.slidescale, axis=1) / 2.0  # midpoint
+        offset = offset.reshape(self.dim, 1)
+        scale = np.diff(self.slidescale, axis=1) / 1.0  # from high to low
+
+        data = (data - offset) / scale
+        rotated = np.dot(self.rotmat, data)
+        return rotated * scale + offset
+
+    def inverse_rotate(self, data):
+        """ Applies the forward rotation.
+
+        Multiplies the (ndim x ndim) inverse rotation matrix with the
+        (ndim x N) data matrix, where N is the number of datapoints being
+        individually rotated.
+        The output is an (ndim x N) matrix of inverse rotated points.
+        """
+        return np.dot(np.linalg.inv(self.rotmat), data)
+
 def run_simulation(system, simvalues, show_solution=False):
     """Runs simulation of the required ``System``, with timeout. Returns a
     result no matter what, even if it is the default result (failure state).
@@ -160,7 +220,9 @@ def process_simulation_inputs_templates(inputs, request=None, force_GET=False):
         if item.ntype == 'CAT':
             categoricals[item.slug] = json.loads(item.level_numeric_mapping)
             if force_GET:
-                categoricals[item.slug][request.POST[item.slug]] = '__checked__'
+                if item.slug in request.POST:
+                    categoricals[item.slug][request.POST[item.slug]] = '__checked__'
+
 
     return (inputs, categoricals)
 
@@ -388,14 +450,6 @@ def process_experiment(request, short_name_slug):
         # TODO.v2: try-except path here to intercept time-limited experiments
         # if a new run is not valid, then raise an exception.
 
-
-        # NOTE: ``next_run`` (below) will not exist if an error was raised in
-        #       the above code when generating that object.
-
-        # Success! at this point all inputs have been checked.
-        # Create an input object for the user, and run the experiment.
-        next_run = create_experiment_object(request, system, values_checked)
-
     except (WrongInputError, OutOfBoundsInputError, MissingInputError) as err:
 
         logger.warn('User error raised: {0}. Context:{1}'.format(err.value,
@@ -409,7 +463,14 @@ def process_experiment(request, short_name_slug):
         return show_one_system(request, short_name_slug, force_GET=True,
                        extend_dict=extend_dict)
 
-    next_run = execute_experiment_object(next_run, system, values_checked)
+    # Success! at this point all inputs have been checked.
+    # Create an input object for the user, and run the experiment.
+    # The ``Person`` object will be found from ``request``
+    next_run, values_checked, persyst = create_experiment_object(request,
+                                                                 system,
+                                                                 values_checked)
+
+    next_run = execute_experiment_object(next_run, persyst, values_checked)
 
     # Return an HttpResponseRedirect after dealing with POST. Prevents data
     #from being posted twice if a user hits the Back button.
@@ -531,24 +592,19 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
             # If not: Create a baseline run for the person at the default values
             default_values = {}
+
+            # Ensure that input_set is in alphabetical order of slug
             for inputi in input_set:
                 default_values[inputi.slug] = inputi.default_value
 
-            baseline = create_experiment_object(request, system,
-                                                default_values, person)
+            baseline, default_values, persyst = create_experiment_object(\
+                                               request, system, default_values)
 
             lower_bound, upper_bound = json.loads(system.offset_y_range)
             persyst.offset_y = np.random.randint(lower_bound, upper_bound)
-
             baseline = execute_experiment_object(baseline,
-                                                 system,
-                                                 default_values,
-                                                 rotation=0,
-                                                 offset_y=persyst.offset_y)
-
-
-
-
+                                                 persyst,
+                                                 default_values)
 
         # Should we show the solution? Let's check:
         if datetime.datetime.now().replace(tzinfo=utc) > \
@@ -724,7 +780,7 @@ def send_suitable_email(person, hash_val):
     message = message.replace('\n','\n<br>')
     return send_logged_email(subject, message, to_address_list)
 
-def create_experiment_object(request, system, values_checked, person=None):
+def create_experiment_object(request, system, values):
     """Create the input for the given user."""
     # TODO: check that the user is allowed to create a new input at this point
     #       in time. There might be a time limitation in place still.
@@ -737,39 +793,86 @@ def create_experiment_object(request, system, values_checked, person=None):
         logger.error('Unlogged user attempted to create an experiment.')
         assert(False)
 
+    values['_rot_'] = np.zeros((system.continuous_dimensionality(), 1))
+    values['_ss_'] = np.zeros((system.continuous_dimensionality(), 2))
+
+    # Ensure that input_set is in alphabetical order of slug
+    input_set = models.Input.objects.filter(system=system).order_by('slug')
+    persysts = models.PersonSystem.objects.filter(system=system, person=person)
+    persyst = persysts[0]
+
+    dim = 0
+    for inputi in input_set:
+        if inputi.ntype == 'CON':
+            values['_rot_'][dim] = values[inputi.slug]
+            values['_ss_'][dim, :] = [inputi.plot_lower_bound,
+                                      inputi.plot_upper_bound]
+            values[dim] = inputi.slug
+            values['__' + inputi.slug + '__'] = values[inputi.slug]
+            dim += 1
+
+    # Apply the rotation here: ensure that continuous values are applied
+    # in alphabetical order:
+    rot_obj = Rotation(dim=system.continuous_dimensionality(),
+                       slidescale=values['_ss_'])
+    persyst.rotation = rot_obj.get_rotation_string()
+    persyst.save()
+    rotated = rot_obj.forward_rotate(values['_rot_'])
+
+    idx = 0
+    for inputi in input_set:
+        if inputi.ntype == 'CON':
+            values[values[idx]] = rotated[idx][0]
+            values.pop(idx)
+            idx += 1
+
+    # Clean-up "values" before calling the simulation.
+    values.pop('_rot_')
+    values.pop('_ss_')
+
     next_run = models.Experiment(person=person,
                                  system=system,
-                                 inputs=inputs_to_JSON(values_checked),
+                                 inputs=inputs_to_JSON(values),
                                  time_to_solve=-500,
                                  earliest_to_show=
     datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).replace(tzinfo=utc))
-    return next_run
+    return next_run, values, persyst
 
-def execute_experiment_object(expt_obj, system, values_checked, rotation='',
-                              offset_y=0):
+
+def execute_experiment_object(expt_obj, persyst, values):
     """Typically called after ``create_experiment_object`` once all inputs
     have been cleaned and checked."""
     # Clean-up the inputs by dropping any disallowed characters from the
     # function inputs:
-    values_simulation = values_checked.copy()
+    values_simulation = values.copy()
     for key in values_simulation.keys():
         value = values_simulation.pop(key)
         key = key.replace('-', '')
         values_simulation[key] = value
 
-    # TODO.v2: Get the rotation here
-    rotation = 0
-
-    result, duration = run_simulation(system, values_simulation)
+    result, duration = run_simulation(persyst.system, values_simulation)
     expt_obj.time_to_solve = duration
 
     # Finally, store the simulation results and return the experimental object
-    expt_obj = process_simulation_output(result, expt_obj, system)
+    expt_obj = process_simulation_output(result, expt_obj, persyst.system)
 
     # Add biasing that is specific for this user
     if expt_obj.was_successful:
-        expt_obj.main_result = expt_obj.main_result + offset_y
+        expt_obj.main_result = expt_obj.main_result + persyst.offset_y
 
+
+    # Swap the actual (rotated) value used in the simulation with
+    # the user required value. So that the user sees the display
+    # as they entered.
+    input_set = models.Input.objects.filter(system=persyst.system).order_by('slug')
+    for inputi in input_set:
+        if inputi.ntype == 'CON':
+            actual = values[inputi.slug]
+            user_value = values['__' + inputi.slug + '__']
+            values[inputi.slug] = user_value
+            values['__' + inputi.slug + '__'] = actual
+
+    expt_obj.inputs = inputs_to_JSON(values)
     expt_obj.save()
     return expt_obj
 
@@ -1684,6 +1787,9 @@ def inputs_to_JSON(inputs):
     """
     copied = inputs.copy()
     copied.pop('email_address', None)
+    #for key in copied.keys():
+    #    if isinstance(key, basestring) and key.startswith('_'):
+    #        copied.pop(key)
     return json.dumps(copied)
 
 def generate_random_token(token_length, no_lowercase=True, check_unused=True):
