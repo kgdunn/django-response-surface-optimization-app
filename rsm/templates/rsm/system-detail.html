@@ -46,11 +46,12 @@
 </div>
 
 <div class="rsm-error input-error">{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}</div>
+<div class="rsm-extra-info">{% if extra_information %}<p><strong>{{ extra_information }}</strong></p>{% endif %}</div>
 
 {% if not enabled %}
     <p> You have to <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup"
         class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left"
-        name="sign-in-popup-link">Sign-in</a>in order to run experiments on the website.
+        name="sign-in-popup-link">Sign-in</a> in order to run experiments on the website.
     <br>(We do not not use any passwords; we sign you in with a simple email.)
 {% endif %}
 
@@ -118,7 +119,8 @@
             <th>Date and time</th>
             {% for item in input_set.all %}
                 <th class="{{item.slug}}">{{item.display_name}}<br>
-                [{{item.units_prefix}}{{item.units_suffix}}]</th>
+                  {% if item.ntype == "CON" %}[{{item.units_prefix}}{{item.units_suffix}}]{% endif %}
+                </th>
             {% endfor %}
             <th>{{system.primary_output_display_name_with_units}}</th>
             </tr>

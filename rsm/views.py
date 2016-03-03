@@ -77,6 +77,7 @@ class Rotation(object):
                 self.rotation_matrix = None
             if dim == 2:
                 theta = np.random.randint(0, 360) * np.pi/180.0
+                logger.debug('A new random rotation: {0}'.format(theta*180/np.pi))
                 self.rotmat = np.array([[np.cos(theta), -np.sin(theta)],
                                      [np.sin(theta),  np.cos(theta)]])
             if dim >= 3:
@@ -105,10 +106,10 @@ class Rotation(object):
         """
         offset =  np.sum(self.slidescale, axis=1) / 2.0  # midpoint
         offset = offset.reshape(self.dim, 1)
-        scale = np.diff(self.slidescale, axis=1) / 1.0  # from high to low
+        scale = np.diff(self.slidescale, axis=1) / 6.0  # from high to low
 
-        data = (data - offset) / scale
-        rotated = np.dot(self.rotmat, data)
+        data_sc = (data - offset) / scale
+        rotated = np.dot(self.rotmat, data_sc)
         return rotated * scale + offset
 
     def inverse_rotate(self, data):
@@ -218,7 +219,8 @@ def process_simulation_inputs_templates(inputs, request=None, force_GET=False):
         # Continuous items need no processing at the moment
         # Categorical items
         if item.ntype == 'CAT':
-            categoricals[item.slug] = json.loads(item.level_numeric_mapping)
+            dict_string = json.loads(item.level_numeric_mapping)
+            categoricals[item.slug] = dict_string
             if force_GET:
                 if item.slug in request.POST:
                     categoricals[item.slug][request.POST[item.slug]] = '__checked__'
@@ -563,6 +565,9 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     # Get the relevant input objects for this system
     input_set = models.Input.objects.filter(system=system).order_by('slug')
 
+    extra_information = ''
+
+    # If enabled, it allows the user to interact with this system.
     if enabled_status:
 
         # Initiate the ``PersonSystem`` for this combination only once
@@ -606,11 +611,24 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                                                  persyst,
                                                  default_values)
 
+        show_solution = False
+
         # Should we show the solution? Let's check:
         if datetime.datetime.now().replace(tzinfo=utc) > \
                                persyst.show_solution_as_of.replace(tzinfo=utc):
             show_solution = True
 
+
+        n_expts = models.Experiment.objects.filter(system=persyst.system,
+                                                   person=persyst.person,
+                            was_successful=True).count()
+        if n_expts >= system.max_experiments_allowed:
+            show_solution = True
+            extra_information = ('You have reached the maximum number of '
+                                 'experiments allowed. The solution will be '
+                                 'automatically displayed below.')
+
+        if show_solution:
             # Have we generated the solution before? If so, don't do it again.
             # But if not, generate it once, and then save it (it is expensive).
             if persyst.frozen == False:
@@ -619,8 +637,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                 # Freeze it once the solution has been generated.
                 persyst.frozen = True
                 persyst.save()
-        else:
-            show_solution = False
+
 
         # Only get this for signed in users
         plot_data_HTML = get_plot_and_data_HTML(persyst, input_set,
@@ -634,10 +651,12 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     input_set, categoricals = process_simulation_inputs_templates(input_set,
                                                                   request,
                                                                   force_GET)
+
     context = {'system': system,
                'input_set': input_set,
                'person': person,
                'enabled': enabled_status,
+               'extra_information': extra_information,
                'plot_html': plot_data_HTML[0],
                'data_html': plot_data_HTML[1]}
     context.update(extend_dict)   # used for the ``force_GET`` case when the
@@ -780,8 +799,10 @@ def send_suitable_email(person, hash_val):
     message = message.replace('\n','\n<br>')
     return send_logged_email(subject, message, to_address_list)
 
-def create_experiment_object(request, system, values):
-    """Create the input for the given user."""
+def create_experiment_object(request, system, values, N_values=1):
+    """Create the input for the given user. BUT, it does not save it. This is
+    intentional.
+    """
     # TODO: check that the user is allowed to create a new input at this point
     #       in time. There might be a time limitation in place still.
     #       If so, offer to store the input and run it at the first possible
@@ -793,7 +814,7 @@ def create_experiment_object(request, system, values):
         logger.error('Unlogged user attempted to create an experiment.')
         assert(False)
 
-    values['_rot_'] = np.zeros((system.continuous_dimensionality(), 1))
+    values['_rot_'] = np.zeros((system.continuous_dimensionality(), N_values))
     values['_ss_'] = np.zeros((system.continuous_dimensionality(), 2))
 
     # Ensure that input_set is in alphabetical order of slug
@@ -814,7 +835,8 @@ def create_experiment_object(request, system, values):
     # Apply the rotation here: ensure that continuous values are applied
     # in alphabetical order:
     rot_obj = Rotation(dim=system.continuous_dimensionality(),
-                       slidescale=values['_ss_'])
+                       slidescale=values['_ss_'],
+                       rotation_matrix=persyst.rotation.encode())
     persyst.rotation = rot_obj.get_rotation_string()
     persyst.save()
     rotated = rot_obj.forward_rotate(values['_rot_'])
@@ -882,7 +904,7 @@ def generate_solution(persyst):
     system = persyst.system
     input_set = models.Input.objects.filter(system=system).order_by('slug')
 
-    solution_inputs = {}
+    values = {}
     RESOLUTION = 50
     data, hash_value = get_person_experimental_data(persyst, input_set)
 
@@ -894,26 +916,58 @@ def generate_solution(persyst):
         range_min, range_max, delta = plotting_defaults(sub_data,
             clamps=[inputi.plot_lower_bound, inputi.plot_upper_bound])
 
-        solution_inputs[input_name] = np.linspace(start=range_min,
+        values[input_name] = np.linspace(start=range_min,
                                                   stop=range_max,
                                                   num=RESOLUTION,
                                                   endpoint=True)
         # Get the data necessary to construct the meshgrid
-        if idx == 0 and len(input_set) == 2:
-            x = solution_inputs[input_name]
+        if idx == 0 and len(input_set) >= 2:
+            x = values[input_name]
             xname = input_name
-        if idx == 1 and len(input_set) == 2:
-            y = solution_inputs[input_name]
+        if idx == 1 and len(input_set) >= 2:
+            y = values[input_name]
             yname = input_name
 
-    if len(input_set) == 2:
-        solution_inputs[xname], solution_inputs[yname] = np.meshgrid(x, y)
+    # Special processing for 2D systems
+    if len(input_set) >= 2:
+        values[xname], values[yname] = np.meshgrid(x, y)
 
-    # TODO.v2: Apply the necessary rotation here
-    rotation = persyst.rotation
+        # Apply the necessary rotation here
+        values['_rot_'] = np.zeros((system.continuous_dimensionality(),
+                                    RESOLUTION*RESOLUTION))
+        values['_ss_'] = np.zeros((system.continuous_dimensionality(), 2))
+
+        dim = 0
+        for inputi in input_set:
+            if inputi.ntype == 'CON':
+                values['_rot_'][dim] = values[inputi.slug.replace('-', '')]\
+                                                  .reshape(RESOLUTION*RESOLUTION)
+                values['_ss_'][dim, :] = [inputi.plot_lower_bound,
+                                          inputi.plot_upper_bound]
+                values[dim] = inputi.slug.replace('-', '')
+                dim += 1
+
+        # Apply the rotation here: ensure that continuous values are applied
+        # in alphabetical order:
+        rot_obj = Rotation(dim=system.continuous_dimensionality(),
+                           slidescale=values['_ss_'],
+                           rotation_matrix=persyst.rotation.encode())
+        rotated = rot_obj.forward_rotate(values['_rot_'])
+
+        idx = 0
+        for inputi in input_set:
+            if inputi.ntype == 'CON':
+                values[values[idx]] = rotated[idx].reshape(RESOLUTION,
+                                                           RESOLUTION)
+                values.pop(idx)
+                idx += 1
+
+        # Clean-up "values" before calling the simulation.
+        values.pop('_rot_')
+        values.pop('_ss_')
 
     # Ignore post_process(): which is where the noise is added.
-    result, duration = run_simulation(system, solution_inputs,
+    result, duration = run_simulation(system, values,
                                       show_solution=True)
 
     # Finally, store the simulation results and return the experimental object
@@ -921,12 +975,34 @@ def generate_solution(persyst):
     results = FakeClass()
     results = process_simulation_output(result, results, system)
     solution_data = {}
-    solution_data['inputs'] = serialize_numeric_dict(solution_inputs)
+
+    if len(input_set) >= 2:
+        for idx, inputi in enumerate(input_set):
+
+            # We must use the shortened variable names, and we use the unrotated
+            # data point
+            input_name = inputi.slug
+
+            if inputi.ntype == 'CON':
+                if idx == 0:
+                    values[xname] = x
+                if idx == 1:
+                    values[yname] = y
+
+    solution_data['inputs'] = serialize_numeric_dict(values)
     if results.was_successful:
-        solution_data['outputs'] = results.main_result
+        assert(len(input_set) != 1)
+        bias_soln = (np.array(results.main_result) + persyst.offset_y).tolist()
+        solution_data['outputs'] = bias_soln
     else:
         logger.error('Error generating solution for {0}'.format(persyst))
         assert(False)
+
+        # Swap the actual (rotated) value used in the simulation with
+        # the user required value. So that the user sees the display
+        # as they entered.
+
+
 
     persyst.solution_data = json.dumps(solution_data, allow_nan=True)
     return persyst
@@ -952,9 +1028,9 @@ def get_person_experimental_data(persyst, input_set):
     data_string = str(persyst.person) + ';' + str(persyst.system)
     for entry in prior_expts:
         inputs = json.loads(entry.inputs)
+        data['_datetime_'].append(entry.earliest_to_show)
         for item in input_set:
             data[item.slug].append(inputs[item.slug])
-            data['_datetime_'].append(entry.earliest_to_show)
 
             # Append these to the string:
             data_string += str(data[item.slug])
@@ -1652,7 +1728,14 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
     for idx, output in enumerate(data['_output_']):
         input_item = {}
         for inputi in input_set:
-            input_item[inputi.slug] = data[inputi.slug][idx]
+            if inputi.ntype == 'CON':
+                input_item[inputi.slug] = data[inputi.slug][idx]
+            elif inputi.ntype == 'CAT':
+                # Quick and dirty method to find the value that corresponds
+                # to the one the user has:
+                for key, value in json.loads(inputi.level_numeric_mapping).iteritems():
+                    if value == data[inputi.slug][idx]:
+                        input_item[inputi.slug] = key
 
         item = expt(output=output,
                     datetime= data['_datetime_'][idx],
