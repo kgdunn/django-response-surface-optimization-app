@@ -29,6 +29,8 @@ from collections import defaultdict, namedtuple
 import logging
 import numpy as np
 
+if DJANGO_SETTINGS.DEBUG == False:
+    import matplotlib.pyplot as plt  # load this here during production only
 
 
 # Some settings for this app:
@@ -74,7 +76,7 @@ class Rotation(object):
         self.slidescale = slidescale
         if rotation_matrix == '':
             if dim == 1:
-                self.rotation_matrix = None
+                self.rotmat = None
             if dim == 2:
                 theta = np.random.randint(0, 360) * np.pi/180.0
                 logger.debug('A new random rotation: {0}'.format(theta*180/np.pi))
@@ -95,7 +97,10 @@ class Rotation(object):
         object = Rotation(slidescale=str_slidescale,
                           rotation_matrix=str_rotation_matrix)
         """
-        return json.dumps(self.rotmat.tolist())
+        if self.rotmat is None:
+            return ''
+        else:
+            return json.dumps(self.rotmat.tolist())
 
     def forward_rotate(self, data):
         """ Applies the forward rotation.
@@ -104,6 +109,8 @@ class Rotation(object):
         matrix, where N is the number of datapoints being individually rotated.
         The output is an (ndim x N) matrix of rotated points.
         """
+        if isinstance(self.rotmat, basestring) and self.rotmat == '':
+            return data
         offset =  np.sum(self.slidescale, axis=1) / 2.0  # midpoint
         offset = offset.reshape(self.dim, 1)
         scale = np.diff(self.slidescale, axis=1) / 6.0  # from high to low
@@ -914,7 +921,8 @@ def generate_solution(persyst):
         # Generate the contour plot in the range that the user worked in.
         sub_data = data[inputi.slug]
         range_min, range_max, delta = plotting_defaults(sub_data,
-            clamps=[inputi.plot_lower_bound, inputi.plot_upper_bound])
+            clamps=[inputi.plot_lower_bound, inputi.plot_upper_bound],
+            force_clamps=True)
 
         values[input_name] = np.linspace(start=range_min,
                                                   stop=range_max,
@@ -977,6 +985,7 @@ def generate_solution(persyst):
     solution_data = {}
 
     if len(input_set) >= 2:
+        X, Y = np.meshgrid(x, y)
         for idx, inputi in enumerate(input_set):
 
             # We must use the shortened variable names, and we use the unrotated
@@ -985,24 +994,17 @@ def generate_solution(persyst):
 
             if inputi.ntype == 'CON':
                 if idx == 0:
-                    values[xname] = x
+                    values[xname] = X
                 if idx == 1:
-                    values[yname] = y
+                    values[yname] = Y
 
     solution_data['inputs'] = serialize_numeric_dict(values)
     if results.was_successful:
-        assert(len(input_set) != 1)
         bias_soln = (np.array(results.main_result) + persyst.offset_y).tolist()
         solution_data['outputs'] = bias_soln
     else:
         logger.error('Error generating solution for {0}'.format(persyst))
         assert(False)
-
-        # Swap the actual (rotated) value used in the simulation with
-        # the user required value. So that the user sees the display
-        # as they entered.
-
-
 
     persyst.solution_data = json.dumps(solution_data, allow_nan=True)
     return persyst
@@ -1055,11 +1057,15 @@ def get_person_experimental_data(persyst, input_set):
         persyst.save()
     return data, hash_value
 
-def plotting_defaults(vector, clamps=None):
+def plotting_defaults(vector, clamps=None, force_clamps=False):
     """ Finds suitable clamping ranges and a "dy" offset to place marker
     labels using heuristics.
 
     Independent of how plots are generated.
+
+    If ``force_clamps`` is True, it ensures that the bounds at least include
+    the ``clamps``. Note that if ``vector`` contains data outside the range
+    of ``clamps`` that the range will exceed ``clamps``.
     """
     finite_clamps = True
     if clamps is None:
@@ -1068,6 +1074,13 @@ def plotting_defaults(vector, clamps=None):
 
     y_min = max(min(vector), clamps[0])
     y_max = min(max(vector), clamps[1])
+
+    if force_clamps:
+        if y_min > clamps[0]:
+            y_min = clamps[0]
+        if y_max < clamps[1]:
+            y_max = clamps[1]
+
     y_range = y_max - y_min
     if y_range == 0.0 and finite_clamps:
         y_min, y_max = clamps
@@ -1228,9 +1241,19 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     #=========================
     responses = data['_output_']
     x_range_min, x_range_max, y_range_min, y_range_max = 0, 0, 0, 0
+    if show_solution:
+        soldata = json.loads(persyst.solution_data)
+
     if len(inputs) == 1:
         x_data = data[inputs[0].slug]
         y_data = responses
+
+        if show_solution:
+            x_soldata = soldata['inputs'][inputs[0].slug.replace('-', '')]
+            y_soldata = soldata['outputs']
+            x_data = x_data.extend(x_soldata)
+            assert(False)
+
 
         x_range_min, x_range_max, dx = plotting_defaults(x_data,
             clamps=[inputs[0].plot_lower_bound, inputs[0].plot_upper_bound])
@@ -1250,10 +1273,23 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         x_data = data[inputs[0].slug]
         y_data = data[inputs[1].slug]
 
-        x_range_min, x_range_max, dx = plotting_defaults(x_data,
+        if show_solution:
+            X = soldata['inputs'][inputs[0].slug.replace('-', '')]
+            Y = soldata['inputs'][inputs[1].slug.replace('-', '')]
+            temp_x = np.array(X).ravel().tolist()
+            temp_x.extend(x_data)
+
+            temp_y = np.array(Y).ravel().tolist()
+            temp_y.extend(y_data)
+        else:
+            temp_x, temp_y = x_data, y_data
+
+        x_range_min, x_range_max, dx = plotting_defaults(temp_x,
                 clamps=[inputs[0].plot_lower_bound, inputs[0].plot_upper_bound])
-        y_range_min, y_range_max, dy = plotting_defaults(y_data,
+        y_range_min, y_range_max, dy = plotting_defaults(temp_y,
                 clamps=[inputs[1].plot_lower_bound, inputs[1].plot_upper_bound])
+
+
 
     elif len(inputs) >= 3:
         x_data = []
@@ -1403,7 +1439,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     # 6. Show the result
     if show_solution:
     # =========================
-        plot_HTML_org = plot_HTML
+
         soldata = json.loads(persyst.solution_data)
         if len(inputs) == 1:
             plot_HTML += "// Shows solution now \n\n"
