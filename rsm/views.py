@@ -141,6 +141,8 @@ def run_simulation(system, simvalues, show_solution=False):
 
         2/ the ``post_process(...)`` function is not executed
     """
+    logger.debug('Running simultion for : {0}'.format(system.slug))
+
     # If Python < 3.x, then we require the non-builtin library ``subprocess32``
     start_time = time.clock()
 
@@ -498,7 +500,6 @@ def get_person_info(request):
     if request.session.get('person_id', False):
         try:
             person = models.Person.objects.get(id=request.session['person_id'])
-            logger.debug('REG-USER expt: {0}'.format(person.id))
         except models.Person.DoesNotExist:
             pass
 
@@ -696,7 +697,8 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                'enabled': enabled_status,
                'extra_information': extra_information,
                'plot_html': plot_data_HTML[0],
-               'data_html': plot_data_HTML[1]}
+               'data_html': plot_data_HTML[1],
+               'persyst': persyst}
     context.update(extend_dict)   # used for the ``force_GET`` case when the
                                   # user has POSTed prior invalid data.
     context['categoricals'] = categoricals
@@ -1561,6 +1563,8 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             xx = levels[-2] -(2048 - 512)/slope
             yy = (xx + max_resp)/2.0
             levels.extend([xx, yy, (yy+max_resp+max_resp+max_resp)/4.0])
+            off_peak = max_resp - 0.03*(max_resp - levels[-1])
+            levels.extend([off_peak, max_resp, ])
             CS = plt.contour(X, Y, Z, levels=levels)
             colour = []
 
