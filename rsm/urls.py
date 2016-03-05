@@ -18,12 +18,15 @@ urlpatterns = [
     url(r'^system/(?P<short_name_slug>[-\w]+)/reset$', views.reset_one_system,
         name='reset_one_system'),
 
+    # ex: /system/short_name/show-solution
+    url(r'^system/(?P<short_name_slug>[-\w]+)/show-solution$',
+        views.show_solution_one_system, name='show_solution_one_system'),
 
-    # Example: /validate/asd1241a
+    # Example: /validate/HGSAT
     url(r'^validate/(?P<hashvalue>[-\w]+)/$', views.validate_user,
         name='validate_user'),
 
-    # Example: /sign-in/asd1241a
+    # Example: /sign-in/QURAA
     url(r'^sign-in/(?P<hashvalue>[-\w]+)/$', views.sign_in_user,
             name='sign_in_user'),
 

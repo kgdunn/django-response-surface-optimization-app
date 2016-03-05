@@ -165,6 +165,32 @@
         });
     });
 </script>
+<script type="text/javascript">
+    var closePopup = function(event){
+        $('#solution-popup').popup("close");
+        event.preventDefault();
+        };
+    $(function() {
+        $('#solution-popup-form').submit(function(event) {
+            var form = $(this);
+
+            $.ajax({
+                type: form.attr('method'),
+                url:  form.attr('action'),
+                cache: false,
+                data: form.serialize(),
+                dataType: "html",
+                beforeSend: function( xhr ) {
+                }
+            }).done(function(data) {
+                window.location.replace("{% url 'rsmapp:show_one_system' system.slug %}")
+            }).fail(function(data) {
+            }).always(function(data){
+            });
+            event.preventDefault();
+        });
+    });
+</script>
 <div class="rsm-reset-button">
     <div data-role="main" class="ui-content">
         <a href="#reset-popup" id="reset-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left" name="reset-popup-link">
@@ -175,19 +201,35 @@
                 {% csrf_token %}
                 <div>
                     <h3>Are you sure?</h3>
-                    This will clear all experiments for this system and start from a fresh baseline experiment. <br>
+                    This will clear all experiments for this system and start from a fresh baseline experiment.<br>
 
                     <input id="popup-delete-submit-button" type="submit" data-rel="back" data-inline="true" value="Delete all the above experiments!">
                     <span id="popup-Cancel-span" style="float: right"><input id="popup-Cancel-button" type="button" data-inline="true" value="Cancel" onclick="closePopup()"></span>
-
-
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<div class="rsm-solution-button">
+    <div data-role="main" class="ui-content">
+        <a href="#solution-popup" id="solution-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-eye ui-btn-icon-left red" name="solution-popup-link">
+        Show solution for this system
+        </a>
+        <div data-role="popup" id="solution-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
+            <form method="post" id="solution-popup-form" action="{% url 'rsmapp:show_solution_one_system' system.slug %}" name="solution-popup-form">
+                {% csrf_token %}
+                <div>
+                    <h3>Are you sure?</h3>
+                    This will reveal the true solution for the system.<br>
 
+                    <input id="popup-solution-submit-button" type="submit" data-rel="back" data-inline="true" value="Show solution for this system!">
+                    <span id="popup-Cancel-span" style="float: right"><input id="popup-Cancel-button" type="button" data-inline="true" value="Cancel" onclick="closePopup()"></span>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 
 {% endif %}

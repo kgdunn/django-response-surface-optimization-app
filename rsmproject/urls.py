@@ -25,8 +25,7 @@ from django.conf import settings
 urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
     url(r'^', include(rsm_urls, namespace="rsmapp"))
-] #+ static(settings.STATIC_URL, document_root=settings.STATIC_ROOT,
-  #           show_indexes=True)
+]
 
 if settings.DEBUG:
     urlpatterns += [

@@ -537,6 +537,37 @@ def reset_one_system(request, short_name_slug):
     return HttpResponseRedirect(reverse('rsmapp:show_one_system',
                                         args=(system.slug,)))
 
+def show_solution_one_system(request, short_name_slug):
+    """ Sets things to show the solution for the current system
+    """
+    # Get the current ``person``. If ``enabled_status=False`` would indicate
+    # it is an anonymous, or unvalidated person.
+    person, enabled_status = get_person_info(request)
+
+    if request.GET and not(force_GET) or not(enabled_status):
+        return process_experiment(request, short_name_slug)
+
+    # Get the relevant input objects for this system
+    # If it was not a POST request, but a (possibly forced) GET request...
+    try:
+        system = models.System.objects.get(slug=short_name_slug,
+                                           is_active=True)
+    except models.System.DoesNotExist:
+        return process_experiment(request, short_name_slug)
+
+    # Have there been any prior experiments for this person?
+    persysts = models.PersonSystem.objects.filter(system=system, person=person)
+    if len(persysts) < 1:
+        return process_experiment(request, short_name_slug)
+
+    persyst = persysts[0]
+    persyst.show_solution_as_of = datetime.datetime.now().replace(tzinfo=utc)
+    persyst.save()
+
+    return HttpResponseRedirect(reverse('rsmapp:show_one_system',
+                                        args=(system.slug,)))
+
+
 
 def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     """ Returns the details of one system that has been selected, including
