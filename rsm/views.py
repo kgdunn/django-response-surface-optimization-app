@@ -697,7 +697,10 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                'extra_information': extra_information,
                'plot_html': plot_data_HTML[0],
                'data_html': plot_data_HTML[1],
-               'show_solution': show_solution}
+               'show_solution': show_solution,
+               'budget_remaining': (system.max_experiments_allowed - \
+                            len(plot_data_HTML[1]) )*system.cost_per_experiment,
+               }
     context.update(extend_dict)   # used for the ``force_GET`` case when the
                                   # user has POSTed prior invalid data.
     context['categoricals'] = categoricals
@@ -1278,17 +1281,21 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         soldata = json.loads(persyst.solution_data)
 
     if len(inputs) == 1:
-        x_data = data[inputs[0].slug]
-        y_data = responses
+        temp_x = x_data = data[inputs[0].slug]
+        temp_y = y_data = responses
 
         if show_solution:
             x_soldata = soldata['inputs'][inputs[0].slug.replace('-', '')]
             y_soldata = soldata['outputs']
-            x_data = x_data.extend(x_soldata)
-            assert(False)
+            temp_x = x_data[:] # important: make a copy!
+            temp_x.extend(x_soldata)
+
+            temp_y = y_data[:] # here as well
+            temp_y.extend(y_soldata)
 
 
-        x_range_min, x_range_max, dx = plotting_defaults(x_data,
+
+        x_range_min, x_range_max, dx = plotting_defaults(temp_x,
             clamps=[inputs[0].plot_lower_bound, inputs[0].plot_upper_bound])
 
         if len(responses) == 1:
@@ -1297,7 +1304,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             y_range_min, y_range_max, dy = plotting_defaults(responses,
                 clamps=[responses[0]*0.9, responses[0]*1.10])
         else:
-            y_range_min, y_range_max, dy = plotting_defaults(responses)
+            y_range_min, y_range_max, dy = plotting_defaults(temp_y)
 
     elif len(inputs) == 2:
         # To ensure we always present the data in the same way

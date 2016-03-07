@@ -32,6 +32,10 @@
         width: 300px;
     }
 
+    .row-header{
+        font-style: italic;
+    }
+
 @media (min-width:800px)
 {
     /* Using layout from http://matthewjamestaylor.com/blog/perfect-2-column-left-menu.htm
@@ -130,28 +134,43 @@
 <div class="rsm-colmask liquid2col">
     <div class="rsm-columns rsm-columns-30-70">
         <div class="col30">
-           Right Right Right Right Right Right Right Right Right Right Right Right Right Right Right Right Right Right Right Right
+            <!-- Right 30% -->
+            <div class="rsm-info">
+                {% if input_set  %}
+                    <hr>
+                    {% if data_html %}
+                        {% if data_html|length == 1 %}
+                            The 1st experiement, at baseline conditions, has automatically been run for you<br> (see the result below).
+                        {% else %}
+                            You have already run {{ data_html|length }} experiment{{ data_html|length|pluralize }} <br>(see results below).
+                        {% endif %}
+                        <br><br>
+                        <table>
+                            <tr><td class="row-header">Maximum experiments allowed:</td>
+                                <td>{{system.max_experiments_allowed}}</td>
+                            </tr>
+                            <tr><td class="row-header">Cost per experiment:</td>
+                                <td>${{system.cost_per_experiment|floatformat:"0"}}</td>
+                            </tr>
+                            <tr><td class="row-header">Total budget available:</td>
+                                <td>${{ system.cost_per_experiment|multiply:system.max_experiments_allowed |floatformat:"0" }}</td>
+                            </tr>
+                            <tr><td class="row-header">Budget remaining:</td>
+                                <td>${{ budget_remaining |floatformat:"0" }}</td>
+                            </tr>
+                        </table>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <!-- /Right 30% -->
         </div>
         <div class="col70">
-           Left
-        </div>
-    </div>
-</div>
+           <!-- Left 70% -->
 
-
+<!-- --------------------------------------------- -->
 {% if input_set and not show_solution %}
 <hr>
 <h2>Your next experiment</h2>
-<div class="rsm-info">
-    {% if data_html %}
-        {% if data_html|length == 1 %}
-            The 1st experiement, at baseline conditions, has automatically been run for you (see the result below).
-        {% else %}
-            You have run {{ data_html|length }} experiment{{ data_html|length|pluralize }} already (see results below).
-        {% endif %}
-        There are a maximum of {{system.max_experiments_allowed}} experiments allowed.
-    {% endif %}
-</div>
 
 <div class="rsm-error input-error">{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}</div>
 <div class="rsm-extra-info">{% if extra_information %}<p><strong>{{ extra_information }}</strong></p>{% endif %}</div>
@@ -213,6 +232,15 @@
 
 </div><!--/rsm-expt-input-->
 {% endif %} {# for the branch: "if input_set and not show_solution" #}
+
+
+<!-- --------------------------------------------- -->
+           <!-- /Left 70%-->
+        </div>
+    </div>
+</div>
+
+
 
 
 <hr>

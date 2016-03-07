@@ -1,5 +1,10 @@
 from django.template.defaulttags import register
 
+
+@register.filter
+def multiply(value1, value2):
+    return value1 * value2
+
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
