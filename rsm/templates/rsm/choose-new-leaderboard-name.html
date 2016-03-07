@@ -54,6 +54,7 @@ compare where you stand with others. We have a created a random name, and made s
         <ul data-inset="true"  >
         {% for item in suggestions %}
             <li><input type="button"
+                       class="ui-btn ui-icon ui-btn-inline ui-corner-all"
                        value="{{item}}"
                        onclick="pushtext(this, '{{item}}')">
         {% endfor %}
