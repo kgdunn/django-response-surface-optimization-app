@@ -110,6 +110,7 @@ class System(models.Model):
             "this system will not be usable."))
 
     image_description = models.ImageField(null=True, upload_to='rsm/static/rsm/')
+    image_source_URL = models.CharField(max_length=500, default='')
     level = models.FloatField(verbose_name=("Skill level "
                                                            "required by user"),
                                      blank=False, null=False, default=0)

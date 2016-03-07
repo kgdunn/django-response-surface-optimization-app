@@ -35,7 +35,7 @@
         font-family: sans-serif;
         text-decoration: none;
         color: #333;
-        font-size: 18px;
+        font-size: 1em;
         -webkit-box-shadow: 0 3px 6px rgba(0,0,0,.25);
         -moz-box-shadow: 0 3px 6px rgba(0,0,0,.25);
         -webkit-transform: rotate(-1deg);
@@ -107,19 +107,18 @@
 
 {% if system_list %}
 <div class="container">
-    <div class="row">
-        <div class="large-12 columns" style="overflow: visible">
-            <ul class="polaroids large-block-grid-4 small-block-grid-2">
+
+    <ul class="polaroids large-block-grid-4 small-block-grid-2">
     {% for system in system_list %}
-                <li>
-                    <a href="{% url 'rsmapp:show_one_system' system.slug %}" title="{{ system.full_name }}" data-ajax="false">
-                        <img class="front-image" alt="{{ system.full_name }}" src="http://openmv.net/media{% static system.image_description.url %}"/>
-                    </a>
-                </li>
+        <li>
+            <a href="{% url 'rsmapp:show_one_system' system.slug %}" title="{{ system.full_name }}" data-ajax="false">
+                <img class="front-image" alt="{{ system.full_name }}" src="http://openmv.net/media{% static system.image_description.url %}"/>
+            </a>
+        </li>
     {% endfor %}
-            </ul>
-        </div>
-    </div>
+    </ul>
+
+
 
 </div>
 {% else %}
