@@ -145,6 +145,7 @@ class System(models.Model):
                                          blank=True)
     cost_per_experiment = models.FloatField(help_text="Dollar cost per run",
                                             default=10.00)
+    min_experiments_allowed = models.PositiveIntegerField(default=5)
     max_experiments_allowed = models.PositiveIntegerField(default=100)
     max_seconds_before_solution = models.PositiveIntegerField(default=2147483647,
         help_text=('Max seconds to wait before showing the solution. 43200=30 '
@@ -165,21 +166,14 @@ class System(models.Model):
 
         return dimensionality
 
-    #noise_standard_deviation = models.FloatField(default=0,
-    #    verbose_name=("Standard deviation of normally distributed noise to add. "
-    #        "Both normally and uniformly distributed noise will be added, "
-    #        "if specified as non-zero values here."))
-    #noise_uniform_multiplier = models.FloatField(default=0,
-    #    verbose_name=("Multiplier for uniformally distributed noise: y = mx + "
-    #                  "c; this is for multiplier 'm'."))
-    #noise_uniform_offset = models.FloatField(default=0,
-    #    verbose_name=("Offset for uniformally distributed noise: y = mx + c; "
-    #                  "this is for offset value 'c'."))
-
-
-
     def __str__(self):
         return self.full_name
+
+    def save(self, *args, **kwargs):
+        # Force the min and max experiment numbers to be consistent
+        assert(self.min_experiments_allowed < self.max_experiments_allowed)
+        super(System, self).save(*args, **kwargs) # Call the "real" save()
+
 
 
 class Input(models.Model):

@@ -50,7 +50,11 @@
         position:relative;
     }
     .col75,
-    .col25 {
+    .col25,
+    .col55,
+    .col45,
+    .col30,
+    .col70{
         float:left;
         position:relative;
         padding:0 0 1em 0;
@@ -70,22 +74,29 @@
         left:6%;			/* (right column left and right padding) plus (left column left padding) */
     }
 
+    /* Another two column layout */
     .liquid2col .rsm-columns-55-45{
         right:55%
-    }
-    .col55,
-    .col45 {
-        float:left;
-        position:relative;
-        padding:0 0 1em 0;
-        overflow:hidden;
     }
     .liquid2col .col55 {
         width:51%;			/* right column content width: 55-2-2=51 */
         left:102%;			/* 100% plus left column left padding */
     }
     .liquid2col .col45 {
-        width:41%;			/* left column content width (column width minus left and right padding) */
+        width:41%;			/* left column content width (column width minus left and right padding  = 45-2-2=41) */
+        left:6%;			/* (right column left and right padding) plus (left column left padding) */
+    }
+
+    /* Another two column layout */
+    .liquid2col .rsm-columns-30-70{
+        right:30%
+    }
+    .liquid2col .col30 {
+        width:26%;			/* right column content width: 30-2-2=26 */
+        left:102%;			/* 100% plus left column left padding */
+    }
+    .liquid2col .col70 {
+        width:66%;			/* left column content width (column width minus left and right padding  = 70-2-2=66) */
         left:6%;			/* (right column left and right padding) plus (left column left padding) */
     }
 
@@ -114,6 +125,18 @@
         </div>
     </div>
 </div>
+<div style="clear: both"></div>
+
+<div class="rsm-colmask liquid2col">
+    <div class="rsm-columns rsm-columns-30-70">
+        <div class="col30">
+           Right Right Right Right Right Right Right Right Right Right Right Right Right Right Right Right Right Right Right Right
+        </div>
+        <div class="col70">
+           Left
+        </div>
+    </div>
+</div>
 
 
 {% if input_set and not show_solution %}
@@ -135,7 +158,7 @@
 
 {% if not enabled %}
     <p> You have to <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup"
-        class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left"
+        class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left red"
         name="sign-in-popup-link">Sign-in</a> in order to run experiments on the website.
     <br>(We do not not use any passwords; we sign you in with a single email.)
 {% endif %}
@@ -189,7 +212,9 @@
     </form>
 
 </div><!--/rsm-expt-input-->
-{% endif %} {# if input_set #}
+{% endif %} {# for the branch: "if input_set and not show_solution" #}
+
+
 <hr>
 
 {% if data_html %}
@@ -288,7 +313,7 @@
 <!-- Starts here -->
 <div class="rsm-reset-button">
     <div data-role="main" class="ui-content">
-        <a href="#reset-popup" id="reset-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left red" name="reset-popup-link">
+        <a href="#reset-popup" id="reset-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-alert ui-btn-icon-left red" name="reset-popup-link">
         Clear all above experiments (start over)
         </a>
         <div data-role="popup" id="reset-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
@@ -314,17 +339,26 @@
     <div class="rsm-solution-button">
         <div data-role="main" class="ui-content">
             <a href="#solution-popup" id="solution-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-eye ui-btn-icon-left green" name="solution-popup-link">
-            Show solution for this system
+            Show true solution for this system
             </a>
             <div data-role="popup" id="solution-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
                 <form method="post" id="solution-popup-form" action="{% url 'rsmapp:show_solution_one_system' system.slug %}" name="solution-popup-form">
                     {% csrf_token %}
                     <div>
+                    {% if data_html|length < system.min_experiments_allowed %}
+                        <h3>Wait!</h3>
+                        You cannot see the true solution until running at least <br>a total
+                        of <b>{{system.min_experiments_allowed}}</b> experiments for this system.<br>
+                        <input id="popup-Cancel-button" type="button" data-inline="true" value="OK" onclick="closePopup()">
+                    {% else %}
+
                         <h3>Are you sure?</h3>
                         This will reveal the true solution for the system.<br>
 
                         <input id="popup-solution-submit-button" type="submit" data-rel="back" data-inline="true" value="Show solution for this system!">
                         <span id="popup-Cancel-span" style="float: right"><input id="popup-Cancel-button" type="button" data-inline="true" value="Cancel" onclick="closePopup()"></span>
+
+                    {% endif %}
                     </div>
                 </form>
             </div>
