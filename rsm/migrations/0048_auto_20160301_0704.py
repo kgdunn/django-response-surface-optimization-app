@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='personsystem',
             name='offset_y',
-            field=models.FloatField(blank=True, default=0.0, verbose_name=b'Offset for system output'),
+            field=models.FloatField(verbose_name=b'Offset for system output', default=5.0),
         ),
         migrations.AlterField(
             model_name='system',
