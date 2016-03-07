@@ -183,7 +183,9 @@
         </div><!--/fieldcontain-->
     {% endfor %}
 
-    <p><input type="submit" {% if not enabled %}disabled="disabled"{% endif %} value="Run my next experiment!" />
+    <div data-inline="true" class="ui-content">
+        <input class="ui-btn ui-icon ui-btn-inline ui-corner-all" type="submit" {% if not enabled %}disabled="disabled"{% endif %} value="Run this experiment!" />
+    </div>
     </form>
 
 </div><!--/rsm-expt-input-->
@@ -286,8 +288,8 @@
 <!-- Starts here -->
 <div class="rsm-reset-button">
     <div data-role="main" class="ui-content">
-        <a href="#reset-popup" id="reset-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left" name="reset-popup-link">
-        Clear all above experiments (start over!)
+        <a href="#reset-popup" id="reset-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left red" name="reset-popup-link">
+        Clear all above experiments (start over)
         </a>
         <div data-role="popup" id="reset-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
             <form method="post" id="reset-popup-form" action="{% url 'rsmapp:reset_one_system' system.slug %}" name="reset-popup-form">
@@ -311,7 +313,7 @@
 {% if not show_solution %}
     <div class="rsm-solution-button">
         <div data-role="main" class="ui-content">
-            <a href="#solution-popup" id="solution-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-eye ui-btn-icon-left red" name="solution-popup-link">
+            <a href="#solution-popup" id="solution-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-eye ui-btn-icon-left green" name="solution-popup-link">
             Show solution for this system
             </a>
             <div data-role="popup" id="solution-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
