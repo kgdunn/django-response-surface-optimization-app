@@ -191,14 +191,13 @@
         <div data-role="fieldcontain">
             <label for="{{item.slug}}">{{item.display_name}}: {{item.units_prefix}}</label>
             {% if item.ntype == "CON" %}
-                <input type="text"
+                <input type="number"
                        name="{{item.slug}}"
                        data-clear-btn="true"
                        data-inline="true"
                        {% if not enabled %}disabled="disabled"{% endif %}
                        size="7"
                        maxlength="7"
-                       type="number"
                        placeholder="{{item.default_value|get_floatformat:item.n_decimals}} (a typical value)"
                        {% if prior_values %}
                            value="{{ prior_values|get_item:item.slug|floatformat:2 }}"
