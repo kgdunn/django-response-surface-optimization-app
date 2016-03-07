@@ -112,7 +112,7 @@
     {% for system in system_list %}
         <li>
             <a href="{% url 'rsmapp:show_one_system' system.slug %}" title="{{ system.full_name }}" data-ajax="false">
-                <img class="front-image" alt="{{ system.full_name }}" src="http://openmv.net/media{% static system.image_description.url %}"/>
+                <img class="front-image" alt="{{ system.full_name }} :: {{ system.image_source_URL }}" src="{% static system.image_description.url %}"/>
             </a>
         </li>
     {% endfor %}
