@@ -503,6 +503,7 @@ def get_person_info(request):
         except models.Person.DoesNotExist:
             pass
 
+    # enabled_status = True if the person has signed in AND validated themself.
     enabled_status = (person.is_validated == True) or \
                                         (person.display_name != '__Anonymous__')
 
@@ -605,9 +606,9 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     input_set = models.Input.objects.filter(system=system).order_by('slug')
 
     extra_information = ''
-
-    # If enabled, it allows the user to interact with this system.
+    show_solution = False
     if enabled_status:
+        # If enabled, it allows the user to interact with this system.
 
         # Initiate the ``PersonSystem`` for this combination only once
         persysts = models.PersonSystem.objects.filter(system=system,
@@ -649,8 +650,6 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
             baseline = execute_experiment_object(baseline,
                                                  persyst,
                                                  default_values)
-
-        show_solution = False
 
         # Should we show the solution? Let's check:
         if datetime.datetime.now().replace(tzinfo=utc) > \
@@ -698,7 +697,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                'extra_information': extra_information,
                'plot_html': plot_data_HTML[0],
                'data_html': plot_data_HTML[1],
-               'persyst': persyst}
+               'show_solution': show_solution}
     context.update(extend_dict)   # used for the ``force_GET`` case when the
                                   # user has POSTed prior invalid data.
     context['categoricals'] = categoricals

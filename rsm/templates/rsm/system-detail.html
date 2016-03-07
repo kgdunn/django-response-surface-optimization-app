@@ -36,7 +36,7 @@
 {{message|safe}}
 <h2>{{ system.full_name }}</h2>
 <p>{{system.description|safe|linebreaks}}
-{% if input_set and not persyst.frozen %}
+{% if input_set and not show_solution %}
 <hr>
 <h2>The next experiment</h2>
 <div class="rsm-info">
@@ -52,7 +52,7 @@
     <p> You have to <a href="#sign-in-popup" id="sign-in-popup-link" data-rel="popup"
         class="ui-btn ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left"
         name="sign-in-popup-link">Sign-in</a> in order to run experiments on the website.
-    <br>(We do not not use any passwords; we sign you in with a simple email.)
+    <br>(We do not not use any passwords; we sign you in with a single email.)
 {% endif %}
 
 <div id="rsm-expt-input">
@@ -211,7 +211,7 @@
     </div>
 </div>
 
-{% if not persyst.frozen %}
+{% if not show_solution %}
     <div class="rsm-solution-button">
         <div data-role="main" class="ui-content">
             <a href="#solution-popup" id="solution-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-eye ui-btn-icon-left red" name="solution-popup-link">
@@ -233,5 +233,5 @@
     </div>
 {% endif %}
 
-{% endif %}
+{% endif %} {# CHECK THAT THIS MATCHES WITH THE START #}
 {% endblock %}
