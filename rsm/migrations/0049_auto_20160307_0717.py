@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='system',
             name='level',
-            field=models.FloatField(default=0, verbose_name=b'Skill level required by user'),
+            field=models.FloatField(default=0.0, verbose_name=b'Skill level required by user'),
         ),
     ]
