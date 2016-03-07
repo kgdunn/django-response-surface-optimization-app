@@ -75,19 +75,19 @@ class Rotation(object):
         self.dim = dim
         self.slidescale = slidescale
         if rotation_matrix == '':
-            if dim == 1:
-                self.rotmat = None
-            if dim == 2:
+            if self.dim == 1:
+                self.rotmat = np.array([[np.cos(0),]])
+            if self.dim == 2:
                 theta = np.random.randint(0, 360) * np.pi/180.0
                 logger.debug('A new random rotation: {0}'.format(theta*180/np.pi))
                 self.rotmat = np.array([[np.cos(theta), -np.sin(theta)],
                                      [np.sin(theta),  np.cos(theta)]])
-            if dim >= 3:
+            if self.dim >= 3:
                 assert(False)
 
         elif rotation_matrix:
             self.rotmat = np.array(json.loads(rotation_matrix))
-            self.dim = self.rotmat.ndim
+            self.dim = self.rotmat.shape[0]
 
     def get_rotation_string(self):
         """
@@ -256,29 +256,29 @@ def process_simulation_input(values, inputs):
                 out[item.slug] = types[values[item.slug]]
 
     except (ValueError, KeyError):  # KeyError: for the categorical variables
-        raise WrongInputError(('Input "{0}" could not be converted to a '
+        raise WrongInputError(('"{0}" could not be converted to a '
                                'numeric value.').format(item.display_name))
 
     # Success! Now check the bounds.
     for item in inputs:
         if item.lower_bound is not None:
             if out[item.slug] < item.lower_bound:
-                raise OutOfBoundsInputError(('Input "{0}" is below its lower '
+                raise OutOfBoundsInputError(('"{0}" is below its lower '
                             'bound. It should be greater than or equal to {1}'
                             '.').format(item.display_name, item.lower_bound))
 
         if item.upper_bound is not None:
             if out[item.slug] > item.upper_bound:
-                raise OutOfBoundsInputError(('Input "{0}" is above its upper '
+                raise OutOfBoundsInputError(('"{0}" is above its upper '
                             'bound. It should be less than or equal to {1}'
                             '.').format(item.display_name, item.upper_bound))
 
         if math.isnan(out[item.slug]):
-            raise OutOfBoundsInputError('Input "{0}" may not be "NaN".'.format(
+            raise OutOfBoundsInputError('"{0}" may not be "NaN".'.format(
                 item.display_name))
 
         if math.isinf(out[item.slug]):
-            raise OutOfBoundsInputError(('Input "{0}" may not be "-Inf" or '
+            raise OutOfBoundsInputError(('"{0}" may not be "-Inf" or '
                                          '"+Inf".').format(item.display_name))
 
     # End of checking all the inputs
@@ -423,7 +423,7 @@ def show_all_systems(request):
     """
     Returns all the systems available to simulate at the user's current level.
     """
-    system_list = models.System.objects.filter(is_active=True)
+    system_list = models.System.objects.filter(is_active=True).order_by('level')
     person, enabled_status = get_person_info(request)
 
     context = {'system_list': system_list,
@@ -864,6 +864,7 @@ def create_experiment_object(request, system, values, N_values=1):
     dim = 0
     for inputi in input_set:
         if inputi.ntype == 'CON':
+            # This is the value that is about to be rotated
             values['_rot_'][dim] = values[inputi.slug]
             values['_ss_'][dim, :] = [inputi.plot_lower_bound,
                                       inputi.plot_upper_bound]

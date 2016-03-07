@@ -110,7 +110,7 @@ class System(models.Model):
             "this system will not be usable."))
 
     image_description = models.ImageField(null=True, upload_to='rsm/static/rsm/')
-    level = models.PositiveSmallIntegerField(verbose_name=("Skill level "
+    level = models.FloatField(verbose_name=("Skill level "
                                                            "required by user"),
                                      blank=False, null=False, default=0)
     source = models.TextField(verbose_name=("Python source code that will be "

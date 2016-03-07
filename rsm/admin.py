@@ -6,8 +6,9 @@ from .models import Person, Token, Tag, Experiment, System, Input, PersonSystem
 class SystemAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("full_name",)}
     list_display = ('full_name', 'slug', 'is_active', 'n_inputs', 'n_outputs',
-                    'cost_per_experiment', 'max_experiments_allowed')
+                    'cost_per_experiment', 'max_experiments_allowed', 'level')
     list_display_links = list_display
+    ordering = ('level',)
 
 class PersonSystemAdmin(admin.ModelAdmin):
 

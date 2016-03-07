@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load rsm_extras %}
-
+{% load staticfiles %}
 
 {% block title %}{{ system.full_name }}{% endblock %}
 {# ------------------------------------------------#}
@@ -22,6 +22,74 @@
     .expt-input{
         text-align: center
     }
+
+    .rsm-error{
+        color: red;
+    }
+
+    .front-image
+    {
+        width: 300px;
+    }
+
+@media (min-width:800px)
+{
+    /* Using layout from http://matthewjamestaylor.com/blog/perfect-2-column-left-menu.htm
+     Column container */
+    .rsm-colmask {
+        position:relative;	/* This fixes the IE7 overflow hidden bug */
+        clear:both;
+        float:left;
+        width:100%;			/* width of whole page */
+        overflow:hidden;	/* This chops off any overhanging divs */
+    }
+    /* common column settings */
+    .rsm-columns {
+        float:left;
+        width:100%;
+        position:relative;
+    }
+    .col75,
+    .col25 {
+        float:left;
+        position:relative;
+        padding:0 0 1em 0;
+        overflow:hidden;
+    }
+
+    /* 2 Column (left menu) settings */
+    .liquid2col .rsm-columns-75-25 {
+        right:75%;			/* right column width */
+    }
+    .liquid2col .col75 {
+        width:71%;			/* right column content width */
+        left:102%;			/* 100% plus left column left padding */
+    }
+    .liquid2col .col25 {
+        width:21%;			/* left column content width (column width minus left and right padding) */
+        left:6%;			/* (right column left and right padding) plus (left column left padding) */
+    }
+
+    .liquid2col .rsm-columns-55-45{
+        right:55%
+    }
+    .col55,
+    .col45 {
+        float:left;
+        position:relative;
+        padding:0 0 1em 0;
+        overflow:hidden;
+    }
+    .liquid2col .col55 {
+        width:51%;			/* right column content width: 55-2-2=51 */
+        left:102%;			/* 100% plus left column left padding */
+    }
+    .liquid2col .col45 {
+        width:41%;			/* left column content width (column width minus left and right padding) */
+        left:6%;			/* (right column left and right padding) plus (left column left padding) */
+    }
+
+}
     </style>
     {% if not enabled %}
         <script type="text/javascript">
@@ -35,13 +103,30 @@
 {% block content %}
 {{message|safe}}
 <h2>{{ system.full_name }}</h2>
-<p>{{system.description|safe|linebreaks}}
+
+<div class="rsm-colmask liquid2col">
+    <div class="rsm-columns rsm-columns-75-25">
+        <div class="col75">
+           {{system.description|safe|linebreaks}}
+        </div>
+        <div class="col25">
+            <img class="front-image" src="http://openmv.net/media{% static system.image_description.url %}" />
+        </div>
+    </div>
+</div>
+
+
 {% if input_set and not show_solution %}
 <hr>
-<h2>The next experiment</h2>
+<h2>Your next experiment</h2>
 <div class="rsm-info">
     {% if data_html %}
-        You have run {{ data_html|length }} experiment{{ data_html|length|pluralize }} already (see below). There are a maximum of {{system.max_experiments_allowed}} experiments allowed.
+        {% if data_html|length == 1 %}
+            The 1st experiement, at baseline conditions, has automatically been run for you (see the result below).
+        {% else %}
+            You have run {{ data_html|length }} experiment{{ data_html|length|pluralize }} already (see results below).
+        {% endif %}
+        There are a maximum of {{system.max_experiments_allowed}} experiments allowed.
     {% endif %}
 </div>
 
@@ -107,7 +192,7 @@
 
 {% if data_html %}
 
-    <h2>Previous experiments run</h2>
+    <h2>Your previous experiments, with the outcome value</h2>
 
         {{plot_html|safe}}
 
@@ -129,7 +214,7 @@
             {%spaceless%}
             <tr class="row-{% cycle 'odd' 'even' %} expt-result" id="rsm-result-{{forloop.counter}}">
                 <td class="expt-number">{{forloop.counter}}</td>
-                <td class="datetime">{{expt.datetime|date:"d M Y H:i:s"}}</td>
+                <td class="datetime">{{expt.datetime|date:"d M Y H:i"}}</td>
                 {% for item in input_set.all %}
                     <td class="expt-input">{{expt.inputs|get_item:item.slug}}</td>
                 {% endfor %}
@@ -191,10 +276,18 @@
         });
     });
 </script>
+
+
+<div class="rsm-colmask liquid2col">
+    <div class="rsm-columns rsm-columns-55-45">
+
+        <div class="col55">
+
+<!-- Starts here -->
 <div class="rsm-reset-button">
     <div data-role="main" class="ui-content">
         <a href="#reset-popup" id="reset-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-gear ui-btn-icon-left" name="reset-popup-link">
-        Clear all above experiments
+        Clear all above experiments (start over!)
         </a>
         <div data-role="popup" id="reset-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
             <form method="post" id="reset-popup-form" action="{% url 'rsmapp:reset_one_system' system.slug %}" name="reset-popup-form">
@@ -210,6 +303,10 @@
         </div>
     </div>
 </div>
+
+        </div> <!-- col55 -->
+
+        <div class="col45">
 
 {% if not show_solution %}
     <div class="rsm-solution-button">
@@ -232,6 +329,11 @@
         </div>
     </div>
 {% endif %}
+
+        </div> <!-- col45 -->
+    </div>
+</div>
+
 
 {% endif %} {# CHECK THAT THIS MATCHES WITH THE START #}
 {% endblock %}
