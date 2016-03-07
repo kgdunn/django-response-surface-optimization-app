@@ -192,6 +192,7 @@
             <label for="{{item.slug}}">{{item.display_name}}: {{item.units_prefix}}</label>
             {% if item.ntype == "CON" %}
                 <input type="number"
+                        step="0.001"
                        name="{{item.slug}}"
                        data-clear-btn="true"
                        data-inline="true"
