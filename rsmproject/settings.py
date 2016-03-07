@@ -96,7 +96,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 STATIC_URL = '/images/'
-STATIC_ROOT = '/Users/kevindunn/Dropbox/Coursera/RSM-app/rsmproject/media/'
 
 try:
     from local_settings import *
