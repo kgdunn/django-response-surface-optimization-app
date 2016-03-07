@@ -78,6 +78,7 @@ WSGI_APPLICATION = 'rsmproject.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
+# This will be overwritten in the local_settings.py file (if appropriate)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -96,6 +97,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 STATIC_URL = '/images/'
+
+STATIC_ROOT = ''  # Define in "local_settings.py"
+STATICFILES_DIRS = ("", ) # Define in "local_settings.py"
 
 try:
     from local_settings import *
