@@ -7,4 +7,5 @@ local_settings.py
 syntax: glob
 *.pyc
 D3-plotting/*
+images/*
 media/*
