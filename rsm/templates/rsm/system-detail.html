@@ -125,7 +125,7 @@
            {{system.description|safe|linebreaks}}
         </div>
         <div class="col25">
-            <img class="front-image" src="{% static system.image_description.url %}" />
+            <img class="front-image" src="{% static system.image_description.url %}" alt="{{ system.full_name }} :: {{ system.image_source_URL }}" />
         </div>
     </div>
 </div>
@@ -198,6 +198,7 @@
                        {% if not enabled %}disabled="disabled"{% endif %}
                        size="7"
                        maxlength="7"
+                       type="number"
                        placeholder="{{item.default_value|get_floatformat:item.n_decimals}} (a typical value)"
                        {% if prior_values %}
                            value="{{ prior_values|get_item:item.slug|floatformat:2 }}"

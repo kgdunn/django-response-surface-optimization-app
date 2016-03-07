@@ -945,6 +945,8 @@ def generate_solution(persyst):
     """Generates a solution for a given Person/System combination. This is
     expensive process, so save the results. """
     system = persyst.system
+
+    # TODO v3. Handle categorical variables here.
     input_set = models.Input.objects.filter(system=system).order_by('slug')
 
     values = {}
@@ -1280,7 +1282,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     if show_solution:
         soldata = json.loads(persyst.solution_data)
 
-    if len(inputs) == 1:
+    if persyst.system.continuous_dimensionality() == 1:
         temp_x = x_data = data[inputs[0].slug]
         temp_y = y_data = responses
 
@@ -1306,9 +1308,9 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         else:
             y_range_min, y_range_max, dy = plotting_defaults(temp_y)
 
-    elif len(inputs) == 2:
+    elif persyst.system.continuous_dimensionality() == 2:
         # To ensure we always present the data in the same way
-        inputs = inputs.order_by('slug')
+        inputs = inputs.filter(ntype='CON').order_by('slug')
 
         x_data = data[inputs[0].slug]
         y_data = data[inputs[1].slug]
@@ -1331,9 +1333,8 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
 
 
-    elif len(inputs) >= 3:
-        x_data = []
-        y_data = []
+    elif persyst.system.continuous_dimensionality() >= 3:
+        assert(False) # handle this case still
 
     plot_HTML += """
     scalex.domain([{}, {}]);
@@ -1482,6 +1483,8 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
         soldata = json.loads(persyst.solution_data)
         if len(inputs) == 1:
+            # no need to check "continuous_dimensionality" anymore, once we
+            # have defined the variable called "inputs"
             plot_HTML += "// Shows solution now \n\n"
             x_soldata = soldata['inputs'][inputs[0].slug.replace('-', '')]
             y_soldata = soldata['outputs']
@@ -1539,7 +1542,9 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             """
 
         # 2D case here:
-        if len(inputs) == 2:
+        if len(inputs)== 2:
+            # no need to check "continuous_dimensionality" anymore, once we
+            # have defined the variable called "inputs"
 
             X = soldata['inputs'][inputs[0].slug.replace('-', '')]
             Y = soldata['inputs'][inputs[1].slug.replace('-', '')]
