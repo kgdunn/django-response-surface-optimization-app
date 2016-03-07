@@ -27,7 +27,7 @@ class PersonSystem(models.Model):
     system = models.ForeignKey('System')
     rotation = models.TextField(default='', blank=True,
                             help_text='Rotation around axis for this system')
-    offset_y = models.FloatField(default=0, blank=True,
+    offset_y = models.FloatField(default=0.0, blank=True,
                                 verbose_name="Offset for system output")
 
     # When did the user initiate completion of the system?
