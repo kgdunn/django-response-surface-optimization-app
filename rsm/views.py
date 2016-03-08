@@ -566,6 +566,8 @@ def show_solution_one_system(request, short_name_slug):
     persyst.show_solution_as_of = datetime.datetime.now().replace(tzinfo=utc)
     persyst.save()
 
+    logger.debug('Set things up to show the solution; now going to render it.')
+
     return HttpResponseRedirect(reverse('rsmapp:show_one_system',
                                         args=(system.slug,)))
 
@@ -670,7 +672,9 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
             # Have we generated the solution before? If so, don't do it again.
             # But if not, generate it once, and then save it (it is expensive).
             if persyst.frozen == False:
+                logger.debug('Solution has not been generated; about to...')
                 persyst = generate_solution(persyst)
+                logger.debug('Solution generated; about to freeze it.')
 
                 # Freeze it once the solution has been generated.
                 persyst.frozen = True
