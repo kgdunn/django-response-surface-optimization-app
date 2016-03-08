@@ -16,6 +16,7 @@ from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
 from django.utils.timezone import utc
 
+import os
 import sys
 import time
 import math
@@ -30,6 +31,8 @@ import logging
 import numpy as np
 
 #if DJANGO_SETTINGS.DEBUG == False:
+# http://stackoverflow.com/questions/18084342/apache-hangs-with-django-application-and-matplotlib
+os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'
 import matplotlib.pyplot as plt  # load this here during production only
 
 
@@ -1580,10 +1583,11 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
             # Takes a long time to load this library, so do it here during dev.
             CS = plt.contour(X, Y, Z)
+            logger.debug('Plot generation: part 6b: library used')
             levels = CS.levels.tolist()
             max_resp = np.max(Z)
             N = len(levels)
-            logger.debug('Plot generation: part 6b: processing contours')
+            logger.debug('Plot generation: part 6c: processing contours')
 
             # Add some extra levels based on a sqrt mapping (log(0.5) mapping)
             # i.e. find the values xx and yy below, given ``max_resp``
@@ -1603,6 +1607,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             off_peak = max_resp - 0.03*(max_resp - levels[-1])
             levels.extend([off_peak, max_resp, ])
             CS = plt.contour(X, Y, Z, levels=levels)
+            logger.debug('Plot generation: part 6d: processing contours again.')
             colour = []
 
             # Now write the contour plot to D3 SVG code
