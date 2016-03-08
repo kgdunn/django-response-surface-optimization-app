@@ -691,11 +691,11 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
 
         # Only get this for signed in users
-        plot_data_HTML = get_plot_and_data_HTML(persyst, input_set,
-                                                show_solution)
+        plot_raw_data = get_plot_and_data_HTML(persyst, input_set,
+                                               show_solution)
 
     else:
-        plot_data_HTML = [[ ], [ ]]
+        plot_raw_data = [ ]
 
     # if-else-end: if enabled_status
 
@@ -708,11 +708,11 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                'person': person,
                'enabled': enabled_status,
                'extra_information': extra_information,
-               'plot_html': plot_data_HTML[0],
-               'data_html': plot_data_HTML[1],
+               'plot_html': persyst.plot_HTML,
+               'data_html': plot_raw_data,
                'show_solution': show_solution,
                'budget_remaining': (system.max_experiments_allowed - \
-                            len(plot_data_HTML[1]) )*system.cost_per_experiment,
+                            len(plot_raw_data) )*system.cost_per_experiment,
                }
     context.update(extend_dict)   # used for the ``force_GET`` case when the
                                   # user has POSTed prior invalid data.
@@ -1843,7 +1843,7 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
         if persyst.plot_HTML:
             # This speeds up page refreshes. We don't need to recreate existing
             # plots for a person/system combination.
-            plot_html = persyst.plot_HTML
+            pass
         else:
             # The plot_HTML has been cleared; we're going to have to regenerate
             # the plot code.
@@ -1851,12 +1851,12 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
             persyst.plot_HTML = plot_wrapper(data, persyst, input_set,
                                              hash_value, show_solution)
             persyst.save()
-            plot_html = persyst.plot_HTML
             logger.debug('Solution HTML was generated.')
     else:
-        plot_html = 'No plot to display; please run an experiment first.'
+        assert(False)  # This shouldn't happen ever; since we add a baseline run
+        # plot_html = 'No plot to display; please run an experiment first.'
 
-    return plot_html, expt_data
+    return expt_data
 
 
 # UTILITY TYPE FUNCTIONS
