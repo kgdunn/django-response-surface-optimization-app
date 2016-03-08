@@ -33,7 +33,8 @@ import numpy as np
 #if DJANGO_SETTINGS.DEBUG == False:
 # http://stackoverflow.com/questions/18084342/apache-hangs-with-django-application-and-matplotlib
 os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'
-import matplotlib.pyplot as plt  # load this here during production only
+#import matplotlib.pyplot as plt  # load this here during production only
+from matplotlib.pyplot import contour
 
 
 # Some settings for this app:
@@ -1582,7 +1583,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             logger.debug('Plot generation: part 6a: loading library')
 
             # Takes a long time to load this library, so do it here during dev.
-            CS = plt.contour(X, Y, Z)
+            CS = contour(X, Y, Z)
             logger.debug('Plot generation: part 6b: library used')
             levels = CS.levels.tolist()
             max_resp = np.max(Z)
@@ -1606,18 +1607,18 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             levels.extend([xx, yy, (yy+max_resp+max_resp+max_resp)/4.0])
             off_peak = max_resp - 0.03*(max_resp - levels[-1])
             levels.extend([off_peak, max_resp, ])
-            CS = plt.contour(X, Y, Z, levels=levels)
+            CS = contour(X, Y, Z, levels=levels)
             logger.debug('Plot generation: part 6d: processing contours again.')
             colour = []
 
             # Now write the contour plot to D3 SVG code
             plot_HTML += "// Shows solution now \nvar soldata = \n[\n"
-            for idx, contour in enumerate(CS.allsegs):
+            for idx, cccontour in enumerate(CS.allsegs):
                 colour.append(\
                     (np.round(CS.collections[idx].get_color()[0][0:3]*255))\
                     .tolist())
                 plot_HTML += "\t[\n"
-                for kontour in contour:
+                for kontour in cccontour:
                     plot_HTML += "\t\t[\n"
                     for item in kontour:
                         ritem = item.round(3)
