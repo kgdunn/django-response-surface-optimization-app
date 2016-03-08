@@ -1847,10 +1847,12 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
         else:
             # The plot_HTML has been cleared; we're going to have to regenerate
             # the plot code.
+            logger.debug('Solution HTML about to be generated.')
             persyst.plot_HTML = plot_wrapper(data, persyst, input_set,
                                              hash_value, show_solution)
             persyst.save()
             plot_html = persyst.plot_HTML
+            logger.debug('Solution HTML was generated.')
     else:
         plot_html = 'No plot to display; please run an experiment first.'
 
