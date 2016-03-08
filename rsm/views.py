@@ -599,10 +599,13 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
         raise Http404(("Tried to find a system to optimize! But that system "
                        "does not exist."))
 
-    fetch_leaderboard_results()
 
     # Get the current ``person``
     person, enabled_status = get_person_info(request)
+
+    fetch_leaderboard_results(person=person)
+
+    logger.debug("Showing a system for person {0} ".format(person))
 
     # Get the relevant input objects for this system
     input_set = models.Input.objects.filter(system=system).order_by('slug')
@@ -1051,7 +1054,7 @@ def generate_solution(persyst):
     persyst.solution_data = json.dumps(solution_data, allow_nan=True)
     return persyst
 
-def fetch_leaderboard_results(system=None):
+def fetch_leaderboard_results(system=None, person=None):
     """ Returns the leaderboard for the current system.
     """
     pass
