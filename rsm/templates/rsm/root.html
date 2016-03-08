@@ -104,9 +104,10 @@
 
 {% block content %}
 
-
 {% if system_list %}
 <div class="container">
+
+    <div style="padding-top: 1em">Use response surface methods to optimize these systems:</div>
 
     <ul class="polaroids large-block-grid-4 small-block-grid-2">
     {% for system in system_list %}
@@ -117,8 +118,6 @@
         </li>
     {% endfor %}
     </ul>
-
-
 
 </div>
 {% else %}

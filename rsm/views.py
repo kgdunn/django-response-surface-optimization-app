@@ -730,8 +730,8 @@ def validate_user(request, hashvalue):
 
     if token.was_used:
         # Prevents a token from being re-used.
-        message = ('That validation key has been used already. Please request '
-                   'another by clicking on the "Sign-in" button')
+        message = ('That validation key has been already used. Please request '
+                   'another by clicking on the "Sign-in" button on the home page.')
         request_new_token = True
 
     if request.POST:
