@@ -622,6 +622,8 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
         # If this is zero, it is because it is the first time the person has
         # visited this system
         if persysts.count() == 0:
+            logger.debug("First visit to {0} for person {1} ".format(system,
+                                                                     person))
             future = datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).\
                 replace(tzinfo=utc)
             solution_date = datetime.datetime.now() + \
@@ -634,6 +636,8 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
             persyst.save()
         else:
             persyst = persysts[0]
+            logger.debug("Returning visitor {1} to system {0}.".format(system,
+                                                                       person))
 
 
         # Have there been any prior experiments for this person?
@@ -660,6 +664,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
         if datetime.datetime.now().replace(tzinfo=utc) > \
                                persyst.show_solution_as_of.replace(tzinfo=utc):
             show_solution = True
+            logger.debug("Solution being shown on account of date/time")
 
 
         n_expts = models.Experiment.objects.filter(system=persyst.system,
@@ -670,6 +675,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
             extra_information = ('You have reached the maximum number of '
                                  'experiments allowed. The solution will be '
                                  'automatically displayed below.')
+            logger.debug("Solution being shown on account n_expts >= max")
 
         if show_solution:
             # Have we generated the solution before? If so, don't do it again.
