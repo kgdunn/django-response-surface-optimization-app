@@ -35,6 +35,8 @@ import numpy as np
 os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'
 #import matplotlib.pyplot as plt  # load this here during production only
 from matplotlib.pyplot import contour
+import matplotlib
+matplotlib.use( 'Agg' )
 
 
 # Some settings for this app:
