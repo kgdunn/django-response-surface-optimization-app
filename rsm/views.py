@@ -29,8 +29,8 @@ from collections import defaultdict, namedtuple
 import logging
 import numpy as np
 
-if DJANGO_SETTINGS.DEBUG == False:
-    import matplotlib.pyplot as plt  # load this here during production only
+#if DJANGO_SETTINGS.DEBUG == False:
+import matplotlib.pyplot as plt  # load this here during production only
 
 
 # Some settings for this app:
@@ -1579,7 +1579,6 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             logger.debug('Plot generation: part 6a: loading library')
 
             # Takes a long time to load this library, so do it here during dev.
-            import matplotlib.pyplot as plt
             CS = plt.contour(X, Y, Z)
             levels = CS.levels.tolist()
             max_resp = np.max(Z)
