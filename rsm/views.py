@@ -1812,7 +1812,11 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
         else:
             plot_out += line[0:line.find('//')] + '\n'
 
-    return plot_out
+
+    logger.debug('About to save the generated HTML.')
+    persyst.plot_HTML = plot_out
+    persyst.save()
+
 
 def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
     """Plots the data by generating HTML code that may be rendered into the
@@ -1848,9 +1852,7 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
             # The plot_HTML has been cleared; we're going to have to regenerate
             # the plot code.
             logger.debug('Solution HTML about to be generated.')
-            persyst.plot_HTML = plot_wrapper(data, persyst, input_set,
-                                             hash_value, show_solution)
-            persyst.save()
+            plot_wrapper(data, persyst, input_set, hash_value, show_solution)
             logger.debug('Solution HTML was generated.')
     else:
         assert(False)  # This shouldn't happen ever; since we add a baseline run
