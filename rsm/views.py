@@ -1205,6 +1205,8 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     # 8. What to do when we mouse over the plot?
     # 9. Close off and render the plot
 
+    logger.debug('Plot generation: part 0')
+
     # 0. Create the empty figure
     #=========================
     plot_HTML = """
@@ -1290,6 +1292,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
     # 1. Get the data to plot and the plot bounds
     #=========================
+    logger.debug('Plot generation: part 1')
     responses = data['_output_']
     x_range_min, x_range_max, y_range_min, y_range_max = 0, 0, 0, 0
     if show_solution:
@@ -1356,6 +1359,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
     # 2. Create the axes and set the axes names
     #=========================
+    logger.debug('Plot generation: part 2')
     x_label = get_axis_label_name(inputs[0])
     if len(inputs) == 1:
         y_label = 'Response: {0}'.format(
@@ -1416,6 +1420,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
     # 3. Create the gridlines
     #=========================
+    logger.debug('Plot generation: part 3')
     plot_HTML += """
     // X-axis gridlines
     svg.append("g")
@@ -1438,6 +1443,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
     # 4. Plot title
     #=========================
+    logger.debug('Plot generation: part 4')
     plot_HTML += """
     // Chart title
     svg.append("g")
@@ -1461,6 +1467,8 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     #
     #    if len(inputs) in [1, 2]:
     #        ax.plot(x_data, y_data, 'k.', ms=marker_size)
+
+    logger.debug('Plot generation: part 5')
     plot_HTML += "\n    var rawdata = [\n"
     for idx, point in enumerate(x_data):
         plot_HTML += ('{{"x": {0}, "y": {1}, "rad": {2}, "col": "{3}", '
@@ -1491,6 +1499,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     # or rather do this using Javascript
 
     # 6. Show the result
+    logger.debug('Plot generation: part 6')
     if show_solution:
     # =========================
 
@@ -1567,12 +1576,16 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             x_round = int(np.ceil(4 - np.log10(np.max(X) - np.min(X))))
             y_round = int(np.ceil(4 - np.log10(np.max(Y) - np.min(Y))))
 
+            logger.debug('Plot generation: part 6a: loading library')
+
             # Takes a long time to load this library, so do it here during dev.
             import matplotlib.pyplot as plt
             CS = plt.contour(X, Y, Z)
             levels = CS.levels.tolist()
             max_resp = np.max(Z)
             N = len(levels)
+            logger.debug('Plot generation: part 6b: processing contours')
+
             # Add some extra levels based on a sqrt mapping (log(0.5) mapping)
             # i.e. find the values xx and yy below, given ``max_resp``
             # Value       Map   sqrt(Map)
@@ -1685,6 +1698,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
     # 7. Add the legend
     # =============================
+    logger.debug('Plot generation: part 7')
     plot_HTML += """
     if(showlegend){
 	var legbox = svg.append("g")
@@ -1718,6 +1732,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
     # 8. What to do when we mouse over the plot?
     # =============================
+    logger.debug('Plot generation: part 8')
     plot_HTML += """
     // What to do when we mouse over a bubble
     var mouseOn = function() {
@@ -1792,6 +1807,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
     # 9. Close off and render the plot
     # =============================
+    logger.debug('Plot generation: part 9')
     plot_HTML += """
 
     }  // End of the function: ``redraw_rsmchart``
