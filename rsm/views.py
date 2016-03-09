@@ -740,6 +740,8 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                'plot_html': persyst.plot_HTML,
                'data_html': plot_raw_data,
                'show_solution': show_solution,
+               'number_remaining': (system.max_experiments_allowed - \
+                            len(plot_raw_data) ),
                'budget_remaining': (system.max_experiments_allowed - \
                             len(plot_raw_data) )*system.cost_per_experiment,
                }
