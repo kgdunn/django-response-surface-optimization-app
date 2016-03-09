@@ -53,7 +53,7 @@
     }
     ul.polaroids img {
         display: block;
-        width: 190px;
+        width: 100%;
         margin-bottom: 12px;
     }
     ul.polaroids a:after {
@@ -98,6 +98,19 @@
         position: relative;
         z-index: 5;
     }
+    h2 {
+        position: absolute;
+        top: 200px;
+        left: 0;
+        width: 100%;
+    }
+    h2 span {
+        color: white;
+        font: bold 36px/45px Helvetica, Sans-Serif;
+        background: rgb(0, 0, 0); /* fallback color */
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+    }
     </style>
 {% endblock %}
 {# ------------------------------------------------#}
@@ -110,10 +123,13 @@
     <div style="padding-top: 1em">Use response surface methods to optimize these systems:</div>
 
     <ul class="polaroids large-block-grid-4 small-block-grid-2">
-    {% for system in system_list %}
+    {% for system in systems %}
         <li>
-            <a href="{% url 'rsmapp:show_one_system' system.slug %}" title="{{ system.full_name }}" data-ajax="false">
-                <img class="front-image" alt="{{ system.full_name }} :: {{ system.image_source_URL }}" src="{% static system.image_description.url %}"/>
+            <a href="{% url 'rsmapp:show_one_system' system.system.slug %}" title="{{ system.system.full_name }}" data-ajax="false">
+                <img class="front-image" alt="{{ system.system.full_name }} :: {{ system.system.image_source_URL }}" src="{% static system.system.image_description.url %}"/>
+                <h2><span>
+                    {% if system.solved %}Solved{%else%}Start solving!{%endif%}
+                </span></h2>
             </a>
         </li>
     {% endfor %}

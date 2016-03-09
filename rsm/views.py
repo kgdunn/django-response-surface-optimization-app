@@ -429,9 +429,24 @@ def show_all_systems(request):
     system_list = models.System.objects.filter(is_active=True).order_by('level')
     person, enabled_status = get_person_info(request)
 
+    solved_list = np.zeros(len(system_list)).tolist()
+    if enabled_status:
+
+        for idx, system in enumerate(system_list):
+            persyst = models.PersonSystem.objects.filter(person=person,
+                                                        system=system)
+            # i.e. the person has not yet attempted this system: therefore
+            if len(persyst) == 0:
+                solved_list[idx] = 0
+            else:
+                solved_list[idx] = persyst[0].is_solved
+
+    systems = [{'system': t[0], 'solved': t[1]} for t in zip(system_list,
+                                                             solved_list)]
     context = {'system_list': system_list,
                'person': person,
                'enabled': enabled_status,
+               'systems': systems,
               }
     return render(request, 'rsm/show-all-systems.html', context)
 
@@ -566,6 +581,7 @@ def show_solution_one_system(request, short_name_slug):
         return process_experiment(request, short_name_slug)
 
     persyst = persysts[0]
+    persyst.completed_date = datetime.datetime.now().replace(tzinfo=utc)
     persyst.show_solution_as_of = datetime.datetime.now().replace(tzinfo=utc)
     persyst.save()
 
@@ -615,6 +631,12 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
     extra_information = ''
     show_solution = False
+
+    # Use a fake object: this is only for anonymous users, since they are
+    # not allowed to interact with the systems until signed in.
+    persyst_fake = namedtuple('FakeObject', ['plot_HTML',])
+    persyst = persyst_fake(plot_HTML='')
+
     if enabled_status:
         # If enabled, it allows the user to interact with this system.
 
@@ -664,8 +686,9 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                                                  default_values)
 
         # Should we show the solution? Let's check:
-        if datetime.datetime.now().replace(tzinfo=utc) > \
-                               persyst.show_solution_as_of.replace(tzinfo=utc):
+        #if datetime.datetime.now().replace(tzinfo=utc) > \
+        #                       persyst.show_solution_as_of.replace(tzinfo=utc):
+        if persyst.is_solved:
             show_solution = True
             logger.debug("Solution being shown on account of date/time")
 

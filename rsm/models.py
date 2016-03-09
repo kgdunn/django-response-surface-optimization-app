@@ -1,6 +1,7 @@
 from django.db import models
 import numpy as np
-
+import datetime
+from django.utils.timezone import utc
 
 class Person(models.Model):
     """ Defines a person / course participant """
@@ -48,6 +49,13 @@ class PersonSystem(models.Model):
     def __str__(self):
         return '{0} [{1}]'.format(self.system.full_name,
                                   self.person.display_name, )
+
+    def has_solved(self):
+        """Determines if the system has been solved."""
+        return self.completed_date < datetime.datetime.now().replace(tzinfo=utc)
+
+    is_solved = property(has_solved)
+
 
 class Token(models.Model):
     """ Tokens capture time/date and permissions of a user to access the
