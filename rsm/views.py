@@ -433,7 +433,7 @@ def show_all_systems(request):
                'person': person,
                'enabled': enabled_status,
               }
-    return render(request, 'rsm/root.html', context)
+    return render(request, 'rsm/show-all-systems.html', context)
 
 def process_experiment(request, short_name_slug):
     """ Processes the user's requested experiment; runs it, if it is valid.
@@ -969,26 +969,35 @@ def generate_solution(persyst):
     RESOLUTION = 50
     data, hash_value = get_person_experimental_data(persyst, input_set)
 
-    for idx, inputi in enumerate(input_set):
+    idx = 0
+    for inputi in input_set:
         input_name = inputi.slug.replace('-', '')
 
-        # Generate the contour plot in the range that the user worked in.
-        sub_data = data[inputi.slug]
-        range_min, range_max, delta = plotting_defaults(sub_data,
-            clamps=[inputi.plot_lower_bound, inputi.plot_upper_bound],
-            force_clamps=True)
 
-        values[input_name] = np.linspace(start=range_min,
-                                                  stop=range_max,
-                                                  num=RESOLUTION,
-                                                  endpoint=True)
-        # Get the data necessary to construct the meshgrid
-        if idx == 0 and len(input_set) >= 2:
-            x = values[input_name]
-            xname = input_name
-        if idx == 1 and len(input_set) >= 2:
-            y = values[input_name]
-            yname = input_name
+        # Deal with continuous and categorical inputs differently.
+        if inputi.ntype == 'CON':
+            # Generate the contour plot in the range that the user worked in.
+            sub_data = data[inputi.slug]
+            range_min, range_max, delta = plotting_defaults(sub_data,
+                clamps=[inputi.plot_lower_bound, inputi.plot_upper_bound],
+                force_clamps=True)
+
+            values[input_name] = np.linspace(start=range_min,
+                                                      stop=range_max,
+                                                      num=RESOLUTION,
+                                                      endpoint=True)
+            # Get the data necessary to construct the meshgrid
+            if idx == 0 and len(input_set) >= 2:
+                x = values[input_name]
+                xname = input_name
+            if idx == 1 and len(input_set) >= 2:
+                y = values[input_name]
+                yname = input_name
+
+            idx += 1
+
+        elif inputi.ntype == 'CAT':
+            pass
 
     # Special processing for 2D systems
     if len(input_set) >= 2:
