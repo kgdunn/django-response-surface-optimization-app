@@ -36,25 +36,24 @@
 {% if enabled %}
 <h2>Please choose a name for our website</h2>
 <p>We require you to pick a short name for our leaderboards. This is so you can
-compare where you stand with others. We have a created a random name, and made suggestions for others. <em>Please note, the suggestions are totally random generated.</em>
+compare where you stand with others. We have a created a random name, and made 
+suggestions for others. <em>Please note, the suggestions are totally random generated.</em>
 {% endif %}
 
 <p>
 <strong><span id="rsm-error-message" class="rsm-error input-error">{{ message|safe }}</span></strong>
 
 {% if enabled %}
-<form method="post" id="rsm-choose-username" action="{% url 'rsmapp:validate_user' hashvalue %}" name="rsm-choose-username">
+<form method="post" id="rsm-choose-username" action="{% url 'rsmapp:validate_user' hashvalue %}" name="rsm-choose-username" style="max-width: 500px;">
     {% csrf_token %}
     <label for="username">Your current name:</label>
     <input name="rsm_username" id="_rsm_username_" minlength="4" maxlength="50" type="text" placeholder="{{person.display_name}}" value="{{person.display_name}}">
     <input id="username-submit-button" type="submit" value="Choose this name!"/>
-    <br>Must be 4 or more characters
     {% if suggestions %}
-    <p>(click on a different name below to select that, or use the existing one)
+	<br>Choose one of these random names, or type in your own choice above (refresh the page for more suggestions).
         <ul data-inset="true"  >
         {% for item in suggestions %}
             <li><input type="button"
-                       class="ui-btn ui-icon ui-btn-inline ui-corner-all"
                        value="{{item}}"
                        onclick="pushtext(this, '{{item}}')">
         {% endfor %}
