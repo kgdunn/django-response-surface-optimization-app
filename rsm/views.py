@@ -1584,8 +1584,39 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
             logger.debug('Plot generation: part 6a: loading library')
 
-            # Takes a long time to load this library, so do it here during dev.
-            CS = contour(X, Y, Z)
+            from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+            from matplotlib.figure import Figure
+            fig = Figure()
+            canvas = FigureCanvas(fig)
+            ax = fig.add_subplot(111)
+            CS = ax.contour(X, Y, Z)
+
+
+            #in_filename = 'contour.txt'
+            #out_filename = 'contour_segments.txt'
+            #out_filename_time = time.ctime(os.path.getmtime(out_filename))
+            #with file(in_filename, 'wt') as infile:
+                #infile.write(json.dumps(X) + '\n')
+                #infile.write(json.dumps(Y) + '\n')
+                #infile.write(json.dumps(Z) + '\n')
+
+            #k = 0
+            #read_file = False
+            #while k < 10 and not(read_file):
+
+                #if out_filename_time != time.ctime(os.path.getmtime(\
+                                                                 #out_filename)):
+                    #read_file = True
+                #k += 1
+                #time.sleep(0.1)
+
+            #if read_file:
+                #with file(out_filename, 'rt') as outfile:
+                    #pass  # outfile.readlines()
+            #else:
+                #logger.error('Could not read the solution file')
+
+
             logger.debug('Plot generation: part 6b: library used')
             levels = CS.levels.tolist()
             max_resp = np.max(Z)
