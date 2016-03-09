@@ -692,11 +692,14 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
             show_solution = True
             logger.debug("Solution being shown on account of date/time")
 
-
         n_expts = models.Experiment.objects.filter(system=persyst.system,
                                                    person=persyst.person,
                             was_successful=True).count()
         if n_expts >= system.max_experiments_allowed:
+            if persyst.completed_date  > datetime.datetime.now().replace(tzinfo=utc):
+                persyst.completed_date = datetime.datetime.now().replace(tzinfo=utc)
+                persyst.save()
+
             show_solution = True
             extra_information = ('You have reached the maximum number of '
                                  'experiments allowed. The solution will be '
