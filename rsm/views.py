@@ -1640,7 +1640,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             levels.extend([xx, yy, (yy+max_resp+max_resp+max_resp)/4.0])
             off_peak = max_resp - 0.03*(max_resp - levels[-1])
             levels.extend([off_peak, max_resp, ])
-            CS = contour(X, Y, Z, levels=levels)
+            CS = ax.contour(X, Y, Z, levels=levels)
             logger.debug('Plot generation: part 6d: processing contours again.')
             colour = []
 
