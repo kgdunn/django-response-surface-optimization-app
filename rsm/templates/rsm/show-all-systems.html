@@ -104,12 +104,27 @@
         left: 0;
         width: 100%;
     }
+    h3 {
+        position: absolute;
+        top: 30px;
+        left: 0;
+        width: 100%;
+    }
+
     h2 span {
         color: white;
         font: bold 36px/45px Helvetica, Sans-Serif;
         background: rgb(0, 0, 0); /* fallback color */
         background: rgba(0, 0, 0, 0.7);
         padding: 10px;
+    }
+    h3 span {
+        color: white;
+        font: bold 16px/26px Helvetica, Sans-Serif;
+        background: rgb(0, 0, 0); /* fallback color */
+        background: rgba(0, 0, 0, 0.7);
+        padding: 5px;
+        float: left;
     }
     </style>
 {% endblock %}
@@ -130,6 +145,9 @@
                 <h2><span>
                     {% if system.solved %}Solved{%else%}Start solving!{%endif%}
                 </span></h2>
+                 <h3><span>
+                    Level: {{ system.system.level }}
+                </span></h3>
             </a>
         </li>
     {% endfor %}

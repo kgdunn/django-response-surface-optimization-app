@@ -119,8 +119,7 @@ class System(models.Model):
 
     image_description = models.ImageField(null=True, upload_to='rsm')
     image_source_URL = models.CharField(max_length=500, default='')
-    level = models.FloatField(verbose_name=("Skill level "
-                                                           "required by user"),
+    level = models.FloatField(verbose_name=("Skill level required by user"),
                                      blank=False, null=False, default=0)
     source = models.TextField(verbose_name=("Python source code that will be "
                                            "executed. A function with the "
