@@ -98,7 +98,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 STATIC_URL = '/images/'
 
-STATIC_ROOT = ''  # Define in "local_settings.py"
+STATIC_ROOT = ''          # Define in "local_settings.py"
 STATICFILES_DIRS = ("", ) # Define in "local_settings.py"
 
 try:
