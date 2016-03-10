@@ -622,8 +622,6 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     # Get the current ``person``
     person, enabled_status = get_person_info(request)
 
-
-
     logger.debug("Showing a system for person {0} ".format(person))
 
     # Get the relevant input objects for this system
@@ -728,8 +726,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
     # if-else-end: if enabled_status
 
-    fetch_leaderboard_results_one_system(system=system, person=person)
-
+    leads = fetch_leaderboard_results_one_system(system=system, person=person)
 
     input_set, categoricals = process_simulation_inputs_templates(input_set,
                                                                   request,
@@ -737,6 +734,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
 
     context = {'system': system,
                'input_set': input_set,
+               'leads' : leads,
                'person': person,
                'enabled': enabled_status,
                'extra_information': extra_information,
@@ -1116,8 +1114,12 @@ def fetch_leaderboard_results_one_system(system=None, person=None):
 
     leads = []
     for persyst in persysts:
-        leads.append((persyst.person.display_name, persyst.get_score()))
-    leads.sort()
+        you = 0
+        if person == persyst.person:
+            you = 1
+
+        leads.append((you, persyst.person.display_name, persyst.get_score()))
+    leads.sort(reverse=True)
     return leads
 
 def update_leaderboard_score(persyst):
@@ -1131,30 +1133,29 @@ def update_leaderboard_score(persyst):
         for expt in expts:
             responses.append(expt.output)
 
+        now_update = [{}, datetime.datetime.now().isoformat()]
         max_output = np.max(responses)
-        true_opt = 23.0
+        true_opt = persyst.system.known_optimum_response
 
         # Start with the closeness to the optimum. Don't forget to remove
         # the offset that has been artificially added. This should now
         # get you a number that is close to 0.0 if you are at the optimum.
-        score = (max_output - true_opt)/(true_opt - persyst.offset_y)
+        score = np.abs((true_opt - (max_output-persyst.offset_y))/(true_opt ))
         score = (1.0 - score)*100.0
-
+        now_update[0]['closeness'] = score
 
         # Now account for the minumum number of experiments, and the actual
         # number of experments. This reduces the current score. It has the
         # effect that users will see their score increase for the first few
         # experiments, even though they are not necessarily getting closer
         # to the optimum.
-        minus_number = np.power(np.abs(len(expts) - \
-                                persyst.system.min_experiments_allowed), 1.5)
+        run_penalty = np.power(np.abs(len(expts) - \
+                                persyst.system.min_experiments_allowed), 0.9)
+        now_update[0]['run_penalty'] = run_penalty
 
-        score = score - minus_number
-
-
-
-        persyst.system.known_peak_inputs
-
+        score = score - run_penalty
+        now_update[0]['score'] = score
+        leaderboard.append(now_update)
         persyst.leaderboard = json.dumps(leaderboard)
         persyst.save()
 

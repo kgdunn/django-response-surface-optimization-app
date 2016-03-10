@@ -45,10 +45,11 @@ class PersonSystem(models.Model):
     plot_hash = models.CharField(max_length=32, editable=False, default='-'*32)
     plot_HTML = models.TextField(default='', blank=True)
 
-    # JSON field that shows the leaderboard breakdown and scores
-    # {'score': ___ (number), 'true_optimum': ____ (number)}
-    leaderboard = models.TextField(default='{"score": -1.0}', blank=True)
-
+    # JSON field that shows the leaderboard breakdown and scores:
+    # It is a list of score dictionaries, to track the leaderboard trajectory
+    # of the user over time.
+    # [[{"score": -1.0}, datetime], [{...}, datetime], etc]
+    leaderboard = models.TextField(default='[[{"score": -1.0}, 0]]', blank=True)
 
 
     def __str__(self):
@@ -61,7 +62,10 @@ class PersonSystem(models.Model):
     is_solved = property(has_solved)
 
     def get_score(self):
-        return json.loads(self.leaderboard).get('score', -1.0)
+        try:
+            return json.loads(self.leaderboard)[-1][0].get('score', -1.0)
+        except KeyError:
+            return -1.0
 
 class Token(models.Model):
     """ Tokens capture time/date and permissions of a user to access the

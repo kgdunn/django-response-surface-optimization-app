@@ -108,6 +108,9 @@
     }
 
 }
+    .rsm-person-you{
+        background-color: #aaa;
+    }
     </style>
     {% if not enabled %}
         <script type="text/javascript">
@@ -125,7 +128,30 @@
 <div class="rsm-colmask liquid2col">
     <div class="rsm-columns rsm-columns-75-25">
         <div class="col75">
-           {{system.description|safe|linebreaks}}
+
+            <!-- Another break with 2 columns inside here -->
+
+            <div class="rsm-colmask liquid2col">
+                <div class="rsm-columns rsm-columns-30-70">
+                    <div class="col30" style="background-color: #ddd; padding:0.5em;">
+                        <h3 style="text-align: center">Leading for this system</h3>
+                        <table>
+                            {% for item in leads %}
+                                <tr>
+                                    <td>{% if item.0 %}&#10140;{% endif %}</td>
+                                    <td style="padding-right: 1.0em" id="{% if item.0 %}rsm-person-you{% endif %}">{{ item.1 }}</td>
+                                    <td>{{ item.2|floatformat:1 }}</td></tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                    <div class="col70">
+                        {{system.description|safe|linebreaks}}
+                    </div>
+                </div>
+            </div>
+
+            <!-- /Another break with 2 columns inside here -->
+
         </div>
         <div class="col25">
             <img class="front-image" src="{% static system.image_description.url %}" alt="{{ system.full_name }} :: {{ system.image_source_URL }}" />
@@ -174,6 +200,7 @@
            <!-- Left 70% -->
 
 <!-- --------------------------------------------- -->
+
 {% if input_set and not show_solution %}
 <hr>
 <h2>Your next experiment</h2>
