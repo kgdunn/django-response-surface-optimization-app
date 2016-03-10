@@ -158,11 +158,7 @@ class System(models.Model):
                                                      "to users."), default=0)
     tags = models.ManyToManyField('rsm.Tag')
 
-    # Not used yet
-    known_peak_inputs = models.TextField(verbose_name=("JSON structure giving "
-                                                       "the input(s) known to "
-                                                       "produce a maximum"),
-                                         blank=True)
+    system_notes = models.TextField(blank=True)
     known_optimum_response = models.FloatField(default=-9999999999)
     cost_per_experiment = models.FloatField(help_text="Dollar cost per run",
                                             default=10.00)
