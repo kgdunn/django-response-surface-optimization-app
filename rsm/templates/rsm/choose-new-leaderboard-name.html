@@ -36,7 +36,7 @@
 {% if enabled %}
 <h2>Please choose a name for our website</h2>
 <p>We require you to pick a short name for our leaderboards. This is so you can
-compare where you stand with others. We have a created a random name, and made 
+compare where you stand with others. We have a created a random name, and made
 suggestions for others. <em>Please note, the suggestions are totally random generated.</em>
 {% endif %}
 
@@ -47,7 +47,7 @@ suggestions for others. <em>Please note, the suggestions are totally random gene
 <form method="post" id="rsm-choose-username" action="{% url 'rsmapp:validate_user' hashvalue %}" name="rsm-choose-username" style="max-width: 500px;">
     {% csrf_token %}
     <label for="username">Your current name:</label>
-    <input name="rsm_username" id="_rsm_username_" minlength="4" maxlength="50" type="text" placeholder="{{person.display_name}}" value="{{person.display_name}}">
+    <input name="rsm_username" id="_rsm_username_" minlength="4" maxlength="50" type="text" placeholder="Create a username, or select one below" value="">
     <input id="username-submit-button" type="submit" value="Choose this name!"/>
     {% if suggestions %}
 	<br>Choose one of these random names, or type in your own choice above (refresh the page for more suggestions).

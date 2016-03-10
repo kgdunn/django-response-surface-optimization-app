@@ -287,7 +287,7 @@
         </table>
 
 <script type="text/javascript">
-    var closePopup = function(event){
+    var closePopup_reset = function(event){
         $('#reset-popup').popup("close");
         event.preventDefault();
         };
@@ -313,7 +313,7 @@
     });
 </script>
 <script type="text/javascript">
-    var closePopup = function(event){
+    var closePopup_showsoln = function(event){
         $('#solution-popup').popup("close");
         event.preventDefault();
         };
@@ -359,7 +359,7 @@
                     This will clear all experiments for this system and start from a fresh baseline experiment.<br>
 
                     <input id="popup-delete-submit-button" type="submit" data-rel="back" data-inline="true" value="Delete all the above experiments!">
-                    <span id="popup-Cancel-span" style="float: right"><input id="popup-Cancel-button" type="button" data-inline="true" value="Cancel" onclick="closePopup()"></span>
+                    <span id="popup-Cancel-span" style="float: right"><input id="popup-Cancel-button" type="button" data-inline="true" value="Cancel" onclick="closePopup_reset()"></span>
                 </div>
             </form>
         </div>
@@ -384,7 +384,7 @@
                         <h3>Wait!</h3>
                         You cannot see the true solution until running at least <br>a total
                         of <b>{{system.min_experiments_allowed}}</b> experiments for this system.<br>
-                        <input id="popup-Cancel-button" type="button" data-inline="true" value="OK" onclick="closePopup()">
+                        <input id="popup-Cancel-button" type="button" data-inline="true" value="OK" onclick="closePopup_showsoln()">
                     {% else %}
 
                         <h3>Are you sure?</h3>
@@ -392,7 +392,7 @@
                         no further experiments are then possible afterwards.<br>
 
                         <input id="popup-solution-submit-button" type="submit" data-rel="back" data-inline="true" value="Show solution for this system!">
-                        <span id="popup-Cancel-span" style="float: right"><input id="popup-Cancel-button" type="button" data-inline="true" value="Cancel" onclick="closePopup()"></span>
+                        <span id="popup-Cancel-span" style="float: right"><input id="popup-Cancel-button" type="button" data-inline="true" value="Cancel" onclick="closePopup_showsoln()"></span>
 
                     {% endif %}
                     </div>
