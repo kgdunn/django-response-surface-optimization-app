@@ -1118,7 +1118,7 @@ def fetch_leaderboard_results_one_system(system=None, person=None):
         if person == persyst.person:
             you = 1
 
-        leads.append((you, persyst.person.display_name, persyst.get_score()))
+        leads.append((persyst.get_score(), persyst.person.display_name, you))
     leads.sort(reverse=True)
     return leads
 

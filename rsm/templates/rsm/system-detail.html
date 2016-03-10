@@ -138,9 +138,9 @@
                         <table>
                             {% for item in leads %}
                                 <tr>
-                                    <td>{% if item.0 %}&#10140;{% endif %}</td>
-                                    <td style="padding-right: 1.0em" id="{% if item.0 %}rsm-person-you{% endif %}">{{ item.1 }}</td>
-                                    <td>{{ item.2|floatformat:1 }}</td></tr>
+                                    <td>{% if item.2 %}&#10140;{% endif %}</td>
+                                    <td style="padding-right: 1.0em" id="{% if item.2 %}rsm-person-you{% endif %}">{{ item.1 }}</td>
+                                    <td style="text-align: right;">{{ item.0|floatformat:1 }}</td></tr>
                             {% endfor %}
                         </table>
                     </div>
