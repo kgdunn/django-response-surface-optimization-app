@@ -1,6 +1,7 @@
 from django.db import models
 import numpy as np
 import datetime
+import json
 from django.utils.timezone import utc
 
 class Person(models.Model):
@@ -44,6 +45,10 @@ class PersonSystem(models.Model):
     plot_hash = models.CharField(max_length=32, editable=False, default='-'*32)
     plot_HTML = models.TextField(default='', blank=True)
 
+    # JSON field that shows the leaderboard breakdown and scores
+    # {'score': ___ (number), 'true_optimum': ____ (number)}
+    leaderboard = models.TextField(default='{"score": -1.0}', blank=True)
+
 
 
     def __str__(self):
@@ -53,9 +58,10 @@ class PersonSystem(models.Model):
     def has_solved(self):
         """Determines if the system has been solved."""
         return self.completed_date < datetime.datetime.now().replace(tzinfo=utc)
-
     is_solved = property(has_solved)
 
+    def get_score(self):
+        return json.loads(self.leaderboard).get('score', -1.0)
 
 class Token(models.Model):
     """ Tokens capture time/date and permissions of a user to access the
@@ -147,10 +153,13 @@ class System(models.Model):
                                                      "the result may be shown "
                                                      "to users."), default=0)
     tags = models.ManyToManyField('rsm.Tag')
+
+    # Not used yet
     known_peak_inputs = models.TextField(verbose_name=("JSON structure giving "
                                                        "the input(s) known to "
                                                        "produce a maximum"),
                                          blank=True)
+    known_optimum_response = models.FloatField(default=-9999999999)
     cost_per_experiment = models.FloatField(help_text="Dollar cost per run",
                                             default=10.00)
     min_experiments_allowed = models.PositiveIntegerField(default=5)

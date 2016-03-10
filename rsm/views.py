@@ -622,7 +622,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
     # Get the current ``person``
     person, enabled_status = get_person_info(request)
 
-    fetch_leaderboard_results(person=person)
+
 
     logger.debug("Showing a system for person {0} ".format(person))
 
@@ -727,6 +727,9 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
         plot_raw_data = [ ]
 
     # if-else-end: if enabled_status
+
+    fetch_leaderboard_results_one_system(system=system, person=person)
+
 
     input_set, categoricals = process_simulation_inputs_templates(input_set,
                                                                   request,
@@ -950,7 +953,10 @@ def create_experiment_object(request, system, values, N_values=1):
 
 def execute_experiment_object(expt_obj, persyst, values):
     """Typically called after ``create_experiment_object`` once all inputs
-    have been cleaned and checked."""
+    have been cleaned and checked.
+
+    Also updates the leaderboard score for this user.
+    """
     # Clean-up the inputs by dropping any disallowed characters from the
     # function inputs:
     values_simulation = values.copy()
@@ -962,13 +968,12 @@ def execute_experiment_object(expt_obj, persyst, values):
     result, duration = run_simulation(persyst.system, values_simulation)
     expt_obj.time_to_solve = duration
 
-    # Finally, store the simulation results and return the experimental object
+    # Store the simulation results and return the experimental object
     expt_obj = process_simulation_output(result, expt_obj, persyst.system)
 
     # Add biasing that is specific for this user
     if expt_obj.was_successful:
         expt_obj.main_result = expt_obj.main_result + persyst.offset_y
-
 
     # Swap the actual (rotated) value used in the simulation with
     # the user required value. So that the user sees the display
@@ -983,6 +988,10 @@ def execute_experiment_object(expt_obj, persyst, values):
 
     expt_obj.inputs = inputs_to_JSON(values)
     expt_obj.save()
+
+    # Update the leaderboard value
+    update_leaderboard_score(persyst)
+
     return expt_obj
 
 def generate_solution(persyst):
@@ -1100,10 +1109,55 @@ def generate_solution(persyst):
     persyst.solution_data = json.dumps(solution_data, allow_nan=True)
     return persyst
 
-def fetch_leaderboard_results(system=None, person=None):
+def fetch_leaderboard_results_one_system(system=None, person=None):
     """ Returns the leaderboard for the current system.
     """
-    pass
+    persysts = models.PersonSystem.objects.filter(system=system)
+
+    leads = []
+    for persyst in persysts:
+        leads.append((persyst.person.display_name, persyst.get_score()))
+    leads.sort()
+    return leads
+
+def update_leaderboard_score(persyst):
+        """Calculates and updates the leaderboard score and stores it for the
+        current Person/System combination."""
+        leaderboard = json.loads(persyst.leaderboard)
+        input_set = models.Input.objects.filter(system=persyst.system).\
+                                                       order_by('slug')
+        expts = get_plot_and_data_HTML(persyst, input_set, show_solution=False)
+        responses = []
+        for expt in expts:
+            responses.append(expt.output)
+
+        max_output = np.max(responses)
+        true_opt = 23.0
+
+        # Start with the closeness to the optimum. Don't forget to remove
+        # the offset that has been artificially added. This should now
+        # get you a number that is close to 0.0 if you are at the optimum.
+        score = (max_output - true_opt)/(true_opt - persyst.offset_y)
+        score = (1.0 - score)*100.0
+
+
+        # Now account for the minumum number of experiments, and the actual
+        # number of experments. This reduces the current score. It has the
+        # effect that users will see their score increase for the first few
+        # experiments, even though they are not necessarily getting closer
+        # to the optimum.
+        minus_number = np.power(np.abs(len(expts) - \
+                                persyst.system.min_experiments_allowed), 1.5)
+
+        score = score - minus_number
+
+
+
+        persyst.system.known_peak_inputs
+
+        persyst.leaderboard = json.dumps(leaderboard)
+        persyst.save()
+
 
 def get_person_experimental_data(persyst, input_set):
     """Gets the data for a person and returns it, together with a hash value
