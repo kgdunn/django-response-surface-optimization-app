@@ -308,7 +308,8 @@ def process_simulation_output(result, next_run, system):
         next_run.other_outputs = json.dumps(result)
 
     # TODO v2: adding the time-delay before results are displayed to the user.
-    next_run.earliest_to_show = datetime.now().replace(tzinfo=utc)
+    next_run.earliest_to_show = datetime.now().replace(tzinfo=utc) + \
+                        timedelta(seconds=system.max_seconds_before_solution)
 
     return next_run
 
