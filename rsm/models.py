@@ -94,12 +94,15 @@ class Experiment(models.Model):
     for a particular user. """
     person = models.ForeignKey('rsm.Person')
     system = models.ForeignKey('rsm.System')
-    delete_by = models.DateTimeField(auto_now=True,
-        verbose_name="Delete the experiment at this time if not validated.")
+
     time_to_solve = models.FloatField(verbose_name="Time to solve model",
                                       blank=False, null=False, default=0.0)
     earliest_to_show = models.DateTimeField(
         verbose_name="Don't show the result before this point in time")
+
+    message_while_waiting = models.CharField(max_length=510, default='',
+            help_text="Message to display while 'running' the experiment.'")
+
     # True if the result is successfully simulated (i.e. if the simulation
     # did not time out, or crash for some reason.)
     was_successful = models.BooleanField(default=False)
@@ -153,6 +156,7 @@ class System(models.Model):
         default="Response value")
     output_json = models.TextField(verbose_name=("Comma-separated list of model "
         'output names; the first one must be "result"'), default="result")
+
     delay_result = models.IntegerField(verbose_name=("Number of seconds before "
                                                      "the result may be shown "
                                                      "to users."), default=0)
