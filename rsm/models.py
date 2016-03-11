@@ -157,9 +157,6 @@ class System(models.Model):
     output_json = models.TextField(verbose_name=("Comma-separated list of model "
         'output names; the first one must be "result"'), default="result")
 
-    delay_result = models.IntegerField(verbose_name=("Number of seconds before "
-                                                     "the result may be shown "
-                                                     "to users."), default=0)
     tags = models.ManyToManyField('rsm.Tag')
 
     system_notes = models.TextField(blank=True)

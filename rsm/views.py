@@ -24,7 +24,7 @@ import json
 import decimal
 import random
 import hashlib
-import datetime
+from datetime import date, datetime, time, timedelta, MAXYEAR
 from smtplib import SMTPException
 from collections import defaultdict, namedtuple
 import logging
@@ -308,7 +308,7 @@ def process_simulation_output(result, next_run, system):
         next_run.other_outputs = json.dumps(result)
 
     # TODO v2: adding the time-delay before results are displayed to the user.
-    next_run.earliest_to_show = datetime.datetime.now().replace(tzinfo=utc)
+    next_run.earliest_to_show = datetime.now().replace(tzinfo=utc)
 
     return next_run
 
@@ -478,6 +478,9 @@ def process_experiment(request, short_name_slug):
 
         # TODO.v2: try-except path here to intercept time-limited experiments
         # if a new run is not valid, then raise an exception.
+        # Technically, a regular user from the website cannot run a run
+        # before the elapsed time, since the form is not displayed. But,
+        # you might want to add code here anyway to ensure that.
 
     except (WrongInputError, OutOfBoundsInputError, MissingInputError) as err:
 
@@ -581,8 +584,8 @@ def show_solution_one_system(request, short_name_slug):
         return process_experiment(request, short_name_slug)
 
     persyst = persysts[0]
-    persyst.completed_date = datetime.datetime.now().replace(tzinfo=utc)
-    persyst.show_solution_as_of = datetime.datetime.now().replace(tzinfo=utc)
+    persyst.completed_date = datetime.now().replace(tzinfo=utc)
+    persyst.show_solution_as_of = datetime.now().replace(tzinfo=utc)
     persyst.save()
 
     logger.debug('Set things up to show the solution; now going to render it.')
@@ -647,10 +650,10 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
         if persysts.count() == 0:
             logger.debug("First visit to {0} for person {1} ".format(system,
                                                                      person))
-            future = datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).\
+            future = datetime(MAXYEAR, 12, 31, 23, 59, 59).\
                 replace(tzinfo=utc)
-            solution_date = datetime.datetime.now() + \
-                datetime.timedelta(0, system.max_seconds_before_solution)
+            solution_date = datetime.now() + \
+                               timedelta(0, system.max_seconds_before_solution)
             solution_date = solution_date.replace(tzinfo=utc)
 
             persyst = models.PersonSystem(person=person, system=system,
@@ -684,7 +687,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                                                  default_values)
 
         # Should we show the solution? Let's check:
-        #if datetime.datetime.now().replace(tzinfo=utc) > \
+        #if datetime.now().replace(tzinfo=utc) > \
         #                       persyst.show_solution_as_of.replace(tzinfo=utc):
         if persyst.is_solved:
             show_solution = True
@@ -694,8 +697,8 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
                                                    person=persyst.person,
                             was_successful=True).count()
         if n_expts >= system.max_experiments_allowed:
-            if persyst.completed_date  > datetime.datetime.now().replace(tzinfo=utc):
-                persyst.completed_date = datetime.datetime.now().replace(tzinfo=utc)
+            if persyst.completed_date  > datetime.now().replace(tzinfo=utc):
+                persyst.completed_date = datetime.now().replace(tzinfo=utc)
                 persyst.save()
 
             show_solution = True
@@ -945,7 +948,7 @@ def create_experiment_object(request, system, values, N_values=1):
                                  inputs=inputs_to_JSON(values),
                                  time_to_solve=-500,
                                  earliest_to_show=
-    datetime.datetime(datetime.MAXYEAR, 12, 31, 23, 59, 59).replace(tzinfo=utc))
+                      datetime(MAXYEAR, 12, 31, 23, 59, 59).replace(tzinfo=utc))
     return next_run, values, persyst
 
 
@@ -1133,7 +1136,7 @@ def update_leaderboard_score(persyst):
         for expt in expts:
             responses.append(expt.output)
 
-        now_update = [{}, datetime.datetime.now().isoformat()]
+        now_update = [{}, datetime.now().isoformat()]
         max_output = np.max(responses)
         true_opt = persyst.system.known_optimum_response
 
