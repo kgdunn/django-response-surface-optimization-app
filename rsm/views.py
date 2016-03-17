@@ -24,7 +24,9 @@ import json
 import decimal
 import random
 import hashlib
-from datetime import date, datetime, time, timedelta, MAXYEAR
+from datetime import date, datetime, timedelta, MAXYEAR
+from datetime import time as dt_time
+
 from smtplib import SMTPException
 from collections import defaultdict, namedtuple
 import logging
@@ -145,8 +147,6 @@ def run_simulation(system, simvalues, show_solution=False):
         2/ the ``post_process(...)`` function is not executed
     """
     logger.debug('Running simultion for : {0}'.format(system.slug))
-
-    # If Python < 3.x, then we require the non-builtin library ``subprocess32``
     start_time = time.clock()
 
     code = "\nimport numpy as np\n"
@@ -195,6 +195,8 @@ def run_simulation(system, simvalues, show_solution=False):
         code += "out = convert_outputs(**out)\nprint(out)"
 
     command = r'python -c"{0}"'.format(code)
+
+    # If Python < 3.x, then we require the non-builtin library ``subprocess32``
     proc = subprocess.Popen(command,
                             shell=True,
                             bufsize=-1,
@@ -287,7 +289,7 @@ def process_simulation_input(values, inputs):
     # End of checking all the inputs
     return out
 
-def process_simulation_output(result, next_run, system):
+def process_simulation_output(result, next_run, system, is_baseline):
     """Cleans simulation output text, parses it, and returns it to be saved in
     the ``Experiment`` objects. The output is returned, but not saved here (that
     is to be done elsewhere).
@@ -307,9 +309,12 @@ def process_simulation_output(result, next_run, system):
     if result:
         next_run.other_outputs = json.dumps(result)
 
-    # TODO v2: adding the time-delay before results are displayed to the user.
-    next_run.earliest_to_show = datetime.now().replace(tzinfo=utc) + \
-                        timedelta(seconds=system.max_seconds_before_solution)
+    if is_baseline:
+        next_run.earliest_to_show = datetime.now().replace(tzinfo=utc)
+    else:
+        # Adding the time-delay before results are displayed to the user.
+        next_run.earliest_to_show = datetime.now().replace(tzinfo=utc) + \
+                        timedelta(seconds=system.delay_result)
 
     return next_run
 
@@ -685,7 +690,8 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={}):
             persyst.offset_y = np.random.randint(lower_bound, upper_bound)
             baseline = execute_experiment_object(baseline,
                                                  persyst,
-                                                 default_values)
+                                                 default_values,
+                                                 is_baseline=True)
 
         # Should we show the solution? Let's check:
         #if datetime.now().replace(tzinfo=utc) > \
@@ -953,7 +959,7 @@ def create_experiment_object(request, system, values, N_values=1):
     return next_run, values, persyst
 
 
-def execute_experiment_object(expt_obj, persyst, values):
+def execute_experiment_object(expt_obj, persyst, values, is_baseline=False):
     """Typically called after ``create_experiment_object`` once all inputs
     have been cleaned and checked.
 
@@ -971,7 +977,8 @@ def execute_experiment_object(expt_obj, persyst, values):
     expt_obj.time_to_solve = duration
 
     # Store the simulation results and return the experimental object
-    expt_obj = process_simulation_output(result, expt_obj, persyst.system)
+    expt_obj = process_simulation_output(result, expt_obj, persyst.system,
+                                         is_baseline)
 
     # Add biasing that is specific for this user
     if expt_obj.was_successful:
@@ -1173,7 +1180,9 @@ def get_person_experimental_data(persyst, input_set):
     data = defaultdict(list)
 
     # Retrieve prior experiments which were successful, for this system,
-    # for the current logged in person.
+    # for the current logged in person. Note: even experiments that are only
+    # going to be revealed in the future are used here. So that the hash
+    # is complete.
     prior_expts = models.Experiment.objects.filter(system=persyst.system,
                                                    person=persyst.person,
                             was_successful=True).order_by('earliest_to_show')
@@ -1222,8 +1231,8 @@ def plotting_defaults(vector, clamps=None, force_clamps=False):
         clamps = [float('-inf'), float('+inf')]
         finite_clamps = False
 
-    y_min = max(min(vector), clamps[0])
-    y_max = min(max(vector), clamps[1])
+    y_min = np.nanmax([np.nanmin(vector), clamps[0]])
+    y_max = np.nanmin([np.nanmax(vector), clamps[1]])
 
     if force_clamps:
         if y_min > clamps[0]:
@@ -1563,9 +1572,6 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     # 5. Now add the actual data points
     # TODO.v2: marker size proportional to response value
     #=========================
-    #
-    #    if len(inputs) in [1, 2]:
-    #        ax.plot(x_data, y_data, 'k.', ms=marker_size)
 
     logger.debug('Plot generation: part 5')
     plot_HTML += "\n    var rawdata = [\n"
@@ -1597,7 +1603,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
     # Use the defunct ``add_data_labels_NOT_USED`` function above,
     # or rather do this using Javascript
 
-    # 6. Show the result
+    # 6. Show the solution
     logger.debug('Plot generation: part 6')
     if show_solution:
     # =========================
@@ -1944,6 +1950,11 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
     expt_data = []
     expt = namedtuple('Expt', ['output', 'datetime', 'inputs'])
     for idx, output in enumerate(data['_output_']):
+
+        # Simply skip points that cannot be revealed yet.
+        if data['_datetime_'][idx] > datetime.now().replace(tzinfo=utc):
+            continue
+
         input_item = {}
         for inputi in input_set:
             if inputi.ntype == 'CON':
@@ -1955,8 +1966,10 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
                     if value == data[inputi.slug][idx]:
                         input_item[inputi.slug] = key
 
-        item = expt(output=output,
-                    datetime= data['_datetime_'][idx],
+        # Some experiments can't show their results just yet. Ensure that!
+
+        item = expt(output=data['_output_'][idx],
+                    datetime=data['_datetime_'][idx],
                     inputs=input_item)
         expt_data.append(item)
 

@@ -100,9 +100,6 @@ class Experiment(models.Model):
     earliest_to_show = models.DateTimeField(
         verbose_name="Don't show the result before this point in time")
 
-    message_while_waiting = models.CharField(max_length=510, default='',
-            help_text="Message to display while 'running' the experiment.'")
-
     # True if the result is successfully simulated (i.e. if the simulation
     # did not time out, or crash for some reason.)
     was_successful = models.BooleanField(default=False)
@@ -157,8 +154,12 @@ class System(models.Model):
     output_json = models.TextField(verbose_name=("Comma-separated list of model "
         'output names; the first one must be "result"'), default="result")
 
+    # Some systems will have time delays before the results are available.
     delay_result = models.IntegerField(verbose_name=("Number of seconds before "
                 "the result of a SINGLE experiment may be shown to users."), default=0)
+    message_while_waiting = models.CharField(max_length=510, default='',
+                                             help_text="Message to display while 'running' the experiment.'")
+
     tags = models.ManyToManyField('rsm.Tag')
 
     system_notes = models.TextField(blank=True)
