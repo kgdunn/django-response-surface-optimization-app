@@ -49,6 +49,8 @@ class PersonSystem(models.Model):
     # It is a list of score dictionaries, to track the leaderboard trajectory
     # of the user over time.
     # [[{"score": -1.0}, datetime], [{...}, datetime], etc]
+    #
+    # The "datetime" refers to when the experiment may be revealed to the
     leaderboard = models.TextField(default='[[{"score": -1.0}, 0]]', blank=True)
 
 
@@ -63,8 +65,21 @@ class PersonSystem(models.Model):
 
     def get_score(self):
         try:
-            return json.loads(self.leaderboard)[-1][0].get('score', -1.0)
-        except KeyError:
+            history = json.loads(self.leaderboard)
+            count = -1
+            while (-count) < len(history):
+                date = datetime.datetime.strptime(history[count][1],
+                                                         "%Y-%m-%d %H:%M:%S")
+                if date <= datetime.datetime.now():
+                    return history[count][0].get('score', -1.0)
+
+                # We should break out the loop after at least 2 iterations
+                count -= 1
+
+            # Safety net
+            return -1.0
+
+        except (KeyError, ValueError):
             return -1.0
 
 class Token(models.Model):

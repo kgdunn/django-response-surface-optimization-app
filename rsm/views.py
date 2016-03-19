@@ -1129,29 +1129,41 @@ def fetch_leaderboard_results_one_system(system=None, person=None):
         if person == persyst.person:
             you = 1
 
+        # Leaderboard tuple:
+        # 1. Score
+        # 2. The person's display name
+        # 3. A boolean indicating if it is them (logged in user) or not
         leads.append((persyst.get_score(), persyst.person.display_name, you))
+
+    # Sort by the first field (the score, from highest to lowest)
     leads.sort(reverse=True)
     return leads
 
 def update_leaderboard_score(persyst):
         """Calculates and updates the leaderboard score and stores it for the
-        current Person/System combination."""
+        current Person/System combination at the date/time that the result is to
+        be revealed. This means that the calculate value may be for a future
+        reveal time."""
         leaderboard = json.loads(persyst.leaderboard)
         input_set = models.Input.objects.filter(system=persyst.system).\
                                                        order_by('slug')
-        expts = get_plot_and_data_HTML(persyst, input_set, show_solution=False)
-        responses = []
-        for expt in expts:
-            responses.append(expt.output)
 
-        now_update = [{}, datetime.now().isoformat()]
+        expts, hash_value = get_person_experimental_data(persyst, input_set)
+
+        responses = expts['_output_']
+        now_update = [{}, expts['_datetime_'][-1].strftime("%Y-%m-%d %H:%M:%S")]
         max_output = np.max(responses)
+
+        # Use a 50/50 blend of the maximum output and the last response
+        # that the user used. The last experiment should, when complete, be
+        # run at the optimum, and then this weighted sum will have weights = 1.0
+        user_peak = 0.5*max_output + 0.5*responses[-1]
         true_opt = persyst.system.known_optimum_response
 
         # Start with the closeness to the optimum. Don't forget to remove
         # the offset that has been artificially added. This should now
         # get you a number that is close to 0.0 if you are at the optimum.
-        score = np.abs((true_opt - (max_output-persyst.offset_y))/(true_opt ))
+        score = np.abs((true_opt - (user_peak-persyst.offset_y))/(true_opt ))
         score = (1.0 - score)*100.0
         now_update[0]['closeness'] = score
 
@@ -1160,7 +1172,7 @@ def update_leaderboard_score(persyst):
         # effect that users will see their score increase for the first few
         # experiments, even though they are not necessarily getting closer
         # to the optimum.
-        run_penalty = np.power(np.abs(len(expts) - \
+        run_penalty = np.power(np.abs(len(expts['_output_']) - \
                                 persyst.system.min_experiments_allowed), 0.9)
         now_update[0]['run_penalty'] = run_penalty
 
@@ -1169,7 +1181,6 @@ def update_leaderboard_score(persyst):
         leaderboard.append(now_update)
         persyst.leaderboard = json.dumps(leaderboard)
         persyst.save()
-
 
 def get_person_experimental_data(persyst, input_set):
     """Gets the data for a person and returns it, together with a hash value
@@ -1180,9 +1191,10 @@ def get_person_experimental_data(persyst, input_set):
     data = defaultdict(list)
 
     # Retrieve prior experiments which were successful, for this system,
-    # for the current logged in person. Note: even experiments that are only
+    # for the current logged in person. Note: ALSO experiments that are only
     # going to be revealed in the future are used here. So that the hash
-    # is complete.
+    # is complete. It is critical that the experiments be ordered as shown,
+    # since we sometime will use [-1] to refer to the last one.
     prior_expts = models.Experiment.objects.filter(system=persyst.system,
                                                    person=persyst.person,
                             was_successful=True).order_by('earliest_to_show')
@@ -1943,8 +1955,8 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
 
 
 def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
-    """Plots the data by generating HTML code that may be rendered into the
-    Django template."""
+    """Gets the data for plots, and then generates HTML code that may be
+    rendered into the  Django template."""
 
     data, hash_value = get_person_experimental_data(persyst, input_set)
     expt_data = []
@@ -1982,7 +1994,7 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
         else:
             # The plot_HTML has been cleared; we're going to have to regenerate
             # the plot code.
-            logger.debug('Solution HTML about to be generated.')
+            #logger.debug('Solution HTML about to be generated.')
             plot_wrapper(data, persyst, input_set, hash_value, show_solution)
             logger.debug('Solution HTML was generated.')
     else:
