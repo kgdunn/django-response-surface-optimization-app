@@ -35,8 +35,7 @@ import numpy as np
 #os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'
 #import matplotlib
 #matplotlib.use( 'Agg' )
-#from matplotlib.figure import Figure
-
+from matplotlib.figure import Figure
 
 # Some settings for this app:
 TOKEN_LENGTH = 5
