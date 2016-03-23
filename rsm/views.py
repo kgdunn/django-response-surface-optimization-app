@@ -1090,7 +1090,8 @@ def generate_solution(persyst):
     # Finally, store the simulation results and return the experimental object
     class FakeClass(): pass
     results = FakeClass()
-    results = process_simulation_output(result, results, system)
+    results = process_simulation_output(result, results, system,
+                                        is_baseline=False)
     solution_data = {}
 
     if len(input_set) >= 2:
@@ -1176,7 +1177,7 @@ def update_leaderboard_score(persyst):
         now_update = [{}, expts['_datetime_'][-1].strftime("%Y-%m-%dT%H:%M:%S")]
         max_output = np.max(responses)
 
-        # Use a 75/25 blend of the maximum output and the last response
+        # Use a 75/25    blend of the maximum output and the last response
         # that the user used. The last experiment should, when complete, be
         # run at the optimum, and then this weighted sum will have weights = 1.0
         user_peak = 0.75*max_output + 0.25*responses[-1]
