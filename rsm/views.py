@@ -1176,10 +1176,10 @@ def update_leaderboard_score(persyst):
         now_update = [{}, expts['_datetime_'][-1].strftime("%Y-%m-%dT%H:%M:%S")]
         max_output = np.max(responses)
 
-        # Use a 50/50 blend of the maximum output and the last response
+        # Use a 75/25 blend of the maximum output and the last response
         # that the user used. The last experiment should, when complete, be
         # run at the optimum, and then this weighted sum will have weights = 1.0
-        user_peak = 0.5*max_output + 0.5*responses[-1]
+        user_peak = 0.75*max_output + 0.25*responses[-1]
         true_opt = persyst.system.known_optimum_response
 
         # Start with the closeness to the optimum. Don't forget to remove
