@@ -134,15 +134,18 @@
             <div class="rsm-colmask liquid2col">
                 <div class="rsm-columns rsm-columns-30-70">
                     <div class="col30" style="background-color: #ddd; padding:0.5em;">
-                        <h3 style="text-align: center">Leading for this system</h3>
+                        <h3 style="text-align: center">Leading for this system*</h3>
                         <table>
                             {% for item in leads %}
                                 <tr>
                                     <td>{% if item.2 %}&#10140;{% endif %}</td>
+                                    <td style="padding-right: 1.0em">{{ item.3 }}</td>
                                     <td style="padding-right: 1.0em" id="{% if item.2 %}rsm-person-you{% endif %}">{{ item.1 }}</td>
                                     <td style="text-align: right;">{{ item.0|floatformat:1 }}</td></tr>
                             {% endfor %}
                         </table>
+                        <hr>
+                        * <i>Your last experiment counts the most. Try to place it where you think the optimum is.</i>
                     </div>
                     <div class="col70">
                         {{system.description|safe|linebreaks}}

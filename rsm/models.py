@@ -68,8 +68,8 @@ class PersonSystem(models.Model):
             history = json.loads(self.leaderboard)
             count = -1
             while (-count) < len(history):
-                date = datetime.datetime.strptime(history[count][1],
-                                                         "%Y-%m-%d %H:%M:%S")
+                date = datetime.datetime.strptime(history[count][1][0:19],
+                                                         "%Y-%m-%dT%H:%M:%S")
                 if date <= datetime.datetime.now():
                     return history[count][0].get('score', -1.0)
 

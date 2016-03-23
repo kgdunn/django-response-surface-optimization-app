@@ -1123,21 +1123,43 @@ def fetch_leaderboard_results_one_system(system=None, person=None):
     """
     persysts = models.PersonSystem.objects.filter(system=system)
 
+    MAX_NUMBER = 10
     leads = []
-    for persyst in persysts:
+    found_you = False
+    for idx, persyst in enumerate(persysts):
         you = 0
         if person == persyst.person:
             you = 1
+            found_you = True
 
         # Leaderboard tuple:
         # 1. Score
         # 2. The person's display name
         # 3. A boolean indicating if it is them (logged in user) or not
-        leads.append((persyst.get_score(), persyst.person.display_name, you))
+        leads.append([persyst.get_score(), persyst.person.display_name, you, 0])
 
     # Sort by the first field (the score, from highest to lowest)
     leads.sort(reverse=True)
-    return leads
+    for idx, item in enumerate(leads):
+        item[3] = idx + 1
+        leads[idx] = item
+
+    if not(found_you) or (len(leads) <= MAX_NUMBER):
+        return leads[0:MAX_NUMBER]
+    else:
+        where_are_you = -1
+        for idx, item in enumerate(leads):
+            if item[2] == 1:
+                where_are_you = idx
+
+        # Sadly, this user will be off the list. Ensure that they are added
+        if (where_are_you+1) >= (MAX_NUMBER):
+            this_user = leads[where_are_you-1:where_are_you+2]
+            leads = leads[0:MAX_NUMBER-len(this_user)]
+            leads.extend(this_user)
+            return leads
+        else:
+            return leads[0:MAX_NUMBER]
 
 def update_leaderboard_score(persyst):
         """Calculates and updates the leaderboard score and stores it for the
@@ -1151,7 +1173,7 @@ def update_leaderboard_score(persyst):
         expts, hash_value = get_person_experimental_data(persyst, input_set)
 
         responses = expts['_output_']
-        now_update = [{}, expts['_datetime_'][-1].strftime("%Y-%m-%d %H:%M:%S")]
+        now_update = [{}, expts['_datetime_'][-1].strftime("%Y-%m-%dT%H:%M:%S")]
         max_output = np.max(responses)
 
         # Use a 50/50 blend of the maximum output and the last response
