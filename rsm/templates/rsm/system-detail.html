@@ -138,10 +138,11 @@
                         <table>
                             {% for item in leads %}
                                 <tr>
-                                    <td>{% if item.2 %}&#10140;{% endif %}</td>
+                                    <td>{% if item.4 %}&#10140;{% endif %}</td>
                                     <td style="padding-right: 1.0em">{{ item.3 }}</td>
-                                    <td style="padding-right: 1.0em" id="{% if item.2 %}rsm-person-you{% endif %}">{{ item.1 }}</td>
-                                    <td style="text-align: right;">{{ item.0|floatformat:1 }}</td></tr>
+                                    <td style="padding-right: 1.0em" id="{% if item.2 %}rsm-person-you{% endif %}"><a href="{% url 'rsmapp:show_one_system_other' short_name_slug=system.slug other_slug=item.2 %}">{{ item.1 }}</a></td>
+                                    <td style="text-align: right;">{{ item.0|floatformat:1 }}</td>
+                                </tr>
                             {% endfor %}
                         </table>
                         <hr>

@@ -22,6 +22,10 @@ urlpatterns = [
     url(r'^system/(?P<short_name_slug>[-\w]+)/show-solution$',
         views.show_solution_one_system, name='show_solution_one_system'),
 
+    # ex: /system/short_name/other/"user-slug"
+        url(r'^system/(?P<short_name_slug>[-\w]+)/other/(?P<other_slug>[-\w]+)$',
+            views.show_one_system_other, name='show_one_system_other'),
+
     # Example: /validate/HGSAT
     url(r'^validate/(?P<hashvalue>[-\w]+)/$', views.validate_user,
         name='validate_user'),

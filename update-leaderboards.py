@@ -12,7 +12,7 @@ os.environ.setdefault(
 )
 django.setup()
 
-from rsm.models import PersonSystem
+from rsm.models import PersonSystem, Person
 from rsm.views import update_leaderboard_score
 
 
@@ -20,3 +20,8 @@ persysts = PersonSystem.objects.all()
 
 for persyst in persysts:
     update_leaderboard_score(persyst)
+
+# Slugify the display names
+people = Person.objects.all()
+for person in people:
+    person.save()

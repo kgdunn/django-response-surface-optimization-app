@@ -3,11 +3,13 @@ import numpy as np
 import datetime
 import json
 from django.utils.timezone import utc
+from django.utils.text import slugify
 
 class Person(models.Model):
     """ Defines a person / course participant """
     display_name = models.CharField(max_length=200,
                                     verbose_name="Leaderboard name")
+    slug = models.SlugField(default='')
     level = models.SmallIntegerField(verbose_name="Skill level of the user",
                                      blank=False, null=False, default=1)
     email = models.EmailField(unique=True)
@@ -21,6 +23,7 @@ class Person(models.Model):
     def save(self, *args, **kwargs):
         # Force the bounds to be compatible
         self.display_name  = self.display_name.strip()
+        self.slug = slugify(self.display_name)
         super(Person, self).save(*args, **kwargs) # Call the "real" save()
 
 class PersonSystem(models.Model):
