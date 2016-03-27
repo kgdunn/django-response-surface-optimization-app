@@ -757,11 +757,21 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={},
                                                                   request,
                                                                   force_GET)
 
+    showing_for_others = False
+    if person != true_person:
+        # Drop this away: used when viewing the solutions of others. Prevents
+        # inputting values for others.
+        showing_for_others = True
+        input_set = []
+
+
     context = {'system': system,
                'input_set': input_set,
                'leads' : leads,
                'person': true_person,
+               'display_person': person,
                'enabled': enabled_status,
+               'showing_for_others': showing_for_others,
                'extra_information': extra_information,
                'plot_html': persyst.plot_HTML,
                'data_html': plot_raw_data,
@@ -1151,7 +1161,9 @@ def fetch_leaderboard_results_one_system(system=None, person=None):
         # Leaderboard tuple:
         # 1. Score
         # 2. The person's display name
-        # 3. A boolean indicating if it is them (logged in user) or not
+        # 3. A slug of the person's display name
+        # 4. A boolean indicating if it is them (logged in user) or not
+        # 5. Their score
         leads.append([persyst.get_score(),
                       persyst.person.display_name,
                       persyst.person.slug,
@@ -1161,7 +1173,7 @@ def fetch_leaderboard_results_one_system(system=None, person=None):
     # Sort by the first field (the score, from highest to lowest)
     leads.sort(reverse=True)
     for idx, item in enumerate(leads):
-        item[3] = idx + 1
+        item[4] = idx + 1
         leads[idx] = item
 
     if not(found_you) or (len(leads) <= MAX_NUMBER):
@@ -1169,7 +1181,7 @@ def fetch_leaderboard_results_one_system(system=None, person=None):
     else:
         where_are_you = -1
         for idx, item in enumerate(leads):
-            if item[2] == 1:
+            if item[3] == 1:
                 where_are_you = idx
 
         # Sadly, this user will be off the list. Ensure that they are added

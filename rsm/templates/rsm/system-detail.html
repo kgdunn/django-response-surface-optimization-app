@@ -138,9 +138,15 @@
                         <table>
                             {% for item in leads %}
                                 <tr>
-                                    <td>{% if item.4 %}&#10140;{% endif %}</td>
-                                    <td style="padding-right: 1.0em">{{ item.3 }}</td>
-                                    <td style="padding-right: 1.0em" id="{% if item.2 %}rsm-person-you{% endif %}"><a href="{% url 'rsmapp:show_one_system_other' short_name_slug=system.slug other_slug=item.2 %}">{{ item.1 }}</a></td>
+                                    <td>{% if item.3 %}&#10140;{% endif %}</td>
+                                    <td style="padding-right: 1.0em">{{ item.4 }}</td>
+                                    <td style="padding-right: 1.0em" id="{% if item.2 %}rsm-person-you{% endif %}">
+                                        {% if enabled %}
+                                            <a data-ajax="false" href="{% url 'rsmapp:show_one_system_other' short_name_slug=system.slug other_slug=item.2 %}">{{ item.1 }}</a>
+                                        {% else %}
+                                            {{ item.1 }}
+                                        {% endif %}
+                                    </td>
                                     <td style="text-align: right;">{{ item.0|floatformat:1 }}</td>
                                 </tr>
                             {% endfor %}
@@ -205,7 +211,7 @@
 
 <!-- --------------------------------------------- -->
 
-{% if input_set and not show_solution %}
+{% if input_set and not show_solution and not showing_for_others %}
 <hr>
 <h2>Your next experiment</h2>
 
@@ -278,14 +284,66 @@
     </div>
 </div>
 
-
-
-
 <hr>
+
+{% if not showing_for_others %}
+    <script type="text/javascript">
+        var closePopup_reset = function(event){
+            $('#reset-popup').popup("close");
+            event.preventDefault();
+            };
+        $(function() {
+            $('#reset-popup-form').submit(function(event) {
+                var form = $(this);
+
+                $.ajax({
+                    type: form.attr('method'),
+                    url:  form.attr('action'),
+                    cache: false,
+                    data: form.serialize(),
+                    dataType: "html",
+                    beforeSend: function( xhr ) {
+                    }
+                }).done(function(data) {
+                    window.location.replace("{% url 'rsmapp:show_one_system' system.slug %}")
+                }).fail(function(data) {
+                }).always(function(data){
+                });
+                event.preventDefault();
+            });
+        });
+    </script>
+    <script type="text/javascript">
+        var closePopup_showsoln = function(event){
+            $('#solution-popup').popup("close");
+            event.preventDefault();
+            };
+        $(function() {
+            $('#solution-popup-form').submit(function(event) {
+                var form = $(this);
+
+                $.ajax({
+                    type: form.attr('method'),
+                    url:  form.attr('action'),
+                    cache: false,
+                    data: form.serialize(),
+                    dataType: "html",
+                    beforeSend: function( xhr ) {
+                    }
+                }).done(function(data) {
+                    window.location.replace("{% url 'rsmapp:show_one_system' system.slug %}")
+                }).fail(function(data) {
+                }).always(function(data){
+                });
+                event.preventDefault();
+            });
+        });
+    </script>
+{% endif %}
 
 {% if data_html %}
 
-    <h2>Your previous experiments, with the outcome value</h2>
+    <h2>Previous experiments, with the outcome values for {% if showing_for_others %}<span style="color: red">{{display_person.display_name}}<span>{% else %}you{% endif %}</h2>
 
         {{plot_html|safe}}
 
@@ -317,126 +375,76 @@
             {% endfor %}
         </table>
 
-<script type="text/javascript">
-    var closePopup_reset = function(event){
-        $('#reset-popup').popup("close");
-        event.preventDefault();
-        };
-    $(function() {
-        $('#reset-popup-form').submit(function(event) {
-            var form = $(this);
-
-            $.ajax({
-                type: form.attr('method'),
-                url:  form.attr('action'),
-                cache: false,
-                data: form.serialize(),
-                dataType: "html",
-                beforeSend: function( xhr ) {
-                }
-            }).done(function(data) {
-                window.location.replace("{% url 'rsmapp:show_one_system' system.slug %}")
-            }).fail(function(data) {
-            }).always(function(data){
-            });
-            event.preventDefault();
-        });
-    });
-</script>
-<script type="text/javascript">
-    var closePopup_showsoln = function(event){
-        $('#solution-popup').popup("close");
-        event.preventDefault();
-        };
-    $(function() {
-        $('#solution-popup-form').submit(function(event) {
-            var form = $(this);
-
-            $.ajax({
-                type: form.attr('method'),
-                url:  form.attr('action'),
-                cache: false,
-                data: form.serialize(),
-                dataType: "html",
-                beforeSend: function( xhr ) {
-                }
-            }).done(function(data) {
-                window.location.replace("{% url 'rsmapp:show_one_system' system.slug %}")
-            }).fail(function(data) {
-            }).always(function(data){
-            });
-            event.preventDefault();
-        });
-    });
-</script>
 
 
-<div class="rsm-colmask liquid2col">
-    <div class="rsm-columns rsm-columns-55-45">
+    <div class="rsm-colmask liquid2col">
+        <div class="rsm-columns rsm-columns-55-45">
 
-        <div class="col55">
+            <div class="col55">
 
-<!-- Starts here -->
-<div class="rsm-reset-button">
-    <div data-role="main" class="ui-content">
-        <a href="#reset-popup" id="reset-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-alert ui-btn-icon-left red" name="reset-popup-link">
-        Clear all above experiments (start over)
-        </a>
-        <div data-role="popup" id="reset-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
-            <form method="post" id="reset-popup-form" action="{% url 'rsmapp:reset_one_system' system.slug %}" name="reset-popup-form">
-                {% csrf_token %}
-                <div>
-                    <h3>Are you sure?</h3>
-                    This will clear all experiments for this system and start from a fresh baseline experiment.<br>
+    <!-- Starts here -->
+    {% if not show_solution and not showing_for_others %}
+        <div class="rsm-reset-button">
+            <div data-role="main" class="ui-content">
+                <a href="#reset-popup" id="reset-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-alert ui-btn-icon-left red" name="reset-popup-link">
+                Clear all above experiments (start over)
+                </a>
+                <div data-role="popup" id="reset-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
+                    <form method="post" id="reset-popup-form" action="{% url 'rsmapp:reset_one_system' system.slug %}" name="reset-popup-form">
+                        {% csrf_token %}
+                        <div>
+                            <h3>Are you sure?</h3>
+                            This will clear all experiments for this system and start from a fresh baseline experiment.<br>
 
-                    <input id="popup-delete-submit-button" type="submit" data-rel="back" data-inline="true" value="Delete all the above experiments!">
-                    <span id="popup-Cancel-span" style="float: right"><input id="popup-Cancel-button" type="button" data-inline="true" value="Cancel" onclick="closePopup_reset()"></span>
+                            <input id="popup-delete-submit-button" type="submit" data-rel="back" data-inline="true" value="Delete all the above experiments!">
+                            <span id="popup-Cancel-span" style="float: right"><input id="popup-Cancel-button" type="button" data-inline="true" value="Cancel" onclick="closePopup_reset()"></span>
+                        </div>
+                    </form>
                 </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-        </div> <!-- col55 -->
-
-        <div class="col45">
-
-{% if not show_solution %}
-    <div class="rsm-solution-button">
-        <div data-role="main" class="ui-content">
-            <a href="#solution-popup" id="solution-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-eye ui-btn-icon-left green" name="solution-popup-link">
-            Show true solution for this system
-            </a>
-            <div data-role="popup" id="solution-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
-                <form method="post" id="solution-popup-form" action="{% url 'rsmapp:show_solution_one_system' system.slug %}" name="solution-popup-form">
-                    {% csrf_token %}
-                    <div>
-                    {% if data_html|length < system.min_experiments_allowed %}
-                        <h3>Wait!</h3>
-                        You cannot see the true solution until running at least <br>a total
-                        of <b>{{system.min_experiments_allowed}}</b> experiments for this system.<br>
-                        <input id="popup-Cancel-button" type="button" data-inline="true" value="OK" onclick="closePopup_showsoln()">
-                    {% else %}
-
-                        <h3>Are you sure?</h3>
-                        This will reveal the true solution for the system and<br>
-                        no further experiments are then possible afterwards.<br>
-
-                        <input id="popup-solution-submit-button" type="submit" data-rel="back" data-inline="true" value="Show solution for this system!">
-                        <span id="popup-Cancel-span" style="float: right"><input id="popup-Cancel-button" type="button" data-inline="true" value="Cancel" onclick="closePopup_showsoln()"></span>
-
-                    {% endif %}
-                    </div>
-                </form>
             </div>
         </div>
+    {% endif %}
+
+            </div> <!-- col55 -->
+
+            <div class="col45">
+
+    {% if not show_solution and not showing_for_others %}
+        <div class="rsm-solution-button">
+            <div data-role="main" class="ui-content">
+                <a href="#solution-popup" id="solution-link" data-rel="popup" class="ui-btn ui-icon ui-btn-inline ui-corner-all ui-icon-eye ui-btn-icon-left green" name="solution-popup-link">
+                Show true solution for this system
+                </a>
+                <div data-role="popup" id="solution-popup" class="ui-content" data-transition="pop" style="min-width:250px;">
+                    <form method="post" id="solution-popup-form" action="{% url 'rsmapp:show_solution_one_system' system.slug %}" name="solution-popup-form">
+                        {% csrf_token %}
+                        <div>
+                        {% if data_html|length < system.min_experiments_allowed %}
+                            <h3>Wait!</h3>
+                            You cannot see the true solution until running at least <br>a total
+                            of <b>{{system.min_experiments_allowed}}</b> experiments for this system.<br>
+                            <input id="popup-Cancel-button" type="button" data-inline="true" value="OK" onclick="closePopup_showsoln()">
+                        {% else %}
+
+                            <h3>Are you sure?</h3>
+                            This will reveal the true solution for the system and<br>
+                            no further experiments are then possible afterwards.<br>
+
+                            <input id="popup-solution-submit-button" type="submit" data-rel="back" data-inline="true" value="Show solution for this system!">
+                            <span id="popup-Cancel-span" style="float: right"><input id="popup-Cancel-button" type="button" data-inline="true" value="Cancel" onclick="closePopup_showsoln()"></span>
+
+                        {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+            </div> <!-- col45 -->
+        </div>
     </div>
-{% endif %}
-
-        </div> <!-- col45 -->
-    </div>
-</div>
 
 
-{% endif %} {# CHECK THAT THIS MATCHES WITH THE START #}
+{% endif %} {# "if data_html" #}
 {% endblock %}
