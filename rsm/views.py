@@ -3,6 +3,8 @@
 # pip install -U numpy
 # pip install -U subprocess32
 # pip install -U pillow   <--- not yet
+# apt-get install libblas-dev liblapack-dev libatlas-base-dev gfortran
+# pip install -U scipy
 
 
 from django.shortcuts import get_object_or_404, render
@@ -31,6 +33,7 @@ from smtplib import SMTPException
 from collections import defaultdict, namedtuple
 import logging
 import numpy as np
+from pyhull import delaunay
 
 #os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'
 #import matplotlib
@@ -762,7 +765,6 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={},
         # Drop this away: used when viewing the solutions of others. Prevents
         # inputting values for others.
         showing_for_others = True
-        input_set = []
 
 
     context = {'system': system,
@@ -1186,27 +1188,83 @@ def fetch_leaderboard_results_one_system(system=None, person=None):
 
         # Sadly, this user will be off the list. Ensure that they are added
         if (where_are_you+1) >= (MAX_NUMBER):
-            this_user = leads[where_are_you-1:where_are_you+2]
+            this_user = leads[where_are_you], #where_are_you-1:where_are_you+2
             leads = leads[0:MAX_NUMBER-len(this_user)]
             leads.extend(this_user)
             return leads
         else:
             return leads[0:MAX_NUMBER]
 
-def update_leaderboard_score(persyst):
+def update_leaderboard_score(persyst, note=''):
         """Calculates and updates the leaderboard score and stores it for the
         current Person/System combination at the date/time that the result is to
         be revealed. This means that the calculate value may be for a future
         reveal time."""
+
+        print(persyst)
+        print('---------------------')
         leaderboard = json.loads(persyst.leaderboard)
         input_set = models.Input.objects.filter(system=persyst.system).\
                                                        order_by('slug')
 
         expts, hash_value = get_person_experimental_data(persyst, input_set)
 
-        responses = expts['_output_']
+        responses = expts.pop('_output_')
         now_update = [{}, expts['_datetime_'][-1].strftime("%Y-%m-%dT%H:%M:%S")]
+        expts.pop('_datetime_')
         max_output = np.max(responses)
+
+        regularity = 0.0
+        inputs = expts.keys()
+        inputs.sort()
+        points = np.zeros((len(responses), 2))
+        if len(inputs) == 1:
+            other_input = inputs[0]
+            univariate = True
+        else:
+            other_input = inputs[1]
+            univariate = False
+        for idx, value1 in enumerate(expts[inputs[0]]):
+            points[idx, 0] = value1
+            points[idx, 1] = expts[other_input][idx]
+
+        # Penalize the lack of regularity in the system. A highly regular set
+        # of experimental points will have lower standard deviation of the
+        # triangle lengths in the Delaunay triangulation of the experimental
+        # points. The acount for the scaling by dividing the std.dev. of the
+        # lengths by the triangle area.
+
+        def get_triange_summary(points):
+            """ Returns edge lengths, given the 3 coordinates of the triangle.
+                Returns the triangle area, K
+            """
+
+            a = np.sqrt((points[0][0]-points[1][0])**2 + (points[0][1]-points[1][1])**2)
+            b = np.sqrt((points[2][0]-points[1][0])**2 + (points[2][1]-points[1][1])**2)
+            c = np.sqrt((points[0][0]-points[2][0])**2 + (points[0][1]-points[2][1])**2)
+            s = 0.5 * (a + b + c)
+            K = np.sqrt(s*(s-a)*(s-b)*(s-c))
+            return ((a, b, c), K)
+
+        try:
+            tri = delaunay.DelaunayTri(points.tolist())
+            numbers = np.zeros((len(tri.vertices), 1))
+            vertices = np.array(tri.vertices)
+            for idx, shape in enumerate(points[vertices]):
+                lengths, area = get_triange_summary(shape)
+                numbers[idx, 0] = np.std(lengths)/area
+            regularity = np.average(numbers) + np.std(numbers)
+
+        except AttributeError:
+            # Occurs if the points are in a line, or not enough points yet
+            if univariate:
+                regularity = 0
+            else:
+                # Subtract this if the QHull cannot be solved (happens for 1
+                # data point, and when points are co-linear).
+                regularity = 50
+
+        now_update[0]['reg_penalty'] = regularity
 
         # Use a 75/25    blend of the maximum output and the last response
         # that the user used. The last experiment should, when complete, be
@@ -1226,11 +1284,19 @@ def update_leaderboard_score(persyst):
         # effect that users will see their score increase for the first few
         # experiments, even though they are not necessarily getting closer
         # to the optimum.
-        run_penalty = np.power(np.abs(len(expts['_output_']) - \
+        run_too_few = np.power(np.abs(len(responses) - \
+                                persyst.system.min_experiments_allowed), 3)
+        run_too_many = np.power(np.abs(len(responses) - \
                                 persyst.system.min_experiments_allowed), 0.9)
-        now_update[0]['run_penalty'] = run_penalty
+        if (len(responses) - persyst.system.min_experiments_allowed)>0:
+            now_update[0]['run_penalty'] = run_too_many
+        else:
+            now_update[0]['run_penalty'] = run_too_few
 
-        score = score - run_penalty
+        if note:
+            now_update[0]['note'] = note
+
+        score = score - now_update[0]['run_penalty'] - now_update[0]['reg_penalty']
         now_update[0]['score'] = score
         leaderboard.append(now_update)
         persyst.leaderboard = json.dumps(leaderboard)

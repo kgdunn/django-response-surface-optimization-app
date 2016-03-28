@@ -16,10 +16,10 @@ from rsm.models import PersonSystem, Person
 from rsm.views import update_leaderboard_score
 
 
-persysts = PersonSystem.objects.all()
+persysts = PersonSystem.objects.all().order_by('system')
 
 for persyst in persysts:
-    update_leaderboard_score(persyst)
+    update_leaderboard_score(persyst, note='KD: Adding regularity penalty.')
 
 # Slugify the display names
 people = Person.objects.all()

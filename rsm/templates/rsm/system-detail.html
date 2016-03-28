@@ -152,7 +152,7 @@
                             {% endfor %}
                         </table>
                         <hr>
-                        * <i>Your last experiment counts the most. Try to place it where you think the optimum is.</i>
+                        * <i>Your last experiment counts the most. Try to place it where you think the optimum is. You are also penalized for running unstructured experiments.</i>
                     </div>
                     <div class="col70">
                         {{system.description|safe|linebreaks}}
@@ -175,7 +175,7 @@
         <div class="col30">
             <!-- Right 30% -->
             <div class="rsm-info">
-                {% if input_set  %}
+                {% if input_set and not showing_for_others %}
                     <hr>
                     {% if data_html %}
                         {% if data_html|length == 1 %}
@@ -345,7 +345,7 @@
 
 {% if data_html %}
 
-    <h2>Previous experiments, with the outcome values for {% if showing_for_others %}<span style="color: red">{{display_person.display_name}}<span>{% else %}you{% endif %}</h2>
+    <h2>Previous experiments, with the outcome values for{% if showing_for_others %}: <span style="color: red">{{display_person.display_name}}<span>{% else %} you{% endif %}</h2>
 
         {{plot_html|safe}}
 
