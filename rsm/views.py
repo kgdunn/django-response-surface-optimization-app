@@ -1249,13 +1249,13 @@ def update_leaderboard_score(persyst, note=''):
         try:
             tri = delaunay.DelaunayTri(points.tolist())
             numbers = np.zeros((len(tri.vertices), 1))
-            vertices = np.array(tri.vertices)
+            vertices = np.array(tri.vertices) 
             for idx, shape in enumerate(points[vertices]):
                 lengths, area = get_triange_summary(shape)
                 numbers[idx, 0] = np.std(lengths)/area
             regularity = np.average(numbers) + np.std(numbers)
 
-        except AttributeError:
+        except (AttributeError, IndexError):
             # Occurs if the points are in a line, or not enough points yet
             if univariate:
                 regularity = 0
