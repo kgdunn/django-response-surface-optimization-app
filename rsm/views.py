@@ -985,7 +985,6 @@ def create_experiment_object(request, system, values, N_values=1):
                       datetime(MAXYEAR, 12, 31, 23, 59, 59).replace(tzinfo=utc))
     return next_run, values, persyst
 
-
 def execute_experiment_object(expt_obj, persyst, values, is_baseline=False):
     """Typically called after ``create_experiment_object`` once all inputs
     have been cleaned and checked.
@@ -1201,8 +1200,6 @@ def update_leaderboard_score(persyst, note=''):
         be revealed. This means that the calculate value may be for a future
         reveal time."""
 
-        print(persyst)
-        print('---------------------')
         leaderboard = json.loads(persyst.leaderboard)
         input_set = models.Input.objects.filter(system=persyst.system).\
                                                        order_by('slug')
@@ -1249,7 +1246,7 @@ def update_leaderboard_score(persyst, note=''):
         try:
             tri = delaunay.DelaunayTri(points.tolist())
             numbers = np.zeros((len(tri.vertices), 1))
-            vertices = np.array(tri.vertices) 
+            vertices = np.array(tri.vertices)
             for idx, shape in enumerate(points[vertices]):
                 lengths, area = get_triange_summary(shape)
                 numbers[idx, 0] = np.std(lengths)/area
@@ -2212,9 +2209,18 @@ def send_logged_email(subject, message, to_address_list):
     Returns a string error message if it failed. Returns None if sending
     succeeded.
     """
-    from django.core.mail import send_mail
+    from django.core.mail import send_mail, EmailMessage
     logger.debug('Email [{0}]: {1}'.format(str(to_address_list), message))
     try:
+        #out = EmailMessage(
+            #subject=subject,
+            #body=message,
+            #from_email=None, # This will use the setting in "local_settings.py"
+            #to=list(to_address_list),
+        #)
+        #out.content_subtype = "text/plain"
+        #out.send(fail_silently=False)
+
         out = send_mail(subject=subject,
                   message=message,
                   from_email=None,
