@@ -271,6 +271,15 @@
         </div><!--/fieldcontain-->
     {% endfor %}
 
+    <div class="ui-field-contain">
+        <label for="rsm-user-notes">Your notepad:<br><br>
+        <i>Add notes and thoughts about how you chose and planned these experiements</i></label>
+        <textarea rows="10" width="100%" type="text" name="rsm-user-notes" {% if not enabled %}readonly{% endif %}
+                  placeholder="For example:
+#1: Automatic baseline
+#2: Started to form a full factorial."
+                  id="rsm-user-notes">{% if prior_values %}{{ prior_values.user_notes }}{% endif %}</textarea>
+    </div>
     <div data-inline="true" class="ui-content">
         <input class="ui-btn ui-icon ui-btn-inline ui-corner-all" type="submit" {% if not enabled %}disabled="disabled"{% endif %} value="Run this experiment!" />
     </div>

@@ -56,6 +56,10 @@ class PersonSystem(models.Model):
     # The "datetime" refers to when the experiment may be revealed to the
     leaderboard = models.TextField(default='[[{"score": -1.0}, 0]]', blank=True)
 
+    # User notes are a place for the user to share information about what they
+    # have done.
+    user_notes = models.TextField(blank=True, default='')
+
 
     def __str__(self):
         return '{0} [{1}]'.format(self.system.full_name,

@@ -466,6 +466,7 @@ def process_experiment(request, short_name_slug):
     system = get_object_or_404(models.System, slug=short_name_slug,
                                is_active=True)
     values = {}
+    values['user_notes'] = request.POST['rsm-user-notes']
     values_checked = {}
     try:
         # We do all our checks here, and if any fail an Exception is raised.
@@ -483,6 +484,9 @@ def process_experiment(request, short_name_slug):
 
         # We've got all the inputs now; so validate them.
         values_checked.update(process_simulation_input(values, inputs))
+
+        # TODO.v2: validate the text to ensure no hyperlinks/obsenities/etc
+        values_checked['user_notes'] = values['user_notes']
 
         # TODO.v2: try-except path here to intercept time-limited experiments
         # if a new run is not valid, then raise an exception.
@@ -510,7 +514,14 @@ def process_experiment(request, short_name_slug):
                                                                  system,
                                                                  values_checked)
 
+    # Store the user notes (save after running the expt!)
+    persyst.user_notes = str(values_checked.pop('user_notes', ''))
+
     next_run = execute_experiment_object(next_run, persyst, values_checked)
+
+    # If all was successul, then save the "persyst". Note that the expt is auto-
+    # saved in the ``execute_experiment_object`` function.
+    persyst.save()
 
     # Return an HttpResponseRedirect after dealing with POST. Prevents data
     #from being posted twice if a user hits the Back button.
@@ -2218,7 +2229,7 @@ def send_logged_email(subject, message, to_address_list):
             #from_email=None, # This will use the setting in "local_settings.py"
             #to=list(to_address_list),
         #)
-        #out.content_subtype = "text/plain"
+        #out.content_subtype = "text/html"
         #out.send(fail_silently=False)
 
         out = send_mail(subject=subject,
