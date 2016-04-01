@@ -133,7 +133,7 @@
 
             <div class="rsm-colmask liquid2col">
                 <div class="rsm-columns rsm-columns-30-70">
-                    <div class="col30" style="background-color: #ddd; padding:0.5em;">
+                    <div class="col30" style="background-color: #ddd; padding-left:0.5em; padding-right:0.5em; font-size: 0.9em;">
                         <h3 style="text-align: center">Leading for this system*</h3>
                         <table>
                             {% for item in leads %}
@@ -273,12 +273,12 @@
 
     <div class="ui-field-contain">
         <label for="rsm-user-notes">Your notepad:<br><br>
-        <i>Add notes and thoughts about how you chose and planned these experiements</i></label>
-        <textarea rows="10" width="100%" type="text" name="rsm-user-notes" {% if not enabled %}readonly{% endif %}
+        <i>Add notes and thoughts about how you chose and planned the experiements. You can continually add to them.</i></label>
+        <textarea rows="20"  data-mini="true" width="100%" type="text" name="rsm-user-notes" {% if not enabled %}readonly{% endif %}
                   placeholder="For example:
-#1: Automatic baseline
-#2: Started to form a full factorial."
-                  id="rsm-user-notes">{% if prior_values %}{{ prior_values.user_notes }}{% endif %}</textarea>
+#1: Automatic baseline. Treat it as center point.
+#2: Started to form a full factorial with center point=___ and range=____ at the (-1,-1) position."
+                  id="rsm-user-notes">{% if prior_values %}{{ prior_values.user_notes }}{% else %}{{user_notes}}{% endif %}</textarea>
     </div>
     <div data-inline="true" class="ui-content">
         <input class="ui-btn ui-icon ui-btn-inline ui-corner-all" type="submit" {% if not enabled %}disabled="disabled"{% endif %} value="Run this experiment!" />
@@ -384,8 +384,10 @@
             </tr>
             {% endspaceless %}
             {% endfor %}
+            {% if showing_for_others and user_notes %}
+                <tr><td colspan="5"><br><i>The users notes on how they planned their experiments:</i><br><br>{{user_notes|linebreaks|safe}}</td></tr>
+            {% endif %}
         </table>
-
 
 
     <div class="rsm-colmask liquid2col">

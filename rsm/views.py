@@ -669,8 +669,8 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={},
 
     # Use a fake object: this is only for anonymous users, since they are
     # not allowed to interact with the systems until signed in.
-    persyst_fake = namedtuple('FakeObject', ['plot_HTML',])
-    persyst = persyst_fake(plot_HTML='')
+    persyst_fake = namedtuple('FakeObject', ['plot_HTML', 'user_notes'])
+    persyst = persyst_fake(plot_HTML='', user_notes='')
 
     if enabled_status:
         # If enabled, it allows the user to interact with this system.
@@ -787,6 +787,7 @@ def show_one_system(request, short_name_slug, force_GET=False, extend_dict={},
                'showing_for_others': showing_for_others,
                'extra_information': extra_information,
                'plot_html': persyst.plot_HTML,
+               'user_notes': persyst.user_notes,
                'data_html': plot_raw_data,
                'show_solution': show_solution,
                'number_remaining': (system.max_experiments_allowed - \
