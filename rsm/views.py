@@ -28,6 +28,7 @@ import random
 import hashlib
 from datetime import date, datetime, timedelta, MAXYEAR
 from datetime import time as dt_time
+from six import iteritems
 
 from smtplib import SMTPException
 from collections import defaultdict, namedtuple
@@ -81,6 +82,7 @@ class Rotation(object):
         """
         self.dim = dim
         self.slidescale = slidescale
+        self.rotmat = ''
         if rotation_matrix == '':
             if self.dim == 1:
                 self.rotmat = np.array([[np.cos(0),]])
@@ -93,7 +95,7 @@ class Rotation(object):
                 assert(False)
 
         elif rotation_matrix:
-            self.rotmat = np.array(json.loads(rotation_matrix))
+            self.rotmat = np.array(json.loads(rotation_matrix.decode('utf-8')))
             self.dim = self.rotmat.shape[0]
 
     def get_rotation_string(self):
@@ -104,7 +106,7 @@ class Rotation(object):
         object = Rotation(slidescale=str_slidescale,
                           rotation_matrix=str_rotation_matrix)
         """
-        if self.rotmat is None:
+        if not(self.rotmat):
             return ''
         else:
             return json.dumps(self.rotmat.tolist())
@@ -116,7 +118,7 @@ class Rotation(object):
         matrix, where N is the number of datapoints being individually rotated.
         The output is an (ndim x N) matrix of rotated points.
         """
-        if isinstance(self.rotmat, basestring) and self.rotmat == '':
+        if isinstance(self.rotmat, str) and self.rotmat == '':
             return data
         offset =  np.sum(self.slidescale, axis=1) / 2.0  # midpoint
         offset = offset.reshape(self.dim, 1)
@@ -154,14 +156,15 @@ def run_simulation(system, simvalues, show_solution=False):
     code = "\nimport numpy as np\n"
 
     if show_solution:
+        code += "from six import iteritems\n"
         code += "def convert_inputs(**kwargs):\n"
         code += "\tout = {}\n"
-        code += "\tfor key, value in kwargs.iteritems():\n"
+        code += "\tfor key, value in iteritems(kwargs):\n"
         code += "\t\tout[key] = np.array(value)\n"
         code += "\treturn out\n\n"
         code += "def convert_outputs(**kwargs):\n"
         code += "\tout = {}\n"
-        code += "\tfor key, value in kwargs.iteritems():\n"
+        code += "\tfor key, value in iteritems(kwargs):\n"
         code += "\t\tif isinstance(value, np.ndarray):\n"
         code += "\t\t\tout[key] = value.tolist()\n"
         code += "\t\telse:\n"
@@ -176,7 +179,7 @@ def run_simulation(system, simvalues, show_solution=False):
     if show_solution:
         code_call += '**convert_inputs('
 
-    for key, value in simvalues.iteritems():
+    for key, value in iteritems(simvalues):
         if isinstance(value, np.ndarray):
             value = value.tolist()
         code_call = code_call + "{0}={1}, ".format(key, value)
@@ -296,6 +299,7 @@ def process_simulation_output(result, next_run, system, is_baseline):
     the ``Experiment`` objects. The output is returned, but not saved here (that
     is to be done elsewhere).
     """
+    result = result.decode('utf-8')
     result = result.replace('\n', '')
     result = result.replace("'", '"')
     result = json.loads(result)
@@ -1147,6 +1151,7 @@ def generate_solution(persyst):
                     values[yname] = Y
 
     solution_data['inputs'] = serialize_numeric_dict(values)
+    logger.debug(str(results))
     if results.was_successful:
         bias_soln = (np.array(results.main_result) + persyst.offset_y).tolist()
         solution_data['outputs'] = bias_soln
@@ -1206,6 +1211,17 @@ def fetch_leaderboard_results_one_system(system=None, person=None):
         else:
             return leads[0:MAX_NUMBER]
 
+class MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, numpy.integer):
+            return int(obj)
+        elif isinstance(obj, numpy.floating):
+            return float(obj)
+        elif isinstance(obj, numpy.ndarray):
+            return obj.tolist()
+        else:
+            return super(MyEncoder, self).default(obj)
+
 def update_leaderboard_score(persyst, note=''):
         """Calculates and updates the leaderboard score and stores it for the
         current Person/System combination at the date/time that the result is to
@@ -1224,7 +1240,7 @@ def update_leaderboard_score(persyst, note=''):
         max_output = np.max(responses)
 
         regularity = 0.0
-        inputs = expts.keys()
+        inputs = list(expts.keys())
         inputs.sort()
         points = np.zeros((len(responses), 2))
         if len(inputs) == 1:
@@ -1305,10 +1321,10 @@ def update_leaderboard_score(persyst, note=''):
         if note:
             now_update[0]['note'] = note
 
-        score = score - now_update[0]['run_penalty'] - now_update[0]['reg_penalty']
+        score = np.float(score - now_update[0]['run_penalty'] - now_update[0]['reg_penalty'])
         now_update[0]['score'] = score
-        leaderboard.append(now_update)
-        persyst.leaderboard = json.dumps(leaderboard)
+        # From https://stackoverflow.com/questions/27050108/convert-numpy-type-to-python/27050186#27050186
+        persyst.leaderboard = json.dumps(leaderboard, cls=MyEncoder)
         persyst.save()
 
 def get_person_experimental_data(persyst, input_set):
@@ -1348,7 +1364,7 @@ def get_person_experimental_data(persyst, input_set):
     if not(data['_output_']):
         hash_value = None
     else:
-        hash_value = hashlib.md5(data_string).hexdigest()
+        hash_value = hashlib.md5(data_string.encode('utf-8')).hexdigest()
 
         # If the hash has changed, then delete the old HTML
         if hash_value != persyst.plot_hash:
@@ -2091,7 +2107,7 @@ def get_plot_and_data_HTML(persyst, input_set, show_solution=False):
             elif inputi.ntype == 'CAT':
                 # Quick and dirty method to find the value that corresponds
                 # to the one the user has:
-                for key, value in json.loads(inputi.level_numeric_mapping).iteritems():
+                for key, value in iteritems(json.loads(inputi.level_numeric_mapping)):
                     if value == data[inputi.slug][idx]:
                         input_item[inputi.slug] = key
 
@@ -2274,7 +2290,7 @@ def serialize_numeric_dict(inputs):
     """ Serializes dictionary values, especially those that contain NumPy
     arrays.
     """
-    for key, value in inputs.iteritems():
+    for key, value in iteritems(inputs):
         if isinstance(value, np.ndarray):
             inputs[key] = value.tolist()
 
