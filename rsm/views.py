@@ -2199,7 +2199,7 @@ def create_fake_usernames(number=10):
                   ]
 
     names = []
-    for item in xrange(number+4):  # Generate a few extra
+    for item in range(number+4):  # Generate a few extra
         first = first_names.pop(random.randint(0, len(first_names)-1))
         last = last_names.pop(random.randint(0, len(last_names)-1))
         names.append('{0} {1}'.format(first, last))
