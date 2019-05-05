@@ -1257,7 +1257,8 @@ def update_leaderboard_score(persyst, note=''):
         # of experimental points will have lower standard deviation of the
         # triangle lengths in the Delaunay triangulation of the experimental
         # points. The acount for the scaling by dividing the std.dev. of the
-        # lengths by the triangle area.
+        # lengths by the triangle area. Sum over all triangles, and divide by N,
+        # i.e. average that metric.
 
         def get_triange_summary(points):
             """ Returns edge lengths, given the 3 coordinates of the triangle.
