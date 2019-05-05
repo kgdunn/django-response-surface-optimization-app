@@ -1325,8 +1325,11 @@ def update_leaderboard_score(persyst, note=''):
         score = np.float(score - now_update[0]['run_penalty'] - now_update[0]['reg_penalty'])
         now_update[0]['score'] = score
 
-        logger.debug('now_update : {0}'.format(str(now_update)))
         # From https://stackoverflow.com/questions/27050108/convert-numpy-type-to-python/27050186#27050186
+
+        # Assign the score into the leaderboard:
+        leaderboard.append(now_update)
+        logger.debug('leaderboard : {0}'.format(str(leaderboard)))
         persyst.leaderboard = json.dumps(leaderboard, cls=MyEncoder)
         persyst.save()
 
