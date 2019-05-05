@@ -1324,6 +1324,8 @@ def update_leaderboard_score(persyst, note=''):
 
         score = np.float(score - now_update[0]['run_penalty'] - now_update[0]['reg_penalty'])
         now_update[0]['score'] = score
+
+        logger.debug('now_update : {0}'.format(str(now_update)))
         # From https://stackoverflow.com/questions/27050108/convert-numpy-type-to-python/27050186#27050186
         persyst.leaderboard = json.dumps(leaderboard, cls=MyEncoder)
         persyst.save()
@@ -1860,7 +1862,7 @@ def plot_wrapper(data, persyst, inputs, hash_value, show_solution=False):
             levels.extend([xx, yy, (yy+max_resp+max_resp+max_resp)/4.0])
             off_peak = max_resp - 0.03*(max_resp - levels[-1])
             levels.extend([off_peak, max_resp, ])
-            levels.sort()  
+            levels.sort()
             CS = ax.contour(X, Y, Z, levels=levels)
             colour = []
 
