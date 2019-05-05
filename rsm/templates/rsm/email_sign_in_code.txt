@@ -3,7 +3,9 @@ Hi {{username}},
 Glad to have you back.
 
 To sign back into the Response Surface Method (RSM) website please follow these steps:
+
 1. Click on this link: <a href="{{sign_in_URI}}"><tt>{{sign_in_URI}}</tt></a>
+
 2. Get started with your experiments!
 
 <b>Remember: we don't use passwords on our website</b>, but we do send emails to make sure it is you running the experiments. Once you are logged in, you will be remain signed in for as long as you don't clear out your cookies.
